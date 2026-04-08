@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Platform, Alert, Linking,
+  Platform, Modal, Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -57,6 +57,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { complaints } = useComplaints();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   if (!user) {
     return (
@@ -91,21 +92,12 @@ export default function ProfileScreen() {
   const resolvedCount = complaints.filter((c) => c.status === "resolved").length;
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout from JanSeva?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            await logout();
-            router.replace("/login");
-          },
-        },
-      ]
-    );
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await logout();
   };
 
   return (
@@ -282,6 +274,36 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Custom Logout Confirmation Modal */}
+      <Modal visible={showLogoutModal} transparent animationType="fade" onRequestClose={() => setShowLogoutModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalIconWrap}>
+              <Feather name="log-out" size={28} color="#DC2626" />
+            </View>
+            <Text style={styles.modalTitle}>Logout</Text>
+            <Text style={styles.modalBody}>Are you sure you want to logout from JanSeva?</Text>
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setShowLogoutModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalLogoutBtn}
+                onPress={confirmLogout}
+                activeOpacity={0.85}
+              >
+                <Feather name="log-out" size={15} color="white" />
+                <Text style={styles.modalLogoutText}>Yes, Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -333,4 +355,30 @@ const styles = StyleSheet.create({
   loginBtn: { borderRadius: 16, overflow: "hidden" },
   loginBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 16 },
   loginBtnText: { fontSize: 16, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  modalOverlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center", justifyContent: "center", padding: 32,
+  },
+  modalSheet: {
+    backgroundColor: "white", borderRadius: 24, padding: 28, width: "100%",
+    alignItems: "center", gap: 10,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 24, elevation: 12,
+  },
+  modalIconWrap: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: "#FEE2E2",
+    alignItems: "center", justifyContent: "center", marginBottom: 4,
+  },
+  modalTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold" },
+  modalBody: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+  modalBtnRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 8 },
+  modalCancelBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 14,
+    alignItems: "center", backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  modalCancelText: { fontSize: 14, fontWeight: "700", color: "#64748B", fontFamily: "Inter_700Bold" },
+  modalLogoutBtn: {
+    flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    paddingVertical: 14, borderRadius: 14, backgroundColor: "#DC2626",
+  },
+  modalLogoutText: { fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
 });
