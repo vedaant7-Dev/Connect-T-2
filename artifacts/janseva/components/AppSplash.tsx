@@ -69,7 +69,7 @@ export function AppSplash({ onFinish }: AppSplashProps) {
             end={{ x: 1, y: 0 }}
             style={styles.continueBtnGrad}
           >
-            <Text style={styles.continueBtnText}>Get Started</Text>
+            <Text style={styles.continueBtnText}>Continue</Text>
             <View style={styles.continueBtnIcon}>
               <Feather name="arrow-right" size={18} color="#1E3A8A" />
             </View>
