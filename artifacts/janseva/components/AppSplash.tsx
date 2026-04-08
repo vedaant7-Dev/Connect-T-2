@@ -16,8 +16,8 @@ export function AppSplash({ onFinish }: AppSplashProps) {
     <View style={styles.container}>
       {/* Smooth gradient background */}
       <LinearGradient
-        colors={["#060F24", "#0C1A3A", "#1E3A8A", "#1E40AF", "#2563EB"]}
-        locations={[0, 0.18, 0.5, 0.78, 1]}
+        colors={["#0F1D42", "#1E3A8A", "#2563EB", "#3B82F6", "#60A5FA"]}
+        locations={[0, 0.2, 0.5, 0.78, 1]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -37,14 +37,14 @@ export function AppSplash({ onFinish }: AppSplashProps) {
           />
         </View>
 
-        {/* Brand name */}
-        <Text style={styles.brand}>JanSeva</Text>
-
         {/* Taglines */}
         <View style={styles.taglineWrap}>
           <Text style={styles.taglineEn}>Citizen Services Platform</Text>
           <Text style={styles.taglineHi}>नागरिकों की सेवा में</Text>
         </View>
+
+        {/* Powered by */}
+        <Text style={styles.poweredBy}>Powered by Vikas Bahuddeshiya Aghadi</Text>
       </View>
 
       {/* ── Footer: flag + stamp + Continue button ── */}
@@ -112,33 +112,32 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logoWrap: {
-    marginBottom: 24,
+    marginBottom: 18,
     alignItems: "center",
     justifyContent: "center",
   },
   logoGlow: {
     position: "absolute",
-    width: 170,
-    height: 170,
-    borderRadius: 85,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     backgroundColor: "#3B82F6",
     opacity: 0.13,
   },
   logoImg: {
-    width: 144,
-    height: 144,
-  },
-  brand: {
-    fontSize: 50,
-    fontWeight: "900",
-    color: "white",
-    letterSpacing: -2,
-    fontFamily: "Inter_700Bold",
-    marginBottom: 14,
+    width: 190,
+    height: 190,
   },
   taglineWrap: {
     alignItems: "center",
     gap: 6,
+  },
+  poweredBy: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.4)",
+    fontFamily: "Inter_400Regular",
+    letterSpacing: 0.5,
+    marginTop: 16,
   },
   taglineEn: {
     fontSize: 15,

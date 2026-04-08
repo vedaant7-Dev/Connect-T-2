@@ -146,8 +146,8 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={["#060F24", "#0D1B3E", "#1E3A8A", "#2563EB"]}
-      locations={[0, 0.3, 0.7, 1]}
+      colors={["#0F1D42", "#1E3A8A", "#2563EB", "#3B82F6"]}
+      locations={[0, 0.25, 0.65, 1]}
       style={[styles.root, { paddingTop: topPad }]}
     >
       <KeyboardAvoidingView
@@ -166,8 +166,7 @@ export default function LoginScreen() {
               style={styles.logo}
               contentFit="contain"
             />
-            <Text style={styles.brand}>JanSeva</Text>
-            <Text style={styles.brandSub}>Ulhasnagar Citizens Platform</Text>
+            <Text style={styles.brandSub}>Powered by Vikas Bahuddeshiya Aghadi</Text>
           </View>
 
           {/* ── STEP: Phone ─────────────────────────────────────────────── */}
@@ -463,15 +462,12 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 40, alignItems: "center" },
-  logoBox: { alignItems: "center", marginBottom: 24, marginTop: 12 },
-  logo: { width: 72, height: 72, marginBottom: 10 },
-  brand: {
-    fontSize: 28, fontWeight: "900", color: "#FFFFFF",
-    fontFamily: "Inter_700Bold", letterSpacing: -0.5,
-  },
+  logoBox: { alignItems: "center", marginBottom: 10, marginTop: 8 },
+  logo: { width: 120, height: 120, marginBottom: 6 },
   brandSub: {
-    fontSize: 11, color: "rgba(255,255,255,0.55)",
-    fontFamily: "Inter_400Regular", marginTop: 3, textAlign: "center",
+    fontSize: 11, color: "rgba(255,255,255,0.45)",
+    fontFamily: "Inter_400Regular", marginTop: 2, textAlign: "center",
+    letterSpacing: 0.3,
   },
   card: {
     backgroundColor: "white", borderRadius: 24, padding: 24,
