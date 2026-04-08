@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { EmergencyButton } from "@/components/EmergencyButton";
 import { emergencyContacts } from "@/data/mumbaiServices";
 import { useLanguage } from "@/context/LanguageContext";
+import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
 export default function EmergencyScreen() {
   const insets = useSafeAreaInsets();
@@ -23,6 +24,7 @@ export default function EmergencyScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : 0;
   const router = useRouter();
   const { t } = useLanguage();
+  const { handleScroll } = useTabBarVisibility();
 
   const tips = [t("tip1"), t("tip2"), t("tip3"), t("tip4")];
 
@@ -52,6 +54,8 @@ export default function EmergencyScreen() {
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <View style={styles.sosSection}>
           <Text style={styles.sosSectionTitle}>{t("emergencySOS")}</Text>

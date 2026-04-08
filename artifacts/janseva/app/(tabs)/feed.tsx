@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintContext";
 import { useRouter } from "expo-router";
 import { useLanguage } from "@/context/LanguageContext";
+import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
 type FeedTab = "posts" | "active" | "resolved";
 
@@ -105,7 +106,7 @@ function PostCard({ post, userId }: { post: FeedPost; userId: string }) {
     <View style={[styles.tweetCard, post.pinned && styles.tweetCardPinned]}>
       {post.pinned && (
         <View style={styles.pinnedBar}>
-          <Feather name="pin" size={10} color="#7C3AED" />
+          <Feather name="bookmark" size={10} color="#7C3AED" />
           <Text style={styles.pinnedText}>{t("pinnedPost")}</Text>
         </View>
       )}
@@ -179,7 +180,7 @@ function ComplaintCard({ complaint, onPress }: { complaint: Complaint; onPress: 
           ) : (
             <View style={[styles.cmpPhotoPlaceholder, { backgroundColor: cat.bg }]}>
               <Feather name={cat.icon as any} size={28} color={cat.color + "60"} />
-              <Text style={[styles.cmpPhotoPlaceholderText, { color: cat.color + "80" }]}>{cat.label}</Text>
+              <Text style={[styles.cmpPhotoPlaceholderText, { color: cat.color + "80" }]}>{complaint.category}</Text>
             </View>
           )}
 
@@ -275,6 +276,7 @@ export default function FeedScreen() {
   const { user } = useAuth();
   const { complaints } = useComplaints();
   const { t } = useLanguage();
+  const { handleScroll } = useTabBarVisibility();
   const [activeTab, setActiveTab] = useState<FeedTab>("posts");
   const [showNewPost, setShowNewPost] = useState(false);
 
@@ -337,17 +339,10 @@ export default function FeedScreen() {
           data={posts}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => <PostCard post={item} userId={userId} />}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 100 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 160 }]}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <TouchableOpacity style={styles.quickPostBar} onPress={() => setShowNewPost(true)} activeOpacity={0.85}>
-              {user && <Avatar name={user.name} color={user.avatarColor || "#2563EB"} size={36} />}
-              <Text style={styles.quickPostPlaceholder}>{t("shareWithWard")}</Text>
-              <View style={styles.quickPostSend}>
-                <Feather name="feather" size={14} color="#2563EB" />
-              </View>
-            </TouchableOpacity>
-          }
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       ) : activeTab === "active" ? (
@@ -360,8 +355,10 @@ export default function FeedScreen() {
               onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })}
             />
           )}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 100 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 160 }]}
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
@@ -381,8 +378,10 @@ export default function FeedScreen() {
               onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })}
             />
           )}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 100 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 160 }]}
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
@@ -393,6 +392,23 @@ export default function FeedScreen() {
           }
         />
       )}
+
+      <View style={[styles.bottomComposeBar, { paddingBottom: bottomPad + 90 }]}>
+        <TouchableOpacity style={styles.composeBarInner} onPress={() => setShowNewPost(true)} activeOpacity={0.85}>
+          {user && <Avatar name={user.name} color={user.avatarColor || "#2563EB"} size={36} />}
+          <Text style={styles.composePlaceholder}>{t("shareWithWard")}</Text>
+          <View style={styles.composeActions}>
+            <TouchableOpacity style={styles.composeIconBtn} onPress={() => setShowNewPost(true)} activeOpacity={0.8}>
+              <Feather name="image" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.composeSendBtn} onPress={() => setShowNewPost(true)} activeOpacity={0.85}>
+              <LinearGradient colors={["#1E40AF", "#2563EB"]} style={styles.composeSendGrad}>
+                <Feather name="send" size={14} color="white" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </View>
 
       <NewPostModal visible={showNewPost} onClose={() => setShowNewPost(false)} onSubmit={handlePost} canPostAnnouncement={canPostAnnouncement} />
     </View>
@@ -415,9 +431,13 @@ const styles = StyleSheet.create({
   tabTextActive: { color: "white", fontFamily: "Inter_700Bold" },
   list: { paddingTop: 8, paddingHorizontal: 0 },
   separator: { height: 1, backgroundColor: "#E2E8F0", marginLeft: 74 },
-  quickPostBar: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "white", padding: 14, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
-  quickPostPlaceholder: { flex: 1, fontSize: 14, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  quickPostSend: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  bottomComposeBar: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "white", borderTopWidth: 1, borderTopColor: "#E2E8F0", paddingHorizontal: 12, paddingTop: 10, shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 8 },
+  composeBarInner: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F8FAFC", borderRadius: 24, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: "#E2E8F0" },
+  composePlaceholder: { flex: 1, fontSize: 14, color: "#94A3B8", fontFamily: "Inter_400Regular" },
+  composeActions: { flexDirection: "row", alignItems: "center", gap: 6 },
+  composeIconBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+  composeSendBtn: { borderRadius: 16, overflow: "hidden" },
+  composeSendGrad: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
 
   tweetCard: { backgroundColor: "white", paddingHorizontal: 14, paddingTop: 14, paddingBottom: 4 },
   tweetCardPinned: { borderLeftWidth: 3, borderLeftColor: "#7C3AED" },

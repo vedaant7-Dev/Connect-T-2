@@ -52,11 +52,22 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - SOS is tab 3 of 5 (true centre)
 
 ### Key Files
-- `artifacts/janseva/app/_layout.tsx` — Root layout, AuthGate, AppSplash overlay
+- `artifacts/janseva/app/_layout.tsx` — Root layout, AuthGate, AppSplash overlay, Feather font loading
 - `artifacts/janseva/app/login.tsx` — Phone-first auth (register/login)
-- `artifacts/janseva/app/(tabs)/_layout.tsx` — 5-tab nav with floating SOS
+- `artifacts/janseva/app/(tabs)/_layout.tsx` — Custom AnimatedTabBar (hides on scroll, shows on stop)
 - `artifacts/janseva/context/AuthContext.tsx` — Auth + multi-user registry
+- `artifacts/janseva/context/TabBarVisibilityContext.tsx` — Scroll-aware tab bar hide/show with Reanimated
 - `artifacts/janseva/components/AppSplash.tsx` — Animated splash (LinearGradient + multi-phase)
+
+### Tab Bar Behavior
+- Custom `AnimatedTabBar` component using `react-native-reanimated`
+- Hides on scroll down, reappears on scroll up or when scrolling stops (800ms timeout)
+- All tab screens wire `onScroll={handleScroll}` and `scrollEventThrottle={16}`
+- Hidden screens filtered by both `options.href === null` AND explicit route name check
+
+### Feed Compose Bar
+- Persistent bottom bar on feed screen with user avatar, placeholder text, image icon, and send button
+- Tapping opens the NewPostModal for creating posts
 
 ### Splash Screen
 - True `LinearGradient` background: `#0F1D42 → #1E3A8A → #2563EB → #3B82F6 → #60A5FA`

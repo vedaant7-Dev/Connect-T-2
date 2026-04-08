@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useComplaints } from "@/context/ComplaintContext";
 import { useLanguage, languageOptions, Language } from "@/context/LanguageContext";
+import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
 const roleConfig = {
   citizen: {
@@ -59,6 +60,7 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { complaints } = useComplaints();
   const { language, setLanguage, t } = useLanguage();
+  const { handleScroll } = useTabBarVisibility();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showLangModal, setShowLangModal] = useState(false);
 
@@ -161,6 +163,8 @@ export default function ProfileScreen() {
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         {/* Admin Panel Card */}
         {(user.role === "nagarsevak" || user.role === "head_admin") && (

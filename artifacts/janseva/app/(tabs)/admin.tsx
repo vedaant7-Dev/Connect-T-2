@@ -11,6 +11,7 @@ import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintCo
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
 import { useLanguage } from "@/context/LanguageContext";
+import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
 const statusLabelKeys: Record<ComplaintStatus, string> = {
   submitted: "submitted",
@@ -186,6 +187,7 @@ function NagarsevakPanel() {
   const { complaints, updateStatus } = useComplaints();
   const router = useRouter();
   const { t } = useLanguage();
+  const { handleScroll } = useTabBarVisibility();
   const [filter, setFilter] = useState<ComplaintStatus | "all">("all");
   const [active, setActive] = useState<Complaint | null>(null);
 
@@ -248,6 +250,8 @@ function NagarsevakPanel() {
         renderItem={({ item }) => <ComplaintCard complaint={item} onAction={() => setActive(item)} />}
         contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Feather name="check-circle" size={36} color="#CBD5E1" />
@@ -287,6 +291,7 @@ function HeadAdminPanel() {
   const { complaints, updateStatus } = useComplaints();
   const router = useRouter();
   const { t } = useLanguage();
+  const { handleScroll } = useTabBarVisibility();
   const [tab, setTab] = useState<"complaints" | "officers" | "services">("complaints");
   const [filterWard, setFilterWard] = useState("All Wards");
   const [filterStatus, setFilterStatus] = useState<ComplaintStatus | "all">("all");
@@ -375,13 +380,15 @@ function HeadAdminPanel() {
             renderItem={({ item }) => <ComplaintCard complaint={item} onAction={() => setActive(item)} />}
             contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             ListEmptyComponent={<View style={styles.empty}><Feather name="inbox" size={36} color="#CBD5E1" /><Text style={styles.emptyText}>{t("noComplaintsFound")}</Text></View>}
           />
         </>
       )}
 
       {tab === "officers" && (
-        <ScrollView contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]}>
+        <ScrollView contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]} onScroll={handleScroll} scrollEventThrottle={16}>
           <Text style={styles.sectionHeading}>{t("nagarsevakPerformance")}</Text>
           {DEMO_OFFICERS.map((o, i) => (
             <View key={i} style={styles.officerCard}>
@@ -411,7 +418,7 @@ function HeadAdminPanel() {
       )}
 
       {tab === "services" && (
-        <ScrollView contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]}>
+        <ScrollView contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]} onScroll={handleScroll} scrollEventThrottle={16}>
           <View style={styles.servicesAdminHeader}>
             <Text style={styles.sectionHeading}>{t("serviceManagement")}</Text>
             <TouchableOpacity style={styles.addServiceBtn} activeOpacity={0.8}>

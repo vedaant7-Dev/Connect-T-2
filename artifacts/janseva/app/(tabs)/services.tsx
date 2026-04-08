@@ -15,6 +15,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { serviceCategories, ServiceCategory, ServicePlace } from "@/data/mumbaiServices";
+import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
 function StarRow({ rating }: { rating?: number }) {
   if (!rating) return null;
@@ -136,6 +137,7 @@ export default function ServicesScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
   const params = useLocalSearchParams<{ category?: string }>();
+  const { handleScroll } = useTabBarVisibility();
 
   const [selectedCat, setSelectedCat] = useState<ServiceCategory>(serviceCategories[0]);
 
@@ -215,6 +217,8 @@ export default function ServicesScreen() {
         )}
         contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad + 90 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
     </View>
   );

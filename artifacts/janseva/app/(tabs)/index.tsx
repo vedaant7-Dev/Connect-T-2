@@ -13,6 +13,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { emergencyContacts } from "@/data/mumbaiServices";
 import { useComplaints, ComplaintStatus } from "@/context/ComplaintContext";
 import { useAuth } from "@/context/AuthContext";
+import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { useLanguage } from "@/context/LanguageContext";
 
 const alertsAndNews = [
@@ -74,6 +75,7 @@ export default function HomeScreen() {
   const { complaints } = useComplaints();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { handleScroll } = useTabBarVisibility();
   const [selectedAlert, setSelectedAlert] = useState<typeof alertsAndNews[0] | null>(null);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [selectedUtility, setSelectedUtility] = useState<string | null>(null);
@@ -148,6 +150,8 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 50 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         {/* REPORT A PROBLEM CTA */}
         <TouchableOpacity style={styles.complaintCTA} onPress={() => router.push("/complaint/new")} activeOpacity={0.88}>

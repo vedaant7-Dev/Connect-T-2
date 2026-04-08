@@ -11,6 +11,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Feather } from "@expo/vector-icons";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplash } from "@/components/AppSplash";
@@ -18,6 +19,7 @@ import { ComplaintProvider } from "@/context/ComplaintContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { FeedProvider } from "@/context/FeedContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { TabBarVisibilityProvider } from "@/context/TabBarVisibilityContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -64,6 +66,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    ...Feather.font,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -88,12 +91,14 @@ export default function RootLayout() {
               <ComplaintProvider>
                 <FeedProvider>
                   <GestureHandlerRootView style={{ flex: 1 }}>
-                    <AuthGate>
-                      <RootLayoutNav />
-                    </AuthGate>
-                    {!splashDone && (
-                      <AppSplash onFinish={() => setSplashDone(true)} />
-                    )}
+                    <TabBarVisibilityProvider>
+                      <AuthGate>
+                        <RootLayoutNav />
+                      </AuthGate>
+                      {!splashDone && (
+                        <AppSplash onFinish={() => setSplashDone(true)} />
+                      )}
+                    </TabBarVisibilityProvider>
                   </GestureHandlerRootView>
                 </FeedProvider>
               </ComplaintProvider>

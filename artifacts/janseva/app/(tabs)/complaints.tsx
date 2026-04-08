@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
 const statusLabelKeys: Record<ComplaintStatus, string> = {
   submitted: "submitted",
@@ -131,6 +132,7 @@ export default function ComplaintsScreen() {
   const router = useRouter();
   const { complaints } = useComplaints();
   const { t } = useLanguage();
+  const { handleScroll } = useTabBarVisibility();
   const [filter, setFilter] = useState("all");
 
   const filterTabs = [
@@ -225,6 +227,8 @@ export default function ComplaintsScreen() {
         )}
         contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 90 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Feather name="inbox" size={40} color="#CBD5E1" />
