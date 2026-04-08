@@ -80,10 +80,8 @@ export default function HomeScreen() {
   const resolvedCount = complaints.filter((c) => c.status === "resolved").length;
   const roleColor = getRoleColor(user?.role);
 
-  const handleSOS = () => {
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Linking.openURL("tel:112");
-  };
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const notifCount = alertsAndNews.length;
 
   const handleCall = (number: string) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -112,9 +110,17 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity onPress={handleSOS} style={styles.sosBtn} activeOpacity={0.85}>
-              <Feather name="phone-call" size={14} color="white" />
-              <Text style={styles.sosBtnText}>SOS</Text>
+            <TouchableOpacity
+              onPress={() => setNotifOpen(!notifOpen)}
+              style={styles.notifBtn}
+              activeOpacity={0.82}
+            >
+              <Feather name="bell" size={18} color="white" />
+              {notifCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{notifCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -311,12 +317,20 @@ const styles = StyleSheet.create({
   rolePillText: { fontSize: 9, fontWeight: "700", color: "rgba(255,255,255,0.85)", fontFamily: "Inter_600SemiBold" },
   wardText: { fontSize: 10, color: "rgba(255,255,255,0.55)", fontFamily: "Inter_400Regular" },
   headerRight: { gap: 6, alignItems: "flex-end" },
-  sosBtn: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    backgroundColor: "#DC2626", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12,
-    shadowColor: "#DC2626", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+  notifBtn: {
+    width: 42, height: 42, borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.25)",
+    alignItems: "center", justifyContent: "center",
   },
-  sosBtnText: { fontSize: 12, fontWeight: "900", color: "#FFFFFF", letterSpacing: 1, fontFamily: "Inter_700Bold" },
+  notifBadge: {
+    position: "absolute", top: -4, right: -4,
+    width: 17, height: 17, borderRadius: 9,
+    backgroundColor: "#DC2626",
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1.5, borderColor: "white",
+  },
+  notifBadgeText: { fontSize: 8, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
   alertBanner: { flexDirection: "row", gap: 10, backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 14, padding: 12, alignItems: "center" },
   alertIcon: { width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(245,158,11,0.2)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   alertText: { flex: 1 },
