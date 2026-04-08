@@ -6,7 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -15,27 +15,43 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ComplaintProvider } from "@/context/ComplaintContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { FeedProvider } from "@/context/FeedContext";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (loading) return;
+    const inLogin = segments[0] === "login";
+    if (!user && !inLogin) {
+      router.replace("/login");
+    } else if (user && inLogin) {
+      router.replace("/(tabs)");
+    }
+  }, [user, loading, segments]);
+
+  return <>{children}</>;
+}
+
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="complaint/new"
-        options={{
-          headerShown: false,
-          presentation: "modal",
-        }}
+        options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
         name="complaint/[id]"
-        options={{
-          headerShown: false,
-        }}
+        options={{ headerShown: false }}
       />
     </Stack>
   );
@@ -61,13 +77,19 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <ComplaintProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </ComplaintProvider>
+          <AuthProvider>
+            <ComplaintProvider>
+              <FeedProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <KeyboardProvider>
+                    <AuthGate>
+                      <RootLayoutNav />
+                    </AuthGate>
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </FeedProvider>
+            </ComplaintProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
