@@ -107,24 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithNagarsevakId = async (mobile: string, nagarsevakId: string): Promise<User | null> => {
-    const isValidId = NAGARSEVAK_IDS.includes(nagarsevakId.toUpperCase());
+    const normalizedId = nagarsevakId.toUpperCase().trim();
+    const isValidId = NAGARSEVAK_IDS.includes(normalizedId);
     if (!isValidId) return null;
 
     const users = await getAllUsers();
-    let found = users.find((u) => u.mobile === mobile.trim() && u.nagarsevakId === nagarsevakId.toUpperCase());
+    const found = users.find((u) => u.mobile === mobile.trim() && u.role === "nagarsevak" && u.nagarsevakId === normalizedId);
     if (found) {
       await login(found);
       return found;
     }
 
-    found = users.find((u) => u.mobile === mobile.trim());
-    if (found) {
-      found.role = "nagarsevak";
-      found.nagarsevakId = nagarsevakId.toUpperCase();
-      await saveAllUsers(users);
-      await login(found);
-      return found;
-    }
+    const existingCitizen = users.find((u) => u.mobile === mobile.trim());
+    if (existingCitizen) return null;
 
     const colorIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
     const newUser: User = {
@@ -132,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: "Nagarsevak",
       mobile: mobile.trim(),
       role: "nagarsevak",
-      nagarsevakId: nagarsevakId.toUpperCase(),
+      nagarsevakId: normalizedId,
       avatarColor: AVATAR_COLORS[colorIndex],
       createdAt: new Date().toISOString(),
     };

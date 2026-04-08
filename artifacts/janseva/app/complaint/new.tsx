@@ -18,6 +18,7 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useComplaints, ComplaintCategory } from "@/context/ComplaintContext";
+import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 
 const categoryLabelKeys: Record<string, string> = {
@@ -41,6 +42,7 @@ export default function NewComplaintScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const router = useRouter();
   const { addComplaint } = useComplaints();
+  const { user } = useAuth();
   const { t } = useLanguage();
 
   const [photoUri, setPhotoUri] = useState<string | undefined>();
@@ -114,7 +116,8 @@ export default function NewComplaintScreen() {
         category: selectedCategory,
         photoUri,
         location,
-        ward: "Camp 1 — Ulhasnagar",
+        ward: user?.ward || "Camp 1 — Ulhasnagar",
+        userName: user?.name,
       });
 
       setSubmitting(false);

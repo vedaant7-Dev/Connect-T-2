@@ -35,6 +35,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
     const inLogin = segments[0] === "login";
+    const inTabs = segments[0] === "(tabs)";
+    const currentTab = inTabs ? segments[1] : undefined;
+
     if (!user && !inLogin) {
       router.replace("/login");
     } else if (user && inLogin) {
@@ -43,6 +46,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       } else {
         router.replace("/(tabs)");
       }
+    } else if (user && user.role === "nagarsevak" && inTabs && currentTab !== "admin") {
+      router.replace("/(tabs)/admin" as any);
     }
   }, [user, loading, segments]);
 
