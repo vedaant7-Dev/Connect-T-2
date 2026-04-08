@@ -114,7 +114,7 @@ function PlaceCard({
       {place.contacts.slice(0, 2).map((c, i) => (
         <View key={i} style={[styles.quickContact, { borderTopColor: categoryColor + "18" }]}>
           <View style={[styles.quickContactIcon, { backgroundColor: categoryBg }]}>
-            <Feather name="phone" size={11} color={categoryColor} />
+            <Feather name="phone" size={11} color="#0F172A" />
           </View>
           <Text style={styles.quickContactRole}>{c.role || c.name}</Text>
           <Text style={styles.quickContactPhone}>{c.phone}</Text>
