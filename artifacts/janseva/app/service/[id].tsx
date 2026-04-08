@@ -239,7 +239,7 @@ export default function ServiceDetailScreen() {
               </View>
               <View style={styles.contactInfo}>
                 <Text style={styles.contactRole}>{contact.role || contact.name}</Text>
-                <Text style={[styles.contactPhone, { color: category.color }]}>{contact.phone}</Text>
+                <Text style={styles.contactPhone}>{contact.phone}</Text>
               </View>
               <View style={[styles.callBtn, { backgroundColor: category.color }]}>
                 <Feather name="phone" size={13} color="white" />
@@ -361,8 +361,8 @@ const styles = StyleSheet.create({
   },
   contactIconBox: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   contactInfo: { flex: 1 },
-  contactRole: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", marginBottom: 2 },
-  contactPhone: { fontSize: 16, fontWeight: "800", fontFamily: "Inter_700Bold" },
+  contactRole: { fontSize: 11, color: "#0F172A", fontFamily: "Inter_400Regular", marginBottom: 2 },
+  contactPhone: { fontSize: 16, fontWeight: "800", fontFamily: "Inter_700Bold", color: "#0F172A" },
   callBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
   callBtnText: { fontSize: 11, fontWeight: "700", color: "white", fontFamily: "Inter_600SemiBold" },
   reviewRow: { paddingVertical: 12 },
