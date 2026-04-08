@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JanSeva — Vanchit Party Citizen App · All Screens</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Blues — gradient system */
+  --B1: #1E40AF;   /* deep navy blue */
+  --B2: #2563EB;   /* mid blue */
+  --B3: #3B82F6;   /* bright blue */
+  --B4: #60A5FA;   /* light blue */
+  --B5: #DBEAFE;   /* pale blue bg */
+  --B6: #EFF6FF;   /* ultra pale */
+
+  /* Vanchit accent — electric cyan-blue */
+  --A1: #0EA5E9;   /* sky accent */
+  --A2: #BAE6FD;   /* sky pale */
+
+  /* Gold accent for premium feel */
+  --Gold: #F59E0B;
+  --GoldP: #FEF3C7;
+
+  /* Success */
+  --G:  #059669;
+  --GP: #D1FAE5;
+
+  /* Danger */
+  --R:  #DC2626;
+  --RP: #FEE2E2;
+
+  /* Warm purple accent */
+  --P:  #7C3AED;
+  --PP: #EDE9FE;
+
+  /* Neutrals */
+  --W:  #ffffff;
+  --N50: #F8FAFC;
+  --N100:#F1F5F9;
+  --N200:#E2E8F0;
+  --N300:#CBD5E1;
+  --N400:#94A3B8;
+  --N500:#64748B;
+  --N600:#475569;
+  --N700:#334155;
+  --N900:#0F172A;
+
+  /* Gradients */
+  --grad-main: linear-gradient(145deg, #1E3A8A 0%, #1E40AF 30%, #2563EB 65%, #3B82F6 100%);
+  --grad-deep: linear-gradient(160deg, #0F172A 0%, #1E3A8A 50%, #1E40AF 100%);
+  --grad-sky:  linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%);
+  --grad-gold: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  --grad-g:    linear-gradient(135deg, #059669 0%, #047857 100%);
+  --grad-r:    linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  --grad-p:    linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+  --grad-card: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;scrollbar-width:none;}
+*::-webkit-scrollbar{display:none;}
+body{font-family:'Poppins',sans-serif;background:#060E1E;padding:48px 20px 80px;min-height:100vh;}
+
+/* ── PAGE HEADER ── */
+.pg-hdr{text-align:center;margin-bottom:48px;}
+.pg-hdr h1{font-size:32px;font-weight:900;color:white;letter-spacing:-1px;line-height:1.1;}
+.pg-hdr h1 span{background:var(--grad-sky);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.pg-hdr p{font-size:13px;color:#334155;margin-top:6px;}
+.cpills{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+.cpill{padding:5px 16px;border-radius:20px;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;}
+.cpill-b{background:var(--grad-main);color:white;}
+.cpill-a{background:var(--grad-sky);color:white;}
+.cpill-g{background:var(--grad-gold);color:white;}
+.cpill-w{background:rgba(255,255,255,0.08);color:#94A3B8;border:1px solid #1E3A8A;}
+
+/* section divider */
+.sec-divider{width:100%;text-align:center;margin:32px 0 28px;color:#1E3A8A;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;display:flex;align-items:center;gap:12px;}
+.sec-divider::before,.sec-divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,#1E3A8A44,transparent);}
+
+/* ── GRID ── */
+.grid{display:flex;flex-wrap:wrap;gap:32px;justify-content:center;}
+.pw{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.sname{font-size:9px;font-weight:700;color:#1E40AF;letter-spacing:2px;text-transform:uppercase;font-family:'Poppins',sans-serif;}
+
+/* ── PHONE SHELL ── */
+.phone{
+  width:224px;height:476px;
+  background:#F8FAFC;
+  border-radius:36px;
+  overflow:hidden;
+  box-shadow:
+    0 0 0 1px #1E3A8A33,
+    0 0 0 7px #0A1628,
+    0 0 0 9px #0F2040,
+    0 28px 70px rgba(30,64,175,0.35),
+    0 8px 20px rgba(0,0,0,0.6);
+  display:flex;flex-direction:column;
+  position:relative;flex-shrink:0;
+}
+
+/* ── STATUS BAR ── */
+.sb{height:22px;padding:5px 14px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;font-size:8px;font-weight:600;font-family:'Poppins',sans-serif;}
+.sb-w{color:rgba(255,255,255,0.9);}
+.sb-d{color:var(--N700);}
+
+/* ── HEADERS ── */
+.hdr-blue{background:var(--grad-main);padding:10px 14px 14px;flex-shrink:0;}
+.hdr-deep{background:var(--grad-deep);padding:10px 14px 14px;flex-shrink:0;}
+.hdr-sky{background:var(--grad-sky);padding:10px 14px 14px;flex-shrink:0;}
+.hdr-r{background:var(--grad-r);padding:10px 14px 14px;flex-shrink:0;}
+.hdr-g{background:var(--grad-g);padding:10px 14px 14px;flex-shrink:0;}
+.hdr-p{background:var(--grad-p);padding:10px 14px 14px;flex-shrink:0;}
+.hdr-title{font-size:13px;font-weight:700;color:white;font-family:'Poppins',sans-serif;}
+.hdr-sub{font-size:8px;color:rgba(255,255,255,0.7);margin-top:1px;font-family:'Poppins',sans-serif;}
+
+.brow{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.bico{width:24px;height:24px;background:rgba(255,255,255,0.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+
+/* ── BODY ── */
+.body{flex:1;overflow-y:auto;padding:12px;background:var(--N50);}
+.body-w{flex:1;overflow-y:auto;padding:12px;background:white;}
+
+/* ── COMPONENTS ── */
+.card{background:white;border-radius:14px;padding:11px;box-shadow:0 2px 12px rgba(30,64,175,0.08);margin-bottom:8px;}
+.card-b{background:var(--B6);border-radius:14px;padding:11px;border:1px solid var(--B5);margin-bottom:8px;}
+
+.sec-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.sec-t{font-size:10px;font-weight:700;color:var(--N900);font-family:'Poppins',sans-serif;}
+.sec-a{font-size:9px;color:var(--B2);font-weight:600;}
+
+/* Buttons */
+.btn-blue{width:100%;height:38px;border:none;background:var(--grad-main);border-radius:12px;color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px;}
+.btn-sky{width:100%;height:38px;border:none;background:var(--grad-sky);border-radius:12px;color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-r{width:100%;height:38px;border:none;background:var(--grad-r);border-radius:12px;color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-g{width:100%;height:38px;border:none;background:var(--grad-g);border-radius:12px;color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-gold{width:100%;height:38px;border:none;background:var(--grad-gold);border-radius:12px;color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-out{width:100%;height:36px;border:1.5px solid var(--B2);background:white;border-radius:12px;color:var(--B2);font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;cursor:pointer;}
+
+/* Badges */
+.bdg-b{background:var(--B5);color:var(--B1);font-size:7.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.bdg-g{background:var(--GP);color:var(--G);font-size:7.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.bdg-r{background:var(--RP);color:var(--R);font-size:7.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.bdg-gold{background:var(--GoldP);color:#92400E;font-size:7.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.bdg-p{background:var(--PP);color:var(--P);font-size:7.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.bdg-sky{background:var(--A2);color:#0369A1;font-size:7.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+
+/* Input */
+.inp{width:100%;padding:8px 10px;border:1.5px solid var(--N200);border-radius:10px;font-family:'Poppins',sans-serif;font-size:9px;color:var(--N700);background:var(--N50);}
+.inp-focus{width:100%;padding:8px 10px;border:1.5px solid var(--B3);border-radius:10px;font-family:'Poppins',sans-serif;font-size:9px;color:var(--N900);background:var(--B6);}
+
+/* Bottom Nav */
+.bnav{height:50px;background:white;border-top:1px solid var(--N100);display:flex;align-items:center;flex-shrink:0;box-shadow:0 -4px 16px rgba(30,64,175,0.07);}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 0;}
+.ni.a .nilbl{color:var(--B2);}
+.ni.a .niico{background:var(--B5);}
+.niico{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.nilbl{font-size:6.5px;font-weight:600;color:var(--N400);font-family:'Poppins',sans-serif;}
+</style>
+</head>
+<body>
+
+<div class="pg-hdr">
+  <h1>Jan<span>Seva</span> — All UI Screens</h1>
+  <p>Vanchit Bahujan Aghadi · Citizen Services App · v1.0</p>
+  <div class="cpills">
+    <div class="cpill cpill-b">Deep Blue #1E40AF</div>
+    <div class="cpill cpill-a">Sky Blue #0EA5E9</div>
+    <div class="cpill cpill-g">Gold #F59E0B</div>
+    <div class="cpill cpill-w">Poppins Font</div>
+  </div>
+</div>
+
+<div class="grid">
+
+<!-- ════════════════════════════════════
+     ONBOARDING FLOW
+════════════════════════════════════ -->
+
+<!-- 1. SPLASH -->
+<div class="pw">
+  <div class="sname">01 · Splash</div>
+  <div class="phone">
+    <div style="background:var(--grad-deep);flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+      <!-- geometric bg shapes -->
+      <div style="position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(37,99,235,0.15);top:-80px;right:-80px;"></div>
+      <div style="position:absolute;width:180px;height:180px;border-radius:50%;background:rgba(14,165,233,0.1);bottom:-40px;left:-50px;"></div>
+      <div style="position:absolute;width:60px;height:60px;border-radius:50%;background:rgba(245,158,11,0.2);top:60px;left:20px;"></div>
+      <!-- hexagonal logo -->
+      <div style="position:relative;margin-bottom:20px;">
+        <div style="width:76px;height:76px;background:var(--grad-sky);border-radius:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(37,99,235,0.5),0 0 0 2px rgba(255,255,255,0.15);">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <path d="M20 4L4 11V20C4 29 11 36 20 39C29 36 36 29 36 20V11L20 4Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"/>
+            <path d="M13 28V18H16.5V28H13ZM23.5 28V14H27V28H23.5ZM18 28V21H22V28H18Z" fill="white"/>
+          </svg>
+        </div>
+        <div style="position:absolute;bottom:-4px;right:-4px;width:22px;height:22px;background:var(--grad-gold);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #0F172A;font-size:11px;">⚡</div>
+      </div>
+      <div style="font-size:28px;font-weight:900;color:white;letter-spacing:-1px;margin-bottom:4px;font-family:'Poppins',sans-serif;">JanSeva</div>
+      <div style="font-size:9.5px;color:rgba(255,255,255,0.65);font-weight:500;margin-bottom:3px;letter-spacing:1px;text-transform:uppercase;">Citizen Services Platform</div>
+      <div style="font-family:'Noto Sans Devanagari',sans-serif;font-size:9px;color:rgba(255,255,255,0.45);margin-bottom:32px;">जनसेवा · नागरिक सेवा</div>
+      <!-- party badge -->
+      <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:8px 18px;text-align:center;backdrop-filter:blur(8px);">
+        <div style="font-size:8px;color:rgba(255,255,255,0.5);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px;">Powered by</div>
+        <div style="font-size:10px;font-weight:800;color:white;">Vanchit Bahujan Aghadi</div>
+      </div>
+      <!-- loading dots -->
+      <div style="display:flex;gap:6px;margin-top:28px;">
+        <div style="width:18px;height:4px;background:var(--grad-gold);border-radius:2px;"></div>
+        <div style="width:6px;height:4px;border-radius:50%;background:rgba(255,255,255,0.25);"></div>
+        <div style="width:6px;height:4px;border-radius:50%;background:rgba(255,255,255,0.25);"></div>
+      </div>
+      <!-- bottom blue line -->
+      <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--grad-sky);"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. ONBOARDING -->
+<div class="pw">
+  <div class="sname">02 · Onboarding</div>
+  <div class="phone">
+    <div style="background:var(--grad-deep);flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;">
+      <!-- top half illustration -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:30px 20px 0;position:relative;">
+        <div style="position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(37,99,235,0.15);top:10px;"></div>
+        <div style="width:100px;height:100px;border-radius:28px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:44px;z-index:1;">🏛️</div>
+      </div>
+      <!-- bottom sheet -->
+      <div style="background:white;border-radius:28px 28px 0 0;padding:22px 18px 20px;flex-shrink:0;">
+        <div style="display:flex;gap:5px;margin-bottom:18px;">
+          <div style="width:22px;height:5px;background:var(--grad-main);border-radius:3px;"></div>
+          <div style="width:5px;height:5px;border-radius:50%;background:var(--N200);"></div>
+          <div style="width:5px;height:5px;border-radius:50%;background:var(--N200);"></div>
+        </div>
+        <div style="font-size:19px;font-weight:800;color:var(--N900);line-height:1.2;margin-bottom:6px;">Your Rights,<br>One App Away</div>
+        <div style="font-family:'Noto Sans Devanagari',sans-serif;font-size:10px;color:var(--B2);font-weight:600;margin-bottom:10px;">तुमचे हक्क, एका अ‍ॅपमध्ये</div>
+        <div style="font-size:10px;color:var(--N500);line-height:1.6;margin-bottom:18px;">Access civic services, file complaints, track government schemes — all in one place for Vanchit citizens.</div>
+        <button class="btn-blue">Get Started →</button>
+        <div style="text-align:center;margin-top:10px;font-size:9px;color:var(--N400);font-weight:500;">Available in English · मराठी · हिंदी</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. LOGIN -->
+<div class="pw">
+  <div class="sname">03 · Login</div>
+  <div class="phone">
+    <div class="hdr-deep">
+      <div class="sb sb-w" style="padding:0;height:auto;margin-bottom:10px;font-size:8px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div style="margin-bottom:4px;">
+        <div style="font-size:18px;font-weight:800;color:white;letter-spacing:-0.5px;">Welcome Back 🙌</div>
+        <div style="font-size:8.5px;color:rgba(255,255,255,0.6);margin-top:2px;">Login to access your Jan Seva services</div>
+      </div>
+    </div>
+    <div style="height:18px;background:white;border-radius:18px 18px 0 0;margin-top:-16px;flex-shrink:0;"></div>
+    <div class="body-w" style="padding:6px 14px 14px;">
+      <!-- lang pills -->
+      <div style="display:flex;gap:5px;margin-bottom:14px;">
+        <div style="flex:1;padding:5px;border-radius:10px;border:1.5px solid var(--B2);background:var(--B6);text-align:center;font-size:8px;font-weight:700;color:var(--B1);">English</div>
+        <div style="flex:1;padding:5px;border-radius:10px;border:1px solid var(--N200);background:var(--N50);text-align:center;font-size:8px;font-weight:700;color:var(--N500);">मराठी</div>
+        <div style="flex:1;padding:5px;border-radius:10px;border:1px solid var(--N200);background:var(--N50);text-align:center;font-size:8px;font-weight:700;color:var(--N500);">हिंदी</div>
+      </div>
+      <div style="font-size:9px;font-weight:600;color:var(--N600);margin-bottom:5px;">Mobile Number</div>
+      <div style="display:flex;align-items:center;background:var(--N50);border:1.5px solid var(--N200);border-radius:10px;padding:8px 10px;gap:6px;margin-bottom:12px;">
+        <span style="font-size:12px;">🇮🇳</span>
+        <span style="font-size:9px;font-weight:700;color:var(--N700);">+91</span>
+        <div style="width:1px;height:12px;background:var(--N200);"></div>
+        <span style="font-size:9px;color:var(--N400);">Enter mobile number</span>
+      </div>
+      <button class="btn-blue" style="margin-bottom:12px;">Send OTP →</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="flex:1;height:1px;background:var(--N200);"></div>
+        <span style="font-size:8px;color:var(--N400);font-weight:600;">OR</span>
+        <div style="flex:1;height:1px;background:var(--N200);"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:7px;height:36px;border:1.5px solid var(--N200);border-radius:10px;background:white;margin-bottom:12px;">
+        <div style="width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#4285F4,#EA4335);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;">G</div>
+        <span style="font-size:10px;font-weight:600;color:var(--N700);">Continue with Google</span>
+      </div>
+      <div style="background:var(--B6);border-radius:10px;padding:8px 10px;display:flex;gap:6px;align-items:center;">
+        <span style="font-size:14px;">🔒</span>
+        <div style="font-size:8px;color:var(--B1);line-height:1.4;">Your data is encrypted &amp; used only for civic services.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. OTP -->
+<div class="pw">
+  <div class="sname">04 · OTP Verify</div>
+  <div class="phone">
+    <div style="height:4px;background:var(--grad-main);flex-shrink:0;"></div>
+    <div class="sb sb-d" style="background:white;"><span>9:41</span><span style="color:var(--N700);">▲▌▌</span></div>
+    <div class="body-w" style="padding:14px;">
+      <div style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--N500);font-weight:600;margin-bottom:16px;">← Back</div>
+      <div style="width:48px;height:48px;background:var(--B5);border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:22px;">📱</div>
+      <div style="font-size:19px;font-weight:800;color:var(--N900);margin-bottom:5px;">Verify OTP</div>
+      <div style="font-size:10px;color:var(--N500);line-height:1.6;margin-bottom:20px;">6-digit code sent to<br><strong style="color:var(--N900);">+91 87654 32100</strong></div>
+      <!-- OTP boxes -->
+      <div style="display:flex;gap:7px;margin-bottom:20px;">
+        <div style="flex:1;height:44px;border-radius:12px;border:2px solid var(--B2);background:var(--B6);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:var(--B1);">3</div>
+        <div style="flex:1;height:44px;border-radius:12px;border:2px solid var(--B2);background:var(--B6);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:var(--B1);">8</div>
+        <div style="flex:1;height:44px;border-radius:12px;border:2px solid var(--B2);background:var(--B6);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:var(--B1);">5</div>
+        <div style="flex:1;height:44px;border-radius:12px;border:2.5px solid var(--B3);background:var(--B6);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--B3);">|</div>
+        <div style="flex:1;height:44px;border-radius:12px;border:1.5px solid var(--N200);background:var(--N50);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--N300);">—</div>
+        <div style="flex:1;height:44px;border-radius:12px;border:1.5px solid var(--N200);background:var(--N50);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--N300);">—</div>
+      </div>
+      <button class="btn-blue" style="margin-bottom:12px;">✓ Verify &amp; Login</button>
+      <div style="text-align:center;font-size:9px;color:var(--N500);">Resend in <span style="color:var(--B2);font-weight:700;">28s</span></div>
+      <div style="margin-top:14px;background:var(--B6);border-radius:12px;padding:10px;text-align:center;border:1px solid var(--B5);">
+        <div style="font-size:8px;color:var(--B1);font-weight:700;">📲 Auto-read SMS enabled</div>
+        <div style="font-size:7.5px;color:var(--N500);margin-top:2px;">OTP fills automatically</div>
+      </div>
+    </div>
+    <div style="height:4px;background:var(--grad-sky);flex-shrink:0;"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     CORE SCREENS
+════════════════════════════════════ -->
+
+<!-- 5. HOME DASHBOARD -->
+<div class="pw">
+  <div class="sname">05 · Home Dashboard</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:8px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div style="width:26px;height:26px;background:rgba(255,255,255,0.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;">🏛️</div>
+          <span style="font-size:14px;font-weight:800;color:white;letter-spacing:-0.3px;">JanSeva</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <div style="position:relative;width:26px;height:26px;background:rgba(255,255,255,0.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;">🔔
+            <div style="position:absolute;top:3px;right:3px;width:6px;height:6px;background:var(--Gold);border-radius:50%;border:1px solid white;"></div>
+          </div>
+        </div>
+      </div>
+      <!-- greeting card inside header -->
+      <div style="background:rgba(255,255,255,0.12);border-radius:14px;padding:10px 12px;border:1px solid rgba(255,255,255,0.15);">
+        <div style="font-size:8.5px;color:rgba(255,255,255,0.7);margin-bottom:2px;">Good Morning,</div>
+        <div style="font-size:13px;font-weight:700;color:white;">Suresh Kamble 👋</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:5px;">
+          <div style="background:var(--grad-gold);border-radius:8px;padding:2px 8px;font-size:7.5px;font-weight:700;color:white;">Ward 3 · Nagpur</div>
+          <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:2px 8px;font-size:7.5px;font-weight:600;color:rgba(255,255,255,0.9);">✓ Verified</div>
+        </div>
+      </div>
+    </div>
+    <div class="body">
+      <!-- search -->
+      <div style="display:flex;align-items:center;gap:7px;background:white;border-radius:12px;padding:8px 12px;box-shadow:0 2px 8px rgba(30,64,175,0.08);margin-bottom:10px;border:1px solid var(--N100);">
+        <span style="font-size:13px;">🔍</span>
+        <span style="font-size:9px;color:var(--N400);">Search services, complaints...</span>
+      </div>
+      <!-- alert banner -->
+      <div style="background:linear-gradient(135deg,#1E3A8A,#1E40AF);border-radius:12px;padding:9px 11px;display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:18px;">⚠️</span>
+        <div style="flex:1;"><div style="font-size:9px;font-weight:700;color:white;">Water Supply Disruption</div><div style="font-size:8px;color:rgba(255,255,255,0.7);">Ward 3 · 7AM–3PM today</div></div>
+        <div style="width:18px;height:18px;background:rgba(255,255,255,0.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;">›</div>
+      </div>
+      <!-- quick services -->
+      <div class="sec-h"><div class="sec-t">Quick Services</div><div class="sec-a">See all</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:40px;height:40px;border-radius:13px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:18px;border:1px solid var(--B4);">📋</div><span style="font-size:7px;font-weight:600;color:var(--N600);text-align:center;">Complaints</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:40px;height:40px;border-radius:13px;background:var(--RP);display:flex;align-items:center;justify-content:center;font-size:18px;">🆘</div><span style="font-size:7px;font-weight:600;color:var(--N600);text-align:center;">Emergency</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:40px;height:40px;border-radius:13px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:18px;">🏥</div><span style="font-size:7px;font-weight:600;color:var(--N600);text-align:center;">Hospital</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:40px;height:40px;border-radius:13px;background:var(--RP);display:flex;align-items:center;justify-content:center;font-size:18px;">🩸</div><span style="font-size:7px;font-weight:600;color:var(--N600);text-align:center;">Blood Bank</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:40px;height:40px;border-radius:13px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:18px;">🚌</div><span style="font-size:7px;font-weight:600;color:var(--N600);text-align:center;">Bus Routes</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:40px;height:40px;border-radius:13px;background:var(--PP);display:flex;align-items:center;justify-content:center;font-size:18px;">📜</div><span style="font-size:7px;font-weight:600;color:var(--N600);text-align:center;">Schemes</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:40px;height:40px;border-radius:13px;background:var(--GoldP);display:flex;align-items:center;justify-content:center;font-size:18px;">🛒</div><span style="font-size:7px;font-weight:600;color:var(--N600);text-align:center;">Ration Shop</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:40px;height:40px;border-radius:13px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:18px;">📊</div><span style="font-size:7px;font-weight:600;color:var(--N600);text-align:center;">RTI / Rights</span></div>
+      </div>
+      <!-- latest complaint -->
+      <div class="sec-h"><div class="sec-t">Recent Complaint</div><div class="sec-a">View all</div></div>
+      <div class="card" style="display:flex;align-items:center;gap:9px;margin-bottom:0;">
+        <div style="width:30px;height:30px;border-radius:9px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🚧</div>
+        <div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Broken Road near Market</div><div style="font-size:8px;color:var(--N400);">JS-2026-1142 · 3 days ago</div></div>
+        <span class="bdg-sky">In Progress</span>
+      </div>
+    </div>
+    <!-- SOS FAB -->
+    <div style="position:absolute;bottom:56px;right:10px;width:36px;height:36px;border-radius:50%;background:var(--grad-r);box-shadow:0 4px 14px rgba(220,38,38,0.5);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;">SOS</div>
+    <div class="bnav">
+      <div class="ni a"><div class="niico" style="background:var(--B5);font-size:15px;">🏠</div><div class="nilbl" style="color:var(--B2);">Home</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">📋</div><div class="nilbl">Complaints</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">🔔</div><div class="nilbl">Alerts</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">👤</div><div class="nilbl">Profile</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. REPORT ISSUE -->
+<div class="pw">
+  <div class="sname">06 · Report Issue</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">Report an Issue</div></div>
+      <div style="font-size:8px;color:rgba(255,255,255,0.65);">Ward 3 · Nagpur</div>
+    </div>
+    <div class="body">
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:8px;">Select Category</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:12px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1.5px solid var(--B2);background:var(--B5);"><span style="font-size:15px;">🛣️</span><span style="font-size:6.5px;font-weight:700;color:var(--B1);">Road</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">🗑️</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Garbage</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">💧</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Water</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">💡</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Light</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">🚨</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Drain</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">🔒</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Illegal</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">🔊</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Noise</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">🐕</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Animals</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">🏠</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Property</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;border:1px solid var(--N200);background:white;"><span style="font-size:15px;">➕</span><span style="font-size:6.5px;font-weight:600;color:var(--N500);">Other</span></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:5px;">Describe the Issue</div>
+      <textarea style="width:100%;height:52px;padding:9px 10px;border:1.5px solid var(--N200);border-radius:10px;background:white;font-family:'Poppins',sans-serif;font-size:9px;color:var(--N400);resize:none;outline:none;margin-bottom:9px;" placeholder="Describe in detail..."></textarea>
+      <div style="background:var(--B6);border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:8px;margin-bottom:9px;border:1px solid var(--B5);">
+        <span style="font-size:16px;">📍</span>
+        <div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Location Detected</div><div style="font-size:8px;color:var(--N500);">Gandhi Nagar, Ward 3</div></div>
+        <span class="bdg-g">GPS ✓</span>
+      </div>
+      <div style="display:flex;gap:7px;margin-bottom:9px;">
+        <div style="flex:1;height:32px;background:var(--B6);border-radius:10px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px dashed var(--B3);"><span style="font-size:13px;">📷</span><span style="font-size:8px;font-weight:700;color:var(--B2);">Photo</span></div>
+        <div style="flex:1;height:32px;background:var(--B6);border-radius:10px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px dashed var(--B3);"><span style="font-size:13px;">🎤</span><span style="font-size:8px;font-weight:700;color:var(--B2);">Voice</span></div>
+      </div>
+      <button class="btn-blue">Submit Complaint</button>
+    </div>
+    <div class="bnav">
+      <div class="ni"><div class="niico" style="font-size:15px;">🏠</div><div class="nilbl">Home</div></div>
+      <div class="ni a"><div class="niico" style="background:var(--B5);font-size:15px;">📋</div><div class="nilbl" style="color:var(--B2);">Complaints</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">🔔</div><div class="nilbl">Alerts</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">👤</div><div class="nilbl">Profile</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 7. COMPLAINT TRACKER -->
+<div class="pw">
+  <div class="sname">07 · Complaint Tracker</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">My Complaints</div></div>
+      <div style="display:flex;gap:6px;">
+        <div style="flex:1;padding:5px;border-radius:10px;background:rgba(255,255,255,0.22);text-align:center;font-size:8px;font-weight:700;color:white;">All (4)</div>
+        <div style="flex:1;padding:5px;border-radius:10px;background:rgba(255,255,255,0.08);text-align:center;font-size:8px;font-weight:600;color:rgba(255,255,255,0.6);">Open</div>
+        <div style="flex:1;padding:5px;border-radius:10px;background:rgba(255,255,255,0.08);text-align:center;font-size:8px;font-weight:600;color:rgba(255,255,255,0.6);">Resolved</div>
+      </div>
+    </div>
+    <div class="body">
+      <!-- card 1 in progress -->
+      <div class="card" style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Broken Road near Market</div><span class="bdg-sky">In Progress</span></div>
+        <div style="font-size:8px;color:var(--N400);margin-bottom:9px;">JS-2026-1142 · Road · 3 days ago</div>
+        <!-- 4-step tracker -->
+        <div style="display:flex;align-items:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:20px;height:20px;border-radius:50%;background:var(--grad-g);display:flex;align-items:center;justify-content:center;font-size:9px;">✓</div><div style="font-size:6px;color:var(--G);font-weight:600;">Filed</div></div>
+          <div style="flex:1;height:2px;background:var(--G);"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:20px;height:20px;border-radius:50%;background:var(--grad-g);display:flex;align-items:center;justify-content:center;font-size:9px;">✓</div><div style="font-size:6px;color:var(--G);font-weight:600;">Received</div></div>
+          <div style="flex:1;height:2px;background:var(--grad-sky);"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:20px;height:20px;border-radius:50%;background:var(--grad-sky);display:flex;align-items:center;justify-content:center;font-size:9px;color:white;">→</div><div style="font-size:6px;color:var(--B2);font-weight:600;">In Work</div></div>
+          <div style="flex:1;height:2px;background:var(--N200);"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:20px;height:20px;border-radius:50%;background:var(--N200);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--N400);">✓</div><div style="font-size:6px;color:var(--N400);font-weight:600;">Done</div></div>
+        </div>
+      </div>
+      <!-- card 2 resolved -->
+      <div class="card" style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Street light broken</div><span class="bdg-g">Resolved ✓</span></div>
+        <div style="font-size:8px;color:var(--N400);margin-bottom:9px;">JS-2026-1108 · Light · 8 days ago</div>
+        <div style="display:flex;align-items:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:20px;height:20px;border-radius:50%;background:var(--grad-g);display:flex;align-items:center;justify-content:center;font-size:9px;">✓</div><div style="font-size:6px;color:var(--G);font-weight:600;">Filed</div></div>
+          <div style="flex:1;height:2px;background:var(--G);"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:20px;height:20px;border-radius:50%;background:var(--grad-g);display:flex;align-items:center;justify-content:center;font-size:9px;">✓</div><div style="font-size:6px;color:var(--G);font-weight:600;">Received</div></div>
+          <div style="flex:1;height:2px;background:var(--G);"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:20px;height:20px;border-radius:50%;background:var(--grad-g);display:flex;align-items:center;justify-content:center;font-size:9px;">✓</div><div style="font-size:6px;color:var(--G);font-weight:600;">In Work</div></div>
+          <div style="flex:1;height:2px;background:var(--G);"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:20px;height:20px;border-radius:50%;background:var(--grad-g);display:flex;align-items:center;justify-content:center;font-size:9px;">✓</div><div style="font-size:6px;color:var(--G);font-weight:600;">Done</div></div>
+        </div>
+      </div>
+      <!-- card 3 pending -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Garbage not collected</div><span class="bdg-r">Pending</span></div>
+        <div style="font-size:8px;color:var(--N400);margin-top:3px;">JS-2026-1150 · Garbage · 1 day ago</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 8. EMERGENCY -->
+<div class="pw">
+  <div class="sname">08 · Emergency</div>
+  <div class="phone">
+    <div class="hdr-r">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">Emergency &amp; Helplines</div></div>
+    </div>
+    <div class="body">
+      <!-- SOS card -->
+      <div style="background:var(--grad-r);border-radius:16px;padding:12px 14px;display:flex;gap:12px;align-items:center;margin-bottom:14px;box-shadow:0 6px 20px rgba(220,38,38,0.3);">
+        <div style="flex:1;"><div style="font-size:11px;font-weight:800;color:white;margin-bottom:3px;">🆘 SOS EMERGENCY</div><div style="font-size:8px;color:rgba(255,255,255,0.8);line-height:1.5;">Hold to alert Police, Family &amp; share live location</div></div>
+        <div style="width:50px;height:50px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:var(--R);box-shadow:0 2px 12px rgba(0,0,0,0.2);flex-shrink:0;">SOS</div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:8px;">Emergency Helplines</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px;">
+        <div class="card" style="margin-bottom:0;display:flex;gap:7px;align-items:center;padding:9px;"><div style="width:30px;height:30px;border-radius:9px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👮</div><div><div style="font-size:9px;font-weight:700;color:var(--N900);">Police</div><div style="font-size:14px;font-weight:800;color:var(--B2);">100</div></div></div>
+        <div class="card" style="margin-bottom:0;display:flex;gap:7px;align-items:center;padding:9px;"><div style="width:30px;height:30px;border-radius:9px;background:var(--RP);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">🔥</div><div><div style="font-size:9px;font-weight:700;color:var(--N900);">Fire</div><div style="font-size:14px;font-weight:800;color:var(--R);">101</div></div></div>
+        <div class="card" style="margin-bottom:0;display:flex;gap:7px;align-items:center;padding:9px;"><div style="width:30px;height:30px;border-radius:9px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">🚑</div><div><div style="font-size:9px;font-weight:700;color:var(--N900);">Ambulance</div><div style="font-size:14px;font-weight:800;color:var(--G);">108</div></div></div>
+        <div class="card" style="margin-bottom:0;display:flex;gap:7px;align-items:center;padding:9px;"><div style="width:30px;height:30px;border-radius:9px;background:var(--PP);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👩</div><div><div style="font-size:9px;font-weight:700;color:var(--N900);">Women</div><div style="font-size:14px;font-weight:800;color:var(--P);">1091</div></div></div>
+        <div class="card" style="margin-bottom:0;display:flex;gap:7px;align-items:center;padding:9px;"><div style="width:30px;height:30px;border-radius:9px;background:var(--GoldP);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👶</div><div><div style="font-size:9px;font-weight:700;color:var(--N900);">Child</div><div style="font-size:14px;font-weight:800;color:var(--Gold);">1098</div></div></div>
+        <div class="card" style="margin-bottom:0;display:flex;gap:7px;align-items:center;padding:9px;"><div style="width:30px;height:30px;border-radius:9px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">⚠️</div><div><div style="font-size:9px;font-weight:700;color:var(--N900);">Disaster</div><div style="font-size:14px;font-weight:800;color:var(--G);">1077</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 9. BLOOD BANK -->
+<div class="pw">
+  <div class="sname">09 · Blood Bank</div>
+  <div class="phone">
+    <div class="hdr-r">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">🩸 Blood Bank</div></div>
+    </div>
+    <div class="body">
+      <div style="background:var(--RP);border-radius:14px;padding:11px;margin-bottom:10px;display:flex;gap:10px;align-items:center;">
+        <span style="font-size:28px;">🩸</span>
+        <div><div style="font-size:10px;font-weight:800;color:var(--R);">Need Blood Urgently?</div><div style="font-size:8px;color:var(--N600);margin-top:2px;">Request sent to nearby donors instantly</div></div>
+      </div>
+      <button class="btn-r" style="margin-bottom:12px;">🆘 Emergency Blood Request</button>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:8px;">Blood Availability — Ward 3</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px;">
+        <div class="card" style="margin-bottom:0;padding:7px 4px;text-align:center;"><div style="font-size:12px;font-weight:800;color:var(--R);">A+</div><div style="font-size:6.5px;color:var(--G);font-weight:700;">Available</div></div>
+        <div class="card" style="margin-bottom:0;padding:7px 4px;text-align:center;"><div style="font-size:12px;font-weight:800;color:var(--R);">A-</div><div style="font-size:6.5px;color:var(--N400);font-weight:700;">Low</div></div>
+        <div class="card" style="margin-bottom:0;padding:7px 4px;text-align:center;"><div style="font-size:12px;font-weight:800;color:var(--R);">B+</div><div style="font-size:6.5px;color:var(--G);font-weight:700;">Available</div></div>
+        <div class="card" style="margin-bottom:0;padding:7px 4px;text-align:center;"><div style="font-size:12px;font-weight:800;color:var(--R);">B-</div><div style="font-size:6.5px;color:var(--R);font-weight:700;">Critical</div></div>
+        <div class="card" style="margin-bottom:0;padding:7px 4px;text-align:center;"><div style="font-size:12px;font-weight:800;color:var(--R);">O+</div><div style="font-size:6.5px;color:var(--G);font-weight:700;">Available</div></div>
+        <div class="card" style="margin-bottom:0;padding:7px 4px;text-align:center;"><div style="font-size:12px;font-weight:800;color:var(--R);">O-</div><div style="font-size:6.5px;color:var(--R);font-weight:700;">Critical</div></div>
+        <div class="card" style="margin-bottom:0;padding:7px 4px;text-align:center;"><div style="font-size:12px;font-weight:800;color:var(--R);">AB+</div><div style="font-size:6.5px;color:var(--G);font-weight:700;">Available</div></div>
+        <div class="card" style="margin-bottom:0;padding:7px 4px;text-align:center;"><div style="font-size:12px;font-weight:800;color:var(--R);">AB-</div><div style="font-size:6.5px;color:var(--N400);font-weight:700;">Low</div></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:7px;">Nearby Donors</div>
+      <div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
+        <div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Ramesh Shinde</div><div style="font-size:8px;color:var(--N400);">O+ · 0.6 km · Last donated 5 mo ago</div></div>
+        <button style="padding:3px 8px;border:none;background:var(--RP);color:var(--R);font-size:8px;font-weight:700;border-radius:8px;font-family:'Poppins',sans-serif;">Contact</button>
+      </div>
+      <button class="btn-out">🫀 Register as Donor</button>
+    </div>
+  </div>
+</div>
+
+<!-- 10. HOSPITAL -->
+<div class="pw">
+  <div class="sname">10 · Hospital</div>
+  <div class="phone">
+    <div class="hdr-g">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">🏥 Hospitals Near Me</div></div>
+      <div style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.18);border-radius:10px;padding:6px 10px;margin-top:6px;">
+        <span style="font-size:11px;">🔍</span>
+        <span style="font-size:9px;color:rgba(255,255,255,0.7);">Search hospitals...</span>
+      </div>
+    </div>
+    <div class="body">
+      <div style="display:flex;gap:5px;margin-bottom:10px;overflow-x:auto;">
+        <div style="padding:4px 12px;border-radius:10px;background:var(--G);color:white;font-size:8px;font-weight:700;white-space:nowrap;flex-shrink:0;">All</div>
+        <div style="padding:4px 12px;border-radius:10px;background:white;border:1px solid var(--N200);color:var(--N500);font-size:8px;font-weight:700;white-space:nowrap;flex-shrink:0;">Govt</div>
+        <div style="padding:4px 12px;border-radius:10px;background:white;border:1px solid var(--N200);color:var(--N500);font-size:8px;font-weight:700;white-space:nowrap;flex-shrink:0;">Private</div>
+        <div style="padding:4px 12px;border-radius:10px;background:white;border:1px solid var(--N200);color:var(--N500);font-size:8px;font-weight:700;white-space:nowrap;flex-shrink:0;">24/7</div>
+      </div>
+      <div class="card" style="display:flex;gap:9px;align-items:center;margin-bottom:8px;">
+        <div style="width:36px;height:36px;border-radius:11px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏥</div>
+        <div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Nagpur Civil Hospital</div><div style="display:flex;gap:4px;margin-top:3px;align-items:center;"><span class="bdg-g">Govt</span><span style="font-size:7.5px;color:var(--N400);">📍 1.1 km · ⭐ 4.3</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:center;"><div style="display:flex;align-items:center;gap:2px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--G);"></div><span style="font-size:7px;color:var(--G);font-weight:600;">Open</span></div><button style="padding:2px 8px;border:none;background:var(--GP);color:var(--G);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">📞 Call</button></div>
+      </div>
+      <div class="card" style="display:flex;gap:9px;align-items:center;margin-bottom:8px;">
+        <div style="width:36px;height:36px;border-radius:11px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏥</div>
+        <div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Wockhardt Hospital</div><div style="display:flex;gap:4px;margin-top:3px;align-items:center;"><span class="bdg-b">Private</span><span style="font-size:7.5px;color:var(--N400);">📍 0.9 km · ⭐ 4.6</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:center;"><div style="display:flex;align-items:center;gap:2px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--G);"></div><span style="font-size:7px;color:var(--G);font-weight:600;">Open</span></div><button style="padding:2px 8px;border:none;background:var(--GP);color:var(--G);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">📞 Call</button></div>
+      </div>
+      <div class="card" style="display:flex;gap:9px;align-items:center;">
+        <div style="width:36px;height:36px;border-radius:11px;background:var(--PP);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏥</div>
+        <div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Daga Memorial Hospital</div><div style="display:flex;gap:4px;margin-top:3px;align-items:center;"><span class="bdg-p">24/7</span><span style="font-size:7.5px;color:var(--N400);">📍 2.3 km · ⭐ 4.1</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:center;"><div style="display:flex;align-items:center;gap:2px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--G);"></div><span style="font-size:7px;color:var(--G);font-weight:600;">Open</span></div><button style="padding:2px 8px;border:none;background:var(--GP);color:var(--G);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">📞 Call</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 11. BUS ROUTES -->
+<div class="pw">
+  <div class="sname">11 · Bus Routes</div>
+  <div class="phone">
+    <div class="hdr-sky">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">🚌 Bus Routes</div></div>
+      <div style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.2);border-radius:10px;padding:6px 10px;margin-top:6px;">
+        <span style="font-size:11px;">🔍</span>
+        <span style="font-size:9px;color:rgba(255,255,255,0.8);">Search route or stop...</span>
+      </div>
+    </div>
+    <div class="body">
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:8px;">Popular Routes</div>
+      <div class="card" style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><div style="font-size:12px;font-weight:800;color:var(--B2);">Route 14</div><span class="bdg-g">Running</span></div>
+        <div style="font-size:9px;color:var(--N700);font-weight:600;">Nagpur Station → Dharampeth</div>
+        <div style="font-size:8px;color:var(--N400);margin-top:2px;">Via: Sitabuldi · Sadar · Dharampeth</div>
+        <div style="display:flex;gap:10px;margin-top:7px;align-items:center;"><span style="font-size:8px;color:var(--N500);">🕐 Next: <strong style="color:var(--N900);">5 min</strong></span><span style="font-size:8px;color:var(--N500);">🪑 Seats: <strong style="color:var(--G);">18</strong></span><button style="margin-left:auto;padding:2px 9px;border:none;background:var(--B5);color:var(--B2);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">Track 📍</button></div>
+      </div>
+      <div class="card" style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><div style="font-size:12px;font-weight:800;color:var(--B2);">Route 26A</div><span class="bdg-gold">Delayed</span></div>
+        <div style="font-size:9px;color:var(--N700);font-weight:600;">Butibori → Nagpur Bus Stand</div>
+        <div style="font-size:8px;color:var(--N400);margin-top:2px;">Via: MIDC · Ring Road · Central Ave.</div>
+        <div style="display:flex;gap:10px;margin-top:7px;align-items:center;"><span style="font-size:8px;color:var(--N500);">🕐 Next: <strong style="color:var(--Gold);">20 min</strong></span><span style="font-size:8px;color:var(--N500);">🪑 Seats: <strong style="color:var(--G);">4</strong></span><button style="margin-left:auto;padding:2px 9px;border:none;background:var(--B5);color:var(--B2);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">Track 📍</button></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><div style="font-size:12px;font-weight:800;color:var(--B2);">Route 8</div><span class="bdg-g">Running</span></div>
+        <div style="font-size:9px;color:var(--N700);font-weight:600;">Kamptee → Nagpur Station</div>
+        <div style="display:flex;gap:10px;margin-top:7px;align-items:center;"><span style="font-size:8px;color:var(--N500);">🕐 Next: <strong style="color:var(--N900);">2 min</strong></span><span style="font-size:8px;color:var(--N500);">🪑 Seats: <strong style="color:var(--G);">26</strong></span><button style="margin-left:auto;padding:2px 9px;border:none;background:var(--B5);color:var(--B2);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">Track 📍</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 12. GOVT SCHEMES -->
+<div class="pw">
+  <div class="sname">12 · Govt Schemes</div>
+  <div class="phone">
+    <div class="hdr-p">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">📜 Govt Schemes</div></div>
+      <div style="font-size:8px;color:rgba(255,255,255,0.7);">Schemes for SC/ST/OBC citizens</div>
+    </div>
+    <div class="body">
+      <div style="display:flex;gap:5px;margin-bottom:10px;overflow-x:auto;">
+        <div style="padding:4px 12px;border-radius:10px;background:var(--P);color:white;font-size:8px;font-weight:700;white-space:nowrap;flex-shrink:0;">All</div>
+        <div style="padding:4px 12px;border-radius:10px;background:white;border:1px solid var(--N200);color:var(--N500);font-size:8px;font-weight:700;white-space:nowrap;flex-shrink:0;">Housing</div>
+        <div style="padding:4px 12px;border-radius:10px;background:white;border:1px solid var(--N200);color:var(--N500);font-size:8px;font-weight:700;white-space:nowrap;flex-shrink:0;">Health</div>
+        <div style="padding:4px 12px;border-radius:10px;background:white;border:1px solid var(--N200);color:var(--N500);font-size:8px;font-weight:700;white-space:nowrap;flex-shrink:0;">Education</div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--P);margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><div style="font-size:10px;font-weight:700;color:var(--N900);">PM Awas Yojana</div><span class="bdg-r" style="font-size:7px;">5 Days Left</span></div>
+        <div style="font-size:8px;color:var(--N500);line-height:1.5;margin-bottom:7px;">Affordable housing for all below poverty line citizens.</div>
+        <div style="display:flex;gap:5px;align-items:center;"><span class="bdg-p">Housing</span><span class="bdg-b">Central</span><button style="margin-left:auto;padding:2px 9px;border:none;background:var(--grad-p);color:white;font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">Apply →</button></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--B2);margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><div style="font-size:10px;font-weight:700;color:var(--N900);">Ayushman Bharat</div><span class="bdg-g">Open</span></div>
+        <div style="font-size:8px;color:var(--N500);line-height:1.5;margin-bottom:7px;">Health coverage up to ₹5 Lakh per family annually.</div>
+        <div style="display:flex;gap:5px;align-items:center;"><span class="bdg-sky">Health</span><span class="bdg-b">Central</span><button style="margin-left:auto;padding:2px 9px;border:none;background:var(--grad-p);color:white;font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">Apply →</button></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--Gold);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><div style="font-size:10px;font-weight:700;color:var(--N900);">Mahadbt Scholarship</div><span class="bdg-g">Open</span></div>
+        <div style="font-size:8px;color:var(--N500);line-height:1.5;margin-bottom:7px;">State scholarship for OBC/SC/ST students. Apply online.</div>
+        <div style="display:flex;gap:5px;align-items:center;"><span class="bdg-gold">Education</span><span class="bdg-p">State</span><button style="margin-left:auto;padding:2px 9px;border:none;background:var(--grad-p);color:white;font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">Apply →</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 13. RATION SHOP -->
+<div class="pw">
+  <div class="sname">13 · Ration Shop</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">🛒 Ration Shop</div></div>
+      <div style="font-size:8px;color:rgba(255,255,255,0.7);">Card: MH-3312-XXXX · BPL</div>
+    </div>
+    <div class="body">
+      <div style="background:var(--GP);border-radius:12px;padding:10px;margin-bottom:10px;display:flex;gap:9px;align-items:center;border:1px solid #A7F3D0;">
+        <span style="font-size:22px;">✅</span>
+        <div><div style="font-size:10px;font-weight:700;color:var(--G);">April 2026 Stock Available</div><div style="font-size:8px;color:var(--N600);margin-top:2px;">Collect before 30 April at your FPS</div></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:7px;">Monthly Entitlement</div>
+      <div class="card" style="overflow:hidden;padding:0;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid var(--N100);"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:15px;">🌾</span><span style="font-size:9px;font-weight:600;color:var(--N900);">Rice</span></div><div style="text-align:right;"><div style="font-size:10px;font-weight:800;color:var(--N900);">5 kg</div><span class="bdg-g">Collected ✓</span></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid var(--N100);"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:15px;">🌽</span><span style="font-size:9px;font-weight:600;color:var(--N900);">Wheat</span></div><div style="text-align:right;"><div style="font-size:10px;font-weight:800;color:var(--N900);">3 kg</div><span class="bdg-b">Pending</span></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid var(--N100);"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:15px;">🫙</span><span style="font-size:9px;font-weight:600;color:var(--N900);">Sugar</span></div><div style="text-align:right;"><div style="font-size:10px;font-weight:800;color:var(--N900);">1 kg</div><span class="bdg-b">Pending</span></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:15px;">🛢️</span><span style="font-size:9px;font-weight:600;color:var(--N900);">Kerosene</span></div><div style="text-align:right;"><div style="font-size:10px;font-weight:800;color:var(--N900);">1 L</div><span class="bdg-g">Collected ✓</span></div></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:7px;">Your FPS Shop</div>
+      <div class="card" style="display:flex;align-items:center;gap:9px;margin-bottom:0;">
+        <span style="font-size:24px;">🏪</span>
+        <div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Kamble Fair Price Shop</div><div style="font-size:8px;color:var(--N400);">📍 Gandhi Nagar · Mon–Sat 9AM–6PM</div></div>
+        <button style="padding:3px 8px;border:none;background:var(--B5);color:var(--B2);font-size:8px;font-weight:700;border-radius:8px;font-family:'Poppins',sans-serif;">Map</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 14. NOTIFICATIONS -->
+<div class="pw">
+  <div class="sname">14 · Notifications</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">🔔 Alerts &amp; Notices</div></div>
+    </div>
+    <div class="body">
+      <div style="display:flex;gap:5px;margin-bottom:10px;">
+        <div style="flex:1;padding:5px;border-radius:10px;background:var(--grad-main);text-align:center;font-size:8px;font-weight:700;color:white;">All</div>
+        <div style="flex:1;padding:5px;border-radius:10px;background:white;border:1px solid var(--N200);text-align:center;font-size:8px;font-weight:700;color:var(--N500);">Urgent</div>
+        <div style="flex:1;padding:5px;border-radius:10px;background:white;border:1px solid var(--N200);text-align:center;font-size:8px;font-weight:700;color:var(--N500);">Events</div>
+      </div>
+      <div style="background:var(--RP);border-radius:12px;padding:10px;margin-bottom:7px;border-left:3px solid var(--R);">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><div style="width:26px;height:26px;border-radius:8px;background:var(--R);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">⚠️</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Water Supply Disruption</div><div style="font-size:8px;color:var(--N400);">Today · 7AM–3PM · Ward 3</div></div><span class="bdg-r">URGENT</span></div>
+        <div style="font-size:8px;color:var(--N600);line-height:1.5;">Water supply closed for pipeline repair. Store in advance.</div>
+      </div>
+      <div style="background:var(--PP);border-radius:12px;padding:10px;margin-bottom:7px;border-left:3px solid var(--P);">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><div style="width:26px;height:26px;border-radius:8px;background:var(--P);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">📅</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Vanchit Jan Sabha</div><div style="font-size:8px;color:var(--N400);">5 April · 10AM · Ambedkar Chowk</div></div><span class="bdg-p">EVENT</span></div>
+        <div style="font-size:8px;color:var(--N600);line-height:1.5;">Public meeting on civic rights and new welfare schemes.</div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--B3);">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><div style="width:26px;height:26px;border-radius:8px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">📋</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">PM Awas Yojana — Apply Now</div><div style="font-size:8px;color:var(--N400);">25 Mar · Official Notice</div></div><span class="bdg-b">NOTICE</span></div>
+        <div style="font-size:8px;color:var(--N600);line-height:1.5;">Applications open. Deadline: 15 April 2026.</div>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="ni"><div class="niico" style="font-size:15px;">🏠</div><div class="nilbl">Home</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">📋</div><div class="nilbl">Complaints</div></div>
+      <div class="ni a"><div class="niico" style="background:var(--B5);font-size:15px;">🔔</div><div class="nilbl" style="color:var(--B2);">Alerts</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">👤</div><div class="nilbl">Profile</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 15. SOS SCREEN -->
+<div class="pw">
+  <div class="sname">15 · SOS Screen</div>
+  <div class="phone">
+    <div style="background:var(--grad-r);flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+      <div class="sb sb-w" style="position:absolute;top:0;left:0;right:0;padding:4px 14px;font-size:8px;"><span>9:41</span><span>▲▌▌</span></div>
+      <!-- rings -->
+      <div style="position:absolute;width:320px;height:320px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.08);"></div>
+      <div style="position:absolute;width:240px;height:240px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.12);"></div>
+      <div style="position:absolute;width:160px;height:160px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.16);"></div>
+      <div style="font-size:13px;font-weight:800;color:white;margin-bottom:22px;letter-spacing:1px;">🆘 EMERGENCY SOS</div>
+      <!-- sos button -->
+      <div style="width:96px;height:96px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 14px rgba(255,255,255,0.15),0 0 0 28px rgba(255,255,255,0.07);margin-bottom:26px;">
+        <div style="font-size:30px;font-weight:900;color:var(--R);line-height:1;">SOS</div>
+      </div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.9);font-weight:600;margin-bottom:6px;">Hold 3 seconds to activate</div>
+      <div style="font-size:8px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.6;padding:0 36px;">Alerts Police, Family &amp;<br>shares your live location</div>
+      <!-- contacts -->
+      <div style="position:absolute;bottom:22px;left:14px;right:14px;background:rgba(255,255,255,0.12);border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:center;border:1px solid rgba(255,255,255,0.18);">
+        <span style="font-size:18px;">👥</span>
+        <div><div style="font-size:8px;color:white;font-weight:700;">Emergency Contacts</div><div style="font-size:7.5px;color:rgba(255,255,255,0.7);">Priya (Wife) · Rajan (Brother)</div></div>
+        <div style="margin-left:auto;background:rgba(255,255,255,0.18);border-radius:7px;padding:3px 8px;font-size:8px;color:white;font-weight:700;">Edit</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 16. RTI / RIGHTS -->
+<div class="pw">
+  <div class="sname">16 · RTI / Rights</div>
+  <div class="phone">
+    <div class="hdr-deep">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">📊 RTI &amp; Citizen Rights</div></div>
+      <div style="font-size:8px;color:rgba(255,255,255,0.65);">Know your rights · File RTI</div>
+    </div>
+    <div class="body">
+      <!-- RTI file button -->
+      <div style="background:var(--grad-main);border-radius:14px;padding:12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;">
+        <span style="font-size:28px;">📊</span>
+        <div style="flex:1;"><div style="font-size:10px;font-weight:800;color:white;">File an RTI Request</div><div style="font-size:8px;color:rgba(255,255,255,0.75);margin-top:2px;">Right to Information Act 2005</div></div>
+        <div style="background:white;border-radius:9px;padding:4px 9px;font-size:8.5px;font-weight:700;color:var(--B1);">File →</div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:8px;">Your Fundamental Rights</div>
+      <div class="card" style="display:flex;gap:9px;align-items:flex-start;margin-bottom:7px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">⚖️</div>
+        <div><div style="font-size:9px;font-weight:700;color:var(--N900);">Right to Equality</div><div style="font-size:8px;color:var(--N500);line-height:1.5;margin-top:2px;">Articles 14–18: Equality before law, no discrimination.</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:9px;align-items:flex-start;margin-bottom:7px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:var(--PP);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🗣️</div>
+        <div><div style="font-size:9px;font-weight:700;color:var(--N900);">Right to Free Speech</div><div style="font-size:8px;color:var(--N500);line-height:1.5;margin-top:2px;">Article 19: Freedom of expression &amp; assembly.</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:9px;align-items:flex-start;margin-bottom:7px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📚</div>
+        <div><div style="font-size:9px;font-weight:700;color:var(--N900);">Right to Education</div><div style="font-size:8px;color:var(--N500);line-height:1.5;margin-top:2px;">Article 21A: Free &amp; compulsory education (6–14 yrs).</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:9px;align-items:flex-start;">
+        <div style="width:32px;height:32px;border-radius:10px;background:var(--GoldP);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🛡️</div>
+        <div><div style="font-size:9px;font-weight:700;color:var(--N900);">Protection Against Exploitation</div><div style="font-size:8px;color:var(--N500);line-height:1.5;margin-top:2px;">Articles 23–24: No forced labour or child labour.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 17. PROFILE -->
+<div class="pw">
+  <div class="sname">17 · Profile</div>
+  <div class="phone">
+    <div class="hdr-deep">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:8px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding-bottom:6px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.15);border:2.5px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:7px;">👤</div>
+        <div style="font-size:14px;font-weight:800;color:white;">Suresh Kamble</div>
+        <div style="font-size:8px;color:rgba(255,255,255,0.65);margin-top:2px;">+91 87654 32100 · Ward 3, Nagpur</div>
+        <div style="display:flex;gap:5px;margin-top:7px;">
+          <div style="background:var(--grad-gold);border-radius:10px;padding:3px 10px;font-size:7.5px;font-weight:700;color:white;">⚡ Vanchit Member</div>
+          <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:3px 10px;font-size:7.5px;font-weight:700;color:white;">✓ Verified</div>
+        </div>
+      </div>
+    </div>
+    <div class="body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px;">
+        <div style="background:var(--B5);border-radius:11px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--B2);">4</div><div style="font-size:7px;color:var(--N500);font-weight:600;">Complaints</div></div>
+        <div style="background:var(--GP);border-radius:11px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--G);">3</div><div style="font-size:7px;color:var(--N500);font-weight:600;">Resolved</div></div>
+        <div style="background:var(--GoldP);border-radius:11px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:#92400E;">2</div><div style="font-size:7px;color:var(--N500);font-weight:600;">RTI Filed</div></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:7px;">My Account</div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--N100);"><div style="width:28px;height:28px;border-radius:8px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div><span style="font-size:10px;font-weight:600;color:var(--N900);flex:1;">Personal Information</span><span style="font-size:12px;color:var(--N300);">›</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--N100);"><div style="width:28px;height:28px;border-radius:8px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:14px;">📄</div><span style="font-size:10px;font-weight:600;color:var(--N900);flex:1;">My Documents</span><span style="font-size:12px;color:var(--N300);">›</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--N100);"><div style="width:28px;height:28px;border-radius:8px;background:var(--GoldP);display:flex;align-items:center;justify-content:center;font-size:14px;">📊</div><span style="font-size:10px;font-weight:600;color:var(--N900);flex:1;">Activity History</span><span style="font-size:12px;color:var(--N300);">›</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;"><div style="width:28px;height:28px;border-radius:8px;background:var(--RP);display:flex;align-items:center;justify-content:center;font-size:14px;">🚪</div><span style="font-size:10px;font-weight:600;color:var(--R);flex:1;">Logout</span><span style="font-size:12px;color:var(--N300);">›</span></div>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="ni"><div class="niico" style="font-size:15px;">🏠</div><div class="nilbl">Home</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">📋</div><div class="nilbl">Complaints</div></div>
+      <div class="ni"><div class="niico" style="font-size:15px;">🔔</div><div class="nilbl">Alerts</div></div>
+      <div class="ni a"><div class="niico" style="background:var(--B5);font-size:15px;">👤</div><div class="nilbl" style="color:var(--B2);">Profile</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 18. MY DOCUMENTS -->
+<div class="pw">
+  <div class="sname">18 · My Documents</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">My Documents</div></div>
+    </div>
+    <div class="body">
+      <div style="background:var(--B5);border-radius:12px;padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:center;border:1px solid var(--B4);">
+        <span style="font-size:18px;">🔒</span>
+        <div style="font-size:8px;color:var(--B1);line-height:1.5;">All docs encrypted &amp; secure. Only you can access them.</div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:7px;">Identity Docs</div>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--N100);"><div style="width:28px;height:28px;border-radius:8px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:14px;">🪪</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Aadhaar Card</div><div style="font-size:7.5px;color:var(--N400);">XXXX XXXX 2100 · Verified ✓</div></div><button style="padding:2px 8px;border:none;background:var(--GP);color:var(--G);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">View</button></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--N100);"><div style="width:28px;height:28px;border-radius:8px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:14px;">📋</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">PAN Card</div><div style="font-size:7.5px;color:var(--N400);">ABCPK5678F · Verified ✓</div></div><button style="padding:2px 8px;border:none;background:var(--GP);color:var(--G);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">View</button></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;"><div style="width:28px;height:28px;border-radius:8px;background:var(--GoldP);display:flex;align-items:center;justify-content:center;font-size:14px;">🗳️</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Voter ID</div><div style="font-size:7.5px;color:var(--N400);">Not uploaded</div></div><button style="padding:2px 8px;border:none;background:var(--B5);color:var(--B2);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">+ Add</button></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:7px;">Civic Docs</div>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--N100);"><div style="width:28px;height:28px;border-radius:8px;background:var(--GoldP);display:flex;align-items:center;justify-content:center;font-size:14px;">🛒</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Ration Card</div><div style="font-size:7.5px;color:var(--N400);">MH-3312-XXXX · BPL</div></div><button style="padding:2px 8px;border:none;background:var(--GP);color:var(--G);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">View</button></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;"><div style="width:28px;height:28px;border-radius:8px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:14px;">📊</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Caste Certificate</div><div style="font-size:7.5px;color:var(--N400);">SC · Uploaded ✓</div></div><button style="padding:2px 8px;border:none;background:var(--GP);color:var(--G);font-size:8px;font-weight:700;border-radius:7px;font-family:'Poppins',sans-serif;">View</button></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;height:34px;border:1.5px dashed var(--B3);border-radius:11px;background:var(--B6);">
+        <span style="font-size:15px;">📤</span><span style="font-size:9px;font-weight:700;color:var(--B2);">Upload New Document</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 19. PERSONAL INFO -->
+<div class="pw">
+  <div class="sname">19 · Personal Info</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">Personal Information</div></div>
+    </div>
+    <div class="body-w" style="padding:14px;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:16px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--B5);border:2px solid var(--B3);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:7px;">👤</div>
+        <div style="background:var(--B5);border-radius:10px;padding:3px 12px;font-size:8px;font-weight:700;color:var(--B2);">📷 Change Photo</div>
+      </div>
+      <div style="font-size:9px;font-weight:600;color:var(--N500);margin-bottom:4px;">Full Name</div>
+      <div class="inp-focus" style="margin-bottom:10px;">Suresh Ramesh Kamble</div>
+      <div style="font-size:9px;font-weight:600;color:var(--N500);margin-bottom:4px;">Mobile Number</div>
+      <div class="inp" style="margin-bottom:10px;">+91 87654 32100</div>
+      <div style="font-size:9px;font-weight:600;color:var(--N500);margin-bottom:4px;">Email Address</div>
+      <div class="inp" style="margin-bottom:10px;">suresh.kamble@email.com</div>
+      <div style="font-size:9px;font-weight:600;color:var(--N500);margin-bottom:4px;">Ward / Area</div>
+      <div class="inp" style="margin-bottom:10px;">Ward 3 — Nagpur West</div>
+      <div style="font-size:9px;font-weight:600;color:var(--N500);margin-bottom:4px;">Date of Birth</div>
+      <div class="inp" style="margin-bottom:16px;">6 December 1992</div>
+      <button class="btn-blue">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- 20. ACTIVITY HISTORY -->
+<div class="pw">
+  <div class="sname">20 · Activity History</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">Activity History</div></div>
+    </div>
+    <div class="body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px;">
+        <div style="background:var(--B5);border-radius:11px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:800;color:var(--B2);">4</div><div style="font-size:7px;color:var(--N500);">Complaints</div></div>
+        <div style="background:var(--GP);border-radius:11px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:800;color:var(--G);">3</div><div style="font-size:7px;color:var(--N500);">Resolved</div></div>
+        <div style="background:var(--GoldP);border-radius:11px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#92400E;">2</div><div style="font-size:7px;color:var(--N500);">RTI Filed</div></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:8px;">Recent Activity</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:0;"><div style="width:30px;height:30px;border-radius:9px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">📋</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Complaint Filed</div><div style="font-size:8px;color:var(--N400);">Broken Road · 3 days ago</div></div><span class="bdg-sky">Pending</span></div>
+        <div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:0;"><div style="width:30px;height:30px;border-radius:9px;background:var(--PP);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">📊</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">RTI Filed</div><div style="font-size:8px;color:var(--N400);">Road repair fund · 5 days ago</div></div><span class="bdg-p">Submitted</span></div>
+        <div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:0;"><div style="width:30px;height:30px;border-radius:9px;background:var(--GP);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">✅</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Complaint Resolved</div><div style="font-size:8px;color:var(--N400);">Street light fixed · 8 days ago</div></div><span class="bdg-g">Done ✓</span></div>
+        <div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:0;"><div style="width:30px;height:30px;border-radius:9px;background:var(--GoldP);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">📜</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Scheme Applied</div><div style="font-size:8px;color:var(--N400);">Ayushman Bharat · 10 days ago</div></div><span class="bdg-gold">Pending</span></div>
+        <div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:0;"><div style="width:30px;height:30px;border-radius:9px;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🔐</div><div style="flex:1;"><div style="font-size:9px;font-weight:700;color:var(--N900);">Login via OTP</div><div style="font-size:8px;color:var(--N400);">14 days ago</div></div><span class="bdg-g">Success</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 21. COMPLAINT SUBMITTED SUCCESS -->
+<div class="pw">
+  <div class="sname">21 · Complaint Submitted</div>
+  <div class="phone">
+    <div style="height:4px;background:var(--grad-main);flex-shrink:0;"></div>
+    <div class="sb sb-d" style="background:var(--N50);"><span>9:41</span><span>▲▌▌</span></div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--N50);padding:20px;">
+      <!-- success icon -->
+      <div style="width:74px;height:74px;border-radius:50%;background:var(--GP);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 6px 24px rgba(5,150,105,0.2);">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="17" stroke="#059669" stroke-width="1.5"/><path d="M11 18l5 5L25 12" stroke="#059669" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
+      </div>
+      <div style="font-size:18px;font-weight:800;color:var(--N900);margin-bottom:5px;text-align:center;">Submitted! 🎉</div>
+      <div style="font-size:10px;color:var(--N500);text-align:center;line-height:1.6;margin-bottom:18px;">Your complaint is filed and assigned to the ward office.</div>
+      <!-- detail card -->
+      <div class="card" style="width:100%;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--N100);margin-bottom:5px;"><span style="font-size:8px;color:var(--N400);">Complaint ID</span><span style="font-size:8px;font-weight:700;color:var(--N900);">JS-2026-1160</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--N100);margin-bottom:5px;"><span style="font-size:8px;color:var(--N400);">Category</span><span style="font-size:8px;font-weight:700;color:var(--N900);">Road Issue</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--N100);margin-bottom:5px;"><span style="font-size:8px;color:var(--N400);">Ward</span><span style="font-size:8px;font-weight:700;color:var(--N900);">Ward 3 · Nagpur</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="font-size:8px;color:var(--N400);">Expected Resolution</span><span style="font-size:8px;font-weight:700;color:var(--G);">5–7 Working Days</span></div>
+      </div>
+      <div style="background:var(--B6);border-radius:12px;padding:9px 12px;width:100%;margin-bottom:16px;text-align:center;border:1px solid var(--B5);">
+        <div style="font-size:8px;color:var(--B1);font-weight:600;">📱 SMS &amp; Push notification updates enabled</div>
+      </div>
+      <button class="btn-blue" style="width:100%;margin-bottom:8px;">Track My Complaint</button>
+      <button class="btn-out" style="width:100%;">Back to Home</button>
+    </div>
+    <div style="height:4px;background:var(--grad-sky);flex-shrink:0;"></div>
+  </div>
+</div>
+
+<!-- 22. PHOTO UPLOAD -->
+<div class="pw">
+  <div class="sname">22 · Upload Photo</div>
+  <div class="phone">
+    <div class="hdr-blue">
+      <div class="sb sb-w" style="padding:0;height:auto;font-size:8px;margin-bottom:6px;"><span>9:41</span><span>▲▌▌</span></div>
+      <div class="brow"><div class="bico">←</div><div class="hdr-title">Add Complaint Photo</div></div>
+    </div>
+    <div class="body-w" style="padding:14px;">
+      <!-- viewfinder -->
+      <div style="background:#0A1628;border-radius:16px;height:164px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;background:linear-gradient(135deg,#0A1628,#1E3A8A);"></div>
+        <div style="position:absolute;top:14px;left:14px;width:16px;height:16px;border-top:2px solid rgba(59,130,246,0.7);border-left:2px solid rgba(59,130,246,0.7);"></div>
+        <div style="position:absolute;top:14px;right:14px;width:16px;height:16px;border-top:2px solid rgba(59,130,246,0.7);border-right:2px solid rgba(59,130,246,0.7);"></div>
+        <div style="position:absolute;bottom:14px;left:14px;width:16px;height:16px;border-bottom:2px solid rgba(59,130,246,0.7);border-left:2px solid rgba(59,130,246,0.7);"></div>
+        <div style="position:absolute;bottom:14px;right:14px;width:16px;height:16px;border-bottom:2px solid rgba(59,130,246,0.7);border-right:2px solid rgba(59,130,246,0.7);"></div>
+        <div style="font-size:30px;z-index:1;">📷</div>
+        <div style="position:absolute;bottom:9px;left:0;right:0;text-align:center;font-size:8px;color:rgba(255,255,255,0.5);">Tap to focus</div>
+      </div>
+      <!-- controls -->
+      <div style="display:flex;justify-content:space-around;align-items:center;margin-bottom:16px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--B5);display:flex;align-items:center;justify-content:center;font-size:17px;">🖼️</div><span style="font-size:7.5px;color:var(--N500);">Gallery</span></div>
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--grad-main);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,99,235,0.4);"><div style="width:40px;height:40px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-size:20px;">📸</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--N100);display:flex;align-items:center;justify-content:center;font-size:17px;">🔄</div><span style="font-size:7.5px;color:var(--N500);">Flip</span></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--N900);margin-bottom:8px;">Photos (1/3)</div>
+      <div style="display:flex;gap:7px;margin-bottom:14px;">
+        <div style="width:62px;height:62px;border-radius:11px;background:var(--N200);display:flex;align-items:center;justify-content:center;position:relative;font-size:24px;">🛣️<div style="position:absolute;top:3px;right:3px;width:15px;height:15px;background:var(--R);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700;">×</div></div>
+        <div style="width:62px;height:62px;border-radius:11px;background:var(--B6);border:1.5px dashed var(--B3);display:flex;align-items:center;justify-content:center;font-size:24px;">➕</div>
+        <div style="width:62px;height:62px;border-radius:11px;background:var(--N100);border:1.5px dashed var(--N300);display:flex;align-items:center;justify-content:center;font-size:24px;">➕</div>
+      </div>
+      <button class="btn-blue">Use Photo &amp; Continue</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end grid -->
+</body>
+</html>
