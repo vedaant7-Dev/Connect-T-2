@@ -135,7 +135,6 @@ function PlaceCard({
 export default function ServicesScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const params = useLocalSearchParams<{ category?: string }>();
   const { handleScroll } = useTabBarVisibility();
 
@@ -215,7 +214,7 @@ export default function ServicesScreen() {
             categoryId={selectedCat.id}
           />
         )}
-        contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad + 90 }]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}

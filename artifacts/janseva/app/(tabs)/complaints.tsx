@@ -128,7 +128,6 @@ function ComplaintCard({ complaint, onPress }: { complaint: Complaint; onPress: 
 export default function ComplaintsScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const router = useRouter();
   const { complaints } = useComplaints();
   const { t } = useLanguage();
@@ -225,7 +224,7 @@ export default function ComplaintsScreen() {
             onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })}
           />
         )}
-        contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 90 }]}
+        contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}

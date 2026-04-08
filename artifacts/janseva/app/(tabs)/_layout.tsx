@@ -4,6 +4,7 @@ import { BlurView } from "expo-blur";
 import React from "react";
 import { Platform, StyleSheet, View, Text, useColorScheme, TouchableOpacity } from "react-native";
 import Animated from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
@@ -11,13 +12,13 @@ function AnimatedTabBar(props: any) {
   const { state, descriptors, navigation } = props;
   const { tabBarAnimatedStyle } = useTabBarVisibility();
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
-  const isAndroid = Platform.OS === "android";
 
-  const TAB_HEIGHT = isWeb ? 72 : isAndroid ? 64 : 80;
-  const BOTTOM_PAD = isWeb ? 14 : isAndroid ? 8 : 24;
+  const BOTTOM_INSET = isWeb ? 14 : Math.max(insets.bottom, 8);
+  const TAB_HEIGHT = (isWeb ? 58 : 56) + BOTTOM_INSET;
 
   return (
     <Animated.View
@@ -39,7 +40,7 @@ function AnimatedTabBar(props: any) {
           <View style={[StyleSheet.absoluteFill, { backgroundColor: "#FFFFFF" }]} />
         )}
       </View>
-      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingBottom: BOTTOM_PAD }}>
+      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingBottom: BOTTOM_INSET }}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
 

@@ -56,7 +56,6 @@ function formatDate(dateStr: string): string {
 export default function ComplaintDetailScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const router = useRouter();
   const { id, fresh } = useLocalSearchParams<{ id: string; fresh?: string }>();
   const { getComplaintById } = useComplaints();
@@ -115,7 +114,7 @@ export default function ComplaintDetailScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 40 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 8) + 40 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Photo */}

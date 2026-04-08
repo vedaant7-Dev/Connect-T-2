@@ -270,7 +270,6 @@ function NewPostModal({ visible, onClose, onSubmit, canPostAnnouncement }: { vis
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const router = useRouter();
   const { posts, addPost, loading } = useFeed();
   const { user } = useAuth();
@@ -339,7 +338,7 @@ export default function FeedScreen() {
           data={posts}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => <PostCard post={item} userId={userId} />}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 130 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 120 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -355,7 +354,7 @@ export default function FeedScreen() {
               onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })}
             />
           )}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 130 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 120 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -378,7 +377,7 @@ export default function FeedScreen() {
               onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })}
             />
           )}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 130 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 120 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -393,7 +392,7 @@ export default function FeedScreen() {
         />
       )}
 
-      <View style={[styles.bottomComposeBar, { paddingBottom: bottomPad + 64 }]}>
+      <View style={[styles.bottomComposeBar, { paddingBottom: Math.max(insets.bottom, 8) + 56 }]}>
         <TouchableOpacity style={styles.composeBarInner} onPress={() => setShowNewPost(true)} activeOpacity={0.85}>
           {user && <Avatar name={user.name} color={user.avatarColor || "#2563EB"} size={36} />}
           <Text style={styles.composePlaceholder}>{t("shareWithWard")}</Text>

@@ -182,7 +182,6 @@ function ComplaintCard({ complaint, onAction }: { complaint: Complaint; onAction
 function NagarsevakPanel() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const { user, logout } = useAuth();
   const { complaints, updateStatus } = useComplaints();
   const router = useRouter();
@@ -248,7 +247,7 @@ function NagarsevakPanel() {
         data={filtered}
         keyExtractor={(c) => c.id}
         renderItem={({ item }) => <ComplaintCard complaint={item} onAction={() => setActive(item)} />}
-        contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]}
+        contentContainerStyle={[{ padding: 14 }, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -286,7 +285,6 @@ const DEMO_OFFICERS = [
 function HeadAdminPanel() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const { user, logout } = useAuth();
   const { complaints, updateStatus } = useComplaints();
   const router = useRouter();
@@ -378,7 +376,7 @@ function HeadAdminPanel() {
             data={statusFiltered}
             keyExtractor={(c) => c.id}
             renderItem={({ item }) => <ComplaintCard complaint={item} onAction={() => setActive(item)} />}
-            contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]}
+            contentContainerStyle={[{ padding: 14 }, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
             scrollEventThrottle={16}
@@ -388,7 +386,7 @@ function HeadAdminPanel() {
       )}
 
       {tab === "officers" && (
-        <ScrollView contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]} onScroll={handleScroll} scrollEventThrottle={16}>
+        <ScrollView contentContainerStyle={[{ padding: 14 }, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]} onScroll={handleScroll} scrollEventThrottle={16}>
           <Text style={styles.sectionHeading}>{t("nagarsevakPerformance")}</Text>
           {DEMO_OFFICERS.map((o, i) => (
             <View key={i} style={styles.officerCard}>
@@ -418,7 +416,7 @@ function HeadAdminPanel() {
       )}
 
       {tab === "services" && (
-        <ScrollView contentContainerStyle={[{ padding: 14 }, { paddingBottom: bottomPad + 90 }]} onScroll={handleScroll} scrollEventThrottle={16}>
+        <ScrollView contentContainerStyle={[{ padding: 14 }, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]} onScroll={handleScroll} scrollEventThrottle={16}>
           <View style={styles.servicesAdminHeader}>
             <Text style={styles.sectionHeading}>{t("serviceManagement")}</Text>
             <TouchableOpacity style={styles.addServiceBtn} activeOpacity={0.8}>

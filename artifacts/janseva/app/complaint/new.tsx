@@ -39,7 +39,6 @@ const categories: { id: ComplaintCategory; icon: string; color: string; bg: stri
 export default function NewComplaintScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const router = useRouter();
   const { addComplaint } = useComplaints();
   const { t } = useLanguage();
@@ -144,7 +143,7 @@ export default function NewComplaintScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 120 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 8) + 100 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -277,7 +276,7 @@ export default function NewComplaintScreen() {
       </ScrollView>
 
       {/* SUBMIT */}
-      <View style={[styles.submitBar, { paddingBottom: bottomPad + 16 }]}>
+      <View style={[styles.submitBar, { paddingBottom: Math.max(insets.bottom, 8) + 16 }]}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
           onPress={handleSubmit}

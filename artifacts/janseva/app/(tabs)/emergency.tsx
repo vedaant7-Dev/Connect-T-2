@@ -21,7 +21,6 @@ import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 export default function EmergencyScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const router = useRouter();
   const { t } = useLanguage();
   const { handleScroll } = useTabBarVisibility();
@@ -52,7 +51,7 @@ export default function EmergencyScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}

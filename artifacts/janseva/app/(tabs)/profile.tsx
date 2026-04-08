@@ -55,7 +55,6 @@ function Avatar({ name, color, size = 72 }: { name: string; color: string; size?
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
   const router = useRouter();
   const { user, logout } = useAuth();
   const { complaints } = useComplaints();
@@ -163,7 +162,7 @@ export default function ProfileScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 70 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 8) + 70 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}

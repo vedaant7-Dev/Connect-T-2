@@ -114,7 +114,7 @@ export default function ServiceDetailScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 8) + 24 }]} showsVerticalScrollIndicator={false}>
 
         {/* Address */}
         <View style={styles.section}>
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   headerInfoText: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontFamily: "Inter_400Regular" },
   headerInfoDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.5)" },
   scroll: { flex: 1 },
-  scrollContent: { padding: 16 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
   section: {
     backgroundColor: "white", borderRadius: 16, padding: 14, marginBottom: 12,
     shadowColor: "#1E40AF", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
