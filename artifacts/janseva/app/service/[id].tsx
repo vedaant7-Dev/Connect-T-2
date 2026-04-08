@@ -287,7 +287,7 @@ export default function ServiceDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F8FAFC" },
+  root: { flex: 1, backgroundColor: "#ebeffc" },
   header: { paddingHorizontal: 20, paddingBottom: 24 },
   headerBack: {
     width: 38, height: 38, borderRadius: 12,

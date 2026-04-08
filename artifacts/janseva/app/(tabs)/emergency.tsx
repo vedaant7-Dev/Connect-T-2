@@ -133,7 +133,7 @@ export default function EmergencyScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F8FAFC" },
+  root: { flex: 1, backgroundColor: "#ebeffc" },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 18,

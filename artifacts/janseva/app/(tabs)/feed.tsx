@@ -415,7 +415,7 @@ export default function FeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F1F5F9" },
+  root: { flex: 1, backgroundColor: "#ebeffc" },
   header: { paddingHorizontal: 16, paddingBottom: 0, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 },

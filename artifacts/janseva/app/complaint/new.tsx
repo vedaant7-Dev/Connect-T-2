@@ -305,7 +305,7 @@ export default function NewComplaintScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F8FAFC" },
+  root: { flex: 1, backgroundColor: "#ebeffc" },
   header: { paddingHorizontal: 20, paddingBottom: 18, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   backBtn: {

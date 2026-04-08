@@ -195,7 +195,7 @@ function NagarsevakPanel() {
   const pending = wardComplaints.filter((c) => c.status === "submitted").length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+    <View style={{ flex: 1, backgroundColor: "#ebeffc" }}>
       <LinearGradient colors={["#065F46", "#047857", "#059669"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
           <Feather name="arrow-left" size={18} color="white" />
@@ -302,7 +302,7 @@ function HeadAdminPanel() {
   const resolved = complaints.filter((c) => c.status === "resolved").length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+    <View style={{ flex: 1, backgroundColor: "#ebeffc" }}>
       <LinearGradient colors={["#0F172A", "#1E3A8A", "#4C1D95"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
           <Feather name="arrow-left" size={18} color="white" />
@@ -478,7 +478,7 @@ function LoginGate() {
   const { t } = useLanguage();
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+    <View style={{ flex: 1, backgroundColor: "#ebeffc" }}>
       <LinearGradient colors={["#1E3A8A", "#1E40AF", "#2563EB"]} style={[{ paddingTop: topPad + 20, paddingHorizontal: 20, paddingBottom: 60, alignItems: "center", borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { alignSelf: "flex-start" }]} activeOpacity={0.8}>
           <Feather name="arrow-left" size={18} color="white" />
