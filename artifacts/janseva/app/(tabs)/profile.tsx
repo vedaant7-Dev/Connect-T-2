@@ -30,7 +30,7 @@ const roleConfig = {
 };
 
 const usefulLinks = [
-  { label: "BMC Official Website", url: "https://portal.mcgm.gov.in", icon: "globe" as const },
+  { label: "ULMC Official Website", url: "https://ulhasnagarmc.org", icon: "globe" as const },
   { label: "Maharashtra Govt Portal", url: "https://maharashtra.gov.in", icon: "globe" as const },
   { label: "RTI Portal", url: "https://rtionline.gov.in", icon: "file-text" as const },
   { label: "Aadhaar Services", url: "https://uidai.gov.in", icon: "user" as const },
@@ -130,7 +130,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.infoChipRow}>
               <Feather name="map-pin" size={10} color="rgba(255,255,255,0.55)" />
-              <Text style={styles.infoChipText}>{user.ward || "Ward 8 — Dadar"}</Text>
+              <Text style={styles.infoChipText}>{user.ward || "Camp 1 — Ulhasnagar"}</Text>
             </View>
             <View style={styles.infoChipRow}>
               <Feather name="phone" size={10} color="rgba(255,255,255,0.55)" />
@@ -231,7 +231,7 @@ export default function ProfileScreen() {
             {[
               { icon: "user" as const, label: "Full Name", value: user.name },
               { icon: "phone" as const, label: "Mobile", value: "+91 " + user.mobile },
-              { icon: "map-pin" as const, label: "Ward", value: user.ward || "Ward 8 — Dadar" },
+              { icon: "map-pin" as const, label: "Ward", value: user.ward || "Camp 1 — Ulhasnagar" },
               { icon: "shield" as const, label: "Role", value: rc.label + " · " + rc.subLabel },
             ].map((item, idx, arr) => (
               <View key={item.label} style={[styles.actionRow, idx < arr.length - 1 && styles.rowBorder]}>
@@ -295,7 +295,7 @@ export default function ProfileScreen() {
         <View style={styles.appInfoCard}>
           <Text style={styles.appInfoBrand}>JanSeva</Text>
           <Text style={styles.appInfoTagline}>नागरिक सेवा · Citizen Services Platform</Text>
-          <Text style={styles.appInfoVersion}>v1.0 · Mumbai BMC · 2025</Text>
+          <Text style={styles.appInfoVersion}>v1.0 · ULMC Ulhasnagar · 2025</Text>
         </View>
 
         {/* Logout */}

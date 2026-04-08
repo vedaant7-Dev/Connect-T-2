@@ -249,13 +249,13 @@ function NagarsevakPanel() {
 
 // ─── HEAD ADMIN PANEL ─────────────────────────────────────────────────────────
 
-const WARD_NAMES = ["All Wards", "Ward 8 — Dadar", "Ward 5 — Dharavi", "Ward 6 — Sion", "Ward 11 — Kurla", "Ward 13 — Andheri"];
+const WARD_NAMES = ["All Wards", "Camp 1 — Ulhasnagar", "Camp 2 — Ulhasnagar", "Camp 3 — Ulhasnagar", "Camp 4 — Ulhasnagar", "Camp 5 — Ulhasnagar"];
 
 const DEMO_OFFICERS = [
-  { name: "Ward Officer Patil", ward: "Ward 8 — Dadar", resolved: 12, active: 3, avatar: "#059669" },
-  { name: "Officer Sharma", ward: "Ward 5 — Dharavi", resolved: 8, active: 5, avatar: "#2563EB" },
-  { name: "Officer Desai", ward: "Ward 6 — Sion", resolved: 15, active: 1, avatar: "#7C3AED" },
-  { name: "Officer Khan", ward: "Ward 11 — Kurla", resolved: 6, active: 4, avatar: "#D97706" },
+  { name: "Ward Officer Patil", ward: "Camp 1 — Ulhasnagar", resolved: 12, active: 3, avatar: "#059669" },
+  { name: "Officer Sharma", ward: "Camp 3 — Ulhasnagar", resolved: 8, active: 5, avatar: "#2563EB" },
+  { name: "Officer Desai", ward: "Camp 4 — Ulhasnagar", resolved: 15, active: 1, avatar: "#7C3AED" },
+  { name: "Officer Khan", ward: "Camp 5 — Ulhasnagar", resolved: 6, active: 4, avatar: "#D97706" },
 ];
 
 function HeadAdminPanel() {

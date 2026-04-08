@@ -20,7 +20,7 @@ const tips = [
   "Stay calm and describe your exact location",
   "Call 112 for all emergencies in India",
   "Keep your Aadhaar number ready for hospitals",
-  "Note your area's ward number for BMC calls",
+  "Note your area's ward number for ULMC calls",
 ];
 
 export default function EmergencyScreen() {
