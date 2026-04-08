@@ -10,13 +10,6 @@ export default function TabLayout() {
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
-  const { user } = useAuth();
-
-  const adminColor = user?.role === "nagarsevak"
-    ? "#059669"
-    : user?.role === "head_admin"
-    ? "#7C3AED"
-    : "#94A3B8";
 
   return (
     <Tabs
@@ -30,29 +23,32 @@ export default function TabLayout() {
           borderTopWidth: 1,
           borderTopColor: "#E2E8F0",
           elevation: 0,
-          height: isWeb ? 84 : 62,
-          paddingBottom: isWeb ? 20 : 6,
+          height: isWeb ? 80 : Platform.OS === "android" ? 64 : 80,
+          paddingTop: 8,
+          paddingBottom: isWeb ? 18 : Platform.OS === "android" ? 10 : 24,
         },
         tabBarLabelStyle: {
-          fontSize: 9,
-          fontWeight: "700",
+          fontSize: 10,
+          fontWeight: "600",
           fontFamily: "Inter_600SemiBold",
+          marginTop: 2,
+        },
+        tabBarIconStyle: {
+          marginBottom: 0,
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView intensity={100} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
-          ) : isWeb ? (
+          ) : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: "#FFFFFF" }]} />
-          ) : null,
+          ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, focused }) => (
-            <Feather name={focused ? "home" : "home"} size={20} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -61,75 +57,70 @@ export default function TabLayout() {
           title: "Complaints",
           tabBarIcon: ({ color, focused }) => (
             <View style={{
-              width: 46,
-              height: 46,
-              borderRadius: 23,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
               backgroundColor: focused ? "#1E40AF" : "#EFF6FF",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 4,
               shadowColor: focused ? "#1E40AF" : "transparent",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.4,
-              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.35,
+              shadowRadius: 6,
               elevation: focused ? 4 : 0,
+              marginTop: -8,
             }}>
               <Feather name="edit-3" size={20} color={focused ? "white" : "#2563EB"} />
             </View>
           ),
           tabBarActiveTintColor: "#1E40AF",
-          tabBarLabel: () => null,
+          tabBarLabel: "Complaints",
         }}
       />
       <Tabs.Screen
         name="emergency"
         options={{
-          title: "Emergency",
+          title: "SOS",
           tabBarIcon: ({ color, focused }) => (
             <View style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
+              width: 50,
+              height: 50,
+              borderRadius: 25,
               backgroundColor: focused ? "#DC2626" : "#FEE2E2",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 2,
+              shadowColor: "#DC2626",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.4,
+              shadowRadius: 8,
+              elevation: 6,
+              marginTop: -16,
+              borderWidth: 3,
+              borderColor: "white",
             }}>
-              <Feather name="phone-call" size={19} color={focused ? "white" : "#DC2626"} />
+              <Feather name="phone-call" size={20} color={focused ? "white" : "#DC2626"} />
             </View>
           ),
           tabBarActiveTintColor: "#DC2626",
+          tabBarLabel: "SOS",
         }}
       />
       <Tabs.Screen
         name="feed"
         options={{
           title: "Feed",
-          tabBarIcon: ({ color, focused }) => (
-            <Feather name="rss" size={20} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Feather name="rss" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="admin"
+        name="profile"
         options={{
-          title: user?.role === "nagarsevak"
-            ? "Nagarsevak"
-            : user?.role === "head_admin"
-            ? "Admin"
-            : "Admin",
-          tabBarIcon: ({ focused }) => (
-            <Feather
-              name={user?.role === "head_admin" ? "shield" : user?.role === "nagarsevak" ? "briefcase" : "user"}
-              size={20}
-              color={focused ? adminColor : "#94A3B8"}
-            />
-          ),
-          tabBarActiveTintColor: adminColor,
+          title: "Profile",
+          tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
         }}
       />
       <Tabs.Screen name="services" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="admin" options={{ href: null }} />
     </Tabs>
   );
 }

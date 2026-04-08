@@ -14,6 +14,14 @@ import { emergencyContacts } from "@/data/mumbaiServices";
 import { useComplaints, ComplaintStatus } from "@/context/ComplaintContext";
 import { useAuth } from "@/context/AuthContext";
 
+const alertsAndNews = [
+  { id: "1", type: "alert", icon: "alert-triangle", color: "#DC2626", bg: "#FEE2E2", title: "Water Supply Restricted", body: "Area 4 (Dadar East): 8AM–2PM today. Store water in advance.", time: "2h ago" },
+  { id: "2", type: "news", icon: "info", color: "#2563EB", bg: "#DBEAFE", title: "Road Work Notice", body: "LT Marg repair from 26-Apr to 30-Apr. Expect delays — use alternate routes.", time: "5h ago" },
+  { id: "3", type: "alert", icon: "zap", color: "#D97706", bg: "#FEF3C7", title: "Planned Power Cut", body: "Sectors 11–14 (Mahim): 10AM–4PM on 27-Apr for transformer upgrade.", time: "Yesterday" },
+  { id: "4", type: "news", icon: "calendar", color: "#059669", bg: "#D1FAE5", title: "Community Cleanliness Drive", body: "Join BMC's ward-wide cleanliness drive this Sunday at 7AM — Shivaji Park.", time: "1d ago" },
+  { id: "5", type: "alert", icon: "cloud-drizzle", color: "#7C3AED", bg: "#EDE9FE", title: "Heavy Rain Warning", body: "IMD: Orange alert for Mumbai on 28-Apr. Avoid waterlogging-prone areas.", time: "3h ago" },
+];
+
 const quickServices = [
   { id: "hospital", label: "Hospitals", icon: "activity", color: "#DC2626", bg: "#FEE2E2" },
   { id: "childHospital", label: "Child Care", icon: "heart", color: "#7C3AED", bg: "#EDE9FE" },
@@ -178,6 +186,41 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {/* ALERTS & IMPORTANT NEWS */}
+        <View style={styles.alertsSection}>
+          <View style={styles.alertsSectionHeader}>
+            <View style={styles.alertsSectionTitleRow}>
+              <View style={styles.alertsDot} />
+              <Text style={styles.alertsSectionTitle}>Alerts & Important News</Text>
+            </View>
+            <View style={styles.alertsLivePill}>
+              <View style={styles.alertsLiveDot} />
+              <Text style={styles.alertsLiveText}>LIVE</Text>
+            </View>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingBottom: 2 }}>
+            {alertsAndNews.map((item) => (
+              <TouchableOpacity key={item.id} style={styles.alertCard} activeOpacity={0.88}>
+                <View style={[styles.alertCardIcon, { backgroundColor: item.bg }]}>
+                  <Feather name={item.icon as any} size={16} color={item.color} />
+                </View>
+                <View style={styles.alertCardBody}>
+                  <View style={styles.alertCardRow}>
+                    <View style={[styles.alertTypePill, { backgroundColor: item.bg }]}>
+                      <Text style={[styles.alertTypeText, { color: item.color }]}>
+                        {item.type === "alert" ? "⚠ Alert" : "📢 News"}
+                      </Text>
+                    </View>
+                    <Text style={styles.alertCardTime}>{item.time}</Text>
+                  </View>
+                  <Text style={styles.alertCardTitle}>{item.title}</Text>
+                  <Text style={styles.alertCardDesc} numberOfLines={2}>{item.body}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* RECENT COMPLAINTS */}
         <SectionHeader title="Recent Complaints" actionLabel="View All" onAction={() => router.push("/(tabs)/complaints")} />
         {recentComplaints.length > 0 ? (
@@ -314,4 +357,25 @@ const styles = StyleSheet.create({
   emergencyIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", marginBottom: 2 },
   emergencyName: { fontSize: 9, fontWeight: "700", color: "#475569", textAlign: "center", fontFamily: "Inter_600SemiBold" },
   emergencyNumber: { fontSize: 14, fontWeight: "900", fontFamily: "Inter_700Bold" },
+  alertsSection: { marginBottom: 18 },
+  alertsSectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  alertsSectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  alertsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#DC2626" },
+  alertsSectionTitle: { fontSize: 14, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
+  alertsLivePill: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#FEE2E2", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  alertsLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#DC2626" },
+  alertsLiveText: { fontSize: 9, fontWeight: "900", color: "#DC2626", fontFamily: "Inter_700Bold", letterSpacing: 1 },
+  alertCard: {
+    width: 230, backgroundColor: "white", borderRadius: 16, overflow: "hidden",
+    shadowColor: "#1E40AF", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
+    borderWidth: 1, borderColor: "#F1F5F9",
+  },
+  alertCardIcon: { padding: 14, paddingBottom: 0, alignSelf: "flex-start" },
+  alertCardBody: { padding: 12 },
+  alertCardRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  alertTypePill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
+  alertTypeText: { fontSize: 9, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
+  alertCardTime: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular" },
+  alertCardTitle: { fontSize: 13, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 4 },
+  alertCardDesc: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", lineHeight: 16 },
 });
