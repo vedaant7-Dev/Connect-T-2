@@ -161,7 +161,7 @@ export default function ProfileScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 70 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}

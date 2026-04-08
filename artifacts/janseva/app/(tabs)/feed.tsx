@@ -339,7 +339,7 @@ export default function FeedScreen() {
           data={posts}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => <PostCard post={item} userId={userId} />}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 160 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 130 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -355,7 +355,7 @@ export default function FeedScreen() {
               onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })}
             />
           )}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 160 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 130 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -378,7 +378,7 @@ export default function FeedScreen() {
               onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })}
             />
           )}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 160 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 130 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -393,7 +393,7 @@ export default function FeedScreen() {
         />
       )}
 
-      <View style={[styles.bottomComposeBar, { paddingBottom: bottomPad + 90 }]}>
+      <View style={[styles.bottomComposeBar, { paddingBottom: bottomPad + 64 }]}>
         <TouchableOpacity style={styles.composeBarInner} onPress={() => setShowNewPost(true)} activeOpacity={0.85}>
           {user && <Avatar name={user.name} color={user.avatarColor || "#2563EB"} size={36} />}
           <Text style={styles.composePlaceholder}>{t("shareWithWard")}</Text>
