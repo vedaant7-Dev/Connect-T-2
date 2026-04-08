@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 40, alignItems: "center" },
   langRow: {
-    flexDirection: "row", gap: 8, marginBottom: 12, alignSelf: "center",
+    flexDirection: "row", gap: 8, marginBottom: 4, alignSelf: "center",
   },
   langPill: {
     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
@@ -497,12 +497,12 @@ const styles = StyleSheet.create({
   langPillTextActive: {
     color: "white",
   },
-  logoBox: { alignItems: "center", marginBottom: 10, marginTop: 8 },
-  logo: { width: 120, height: 120, marginBottom: 6 },
+  logoBox: { alignItems: "center", marginBottom: 4, marginTop: 0 },
+  logo: { width: 180, height: 180, marginBottom: 2 },
   brandSub: {
-    fontSize: 11, color: "rgba(255,255,255,0.45)",
-    fontFamily: "Inter_400Regular", marginTop: 2, textAlign: "center",
-    letterSpacing: 0.3,
+    fontSize: 12, color: "rgba(255,255,255,0.55)",
+    fontFamily: "Inter_600SemiBold", marginTop: 0, textAlign: "center",
+    letterSpacing: 0.5, fontWeight: "600",
   },
   card: {
     backgroundColor: "white", borderRadius: 24, padding: 24,

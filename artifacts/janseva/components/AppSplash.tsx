@@ -44,7 +44,7 @@ export function AppSplash({ onFinish }: AppSplashProps) {
         </View>
 
         {/* Powered by */}
-        <Text style={styles.poweredBy}>Powered by Vanchit Bahujan Aaghadi</Text>
+        <Text style={styles.poweredBy}>Powered by VBA Party</Text>
       </View>
 
       {/* ── Footer: flag + stamp + Continue button ── */}
