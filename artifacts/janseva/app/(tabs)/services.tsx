@@ -156,6 +156,9 @@ export default function ServicesScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: topPad + 12 }]}
       >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
+          <Feather name="arrow-left" size={18} color="white" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Nearby Services</Text>
         <Text style={styles.headerSub}>Ulhasnagar — Sorted by distance</Text>
 
@@ -220,6 +223,7 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: { paddingHorizontal: 20, paddingBottom: 14 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   headerTitle: {
     fontSize: 22, fontWeight: "800", color: "#FFFFFF",
     fontFamily: "Inter_700Bold", letterSpacing: -0.3, marginBottom: 2,

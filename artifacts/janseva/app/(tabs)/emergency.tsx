@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import { EmergencyButton } from "@/components/EmergencyButton";
 import { emergencyContacts } from "@/data/mumbaiServices";
 
@@ -26,6 +27,7 @@ export default function EmergencyScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
+  const router = useRouter();
 
   const handleCall = (number: string) => {
     if (Platform.OS !== "web") {
@@ -42,6 +44,9 @@ export default function EmergencyScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: topPad + 12 }]}
       >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
+          <Feather name="arrow-left" size={18} color="white" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Emergency</Text>
         <Text style={styles.headerSub}>One-tap access to all emergency services</Text>
       </LinearGradient>
@@ -133,6 +138,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 18,
   },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   headerTitle: {
     fontSize: 22,
     fontWeight: "800",

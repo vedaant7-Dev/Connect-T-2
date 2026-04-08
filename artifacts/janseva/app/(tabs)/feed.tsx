@@ -277,6 +277,9 @@ export default function FeedScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient colors={["#1E3A8A", "#1E40AF", "#2563EB"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
+          <Feather name="arrow-left" size={18} color="white" />
+        </TouchableOpacity>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>Community Feed</Text>
@@ -379,6 +382,7 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F1F5F9" },
   header: { paddingHorizontal: 16, paddingBottom: 0 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 2 },

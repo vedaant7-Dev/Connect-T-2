@@ -140,6 +140,9 @@ export default function ComplaintsScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: topPad + 12 }]}
       >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
+          <Feather name="arrow-left" size={18} color="white" />
+        </TouchableOpacity>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>My Complaints</Text>
@@ -226,6 +229,7 @@ export default function ComplaintsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: { paddingHorizontal: 20, paddingBottom: 14 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",

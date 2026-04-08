@@ -175,6 +175,9 @@ function NagarsevakPanel() {
   return (
     <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
       <LinearGradient colors={["#065F46", "#047857", "#059669"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
+          <Feather name="arrow-left" size={18} color="white" />
+        </TouchableOpacity>
         <View style={styles.headerTop}>
           <View>
             <View style={styles.adminBadge}>
@@ -261,6 +264,7 @@ function HeadAdminPanel() {
   const bottomPad = Platform.OS === "web" ? 34 : 0;
   const { user, logout } = useAuth();
   const { complaints, updateStatus } = useComplaints();
+  const router = useRouter();
   const [tab, setTab] = useState<"complaints" | "officers" | "services">("complaints");
   const [filterWard, setFilterWard] = useState("All Wards");
   const [filterStatus, setFilterStatus] = useState<ComplaintStatus | "all">("all");
@@ -275,6 +279,9 @@ function HeadAdminPanel() {
   return (
     <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
       <LinearGradient colors={["#0F172A", "#1E3A8A", "#4C1D95"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
+          <Feather name="arrow-left" size={18} color="white" />
+        </TouchableOpacity>
         <View style={styles.headerTop}>
           <View>
             <View style={styles.adminBadge}>
@@ -445,6 +452,9 @@ function LoginGate() {
   return (
     <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
       <LinearGradient colors={["#1E3A8A", "#1E40AF", "#2563EB"]} style={[{ paddingTop: topPad + 20, paddingHorizontal: 20, paddingBottom: 60, alignItems: "center" }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { alignSelf: "flex-start" }]} activeOpacity={0.8}>
+          <Feather name="arrow-left" size={18} color="white" />
+        </TouchableOpacity>
         <Feather name="shield" size={48} color="rgba(255,255,255,0.3)" />
         <Text style={{ fontSize: 22, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", marginTop: 12 }}>Admin Panel</Text>
         <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontFamily: "Inter_400Regular", marginTop: 4 }}>Login to access officer controls</Text>
@@ -472,6 +482,7 @@ export default function AdminScreen() {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 14 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
   adminBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(167,139,250,0.15)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, alignSelf: "flex-start", marginBottom: 6 },
   adminBadgeText: { fontSize: 9, fontWeight: "700", letterSpacing: 1, fontFamily: "Inter_600SemiBold" },
