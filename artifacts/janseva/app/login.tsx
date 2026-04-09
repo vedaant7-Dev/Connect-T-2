@@ -629,7 +629,7 @@ const s = StyleSheet.create({
     fontSize: 12, color: "#DC2626", fontFamily: "Inter_400Regular",
     textAlign: "center", marginTop: 8,
   },
-  primaryBtn: { marginTop: 16, borderRadius: 14, overflow: "hidden" },
+  primaryBtn: { marginTop: 16, borderRadius: 14, overflow: "hidden", width: "100%" },
   primaryBtnGrad: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 14, gap: 8,
@@ -660,6 +660,8 @@ const s = StyleSheet.create({
     borderColor: "#E2E8F0", backgroundColor: "#F8FAFC",
     fontSize: 22, fontWeight: "800", color: "#0F172A",
     fontFamily: "Inter_700Bold",
+    textAlign: "center",
+    textAlignVertical: "center",
   },
   otpBoxFilled: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
   otpHint: {
