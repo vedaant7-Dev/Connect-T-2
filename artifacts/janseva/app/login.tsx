@@ -667,11 +667,6 @@ const s = StyleSheet.create({
     fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular",
     marginBottom: 4,
   },
-  backLink: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingVertical: 10, marginTop: 4,
-  },
-  backLinkText: { fontSize: 13, color: "#64748B", fontFamily: "Inter_400Regular" },
 
   notifSection: { width: "100%", gap: 12, marginTop: 16, marginBottom: 8 },
   checkRow: {
