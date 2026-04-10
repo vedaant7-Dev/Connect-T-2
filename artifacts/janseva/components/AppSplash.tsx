@@ -15,8 +15,8 @@ export function AppSplash({ onFinish }: AppSplashProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#431407", "#7C2D12", "#C2410C", "#EA580C", "#F97316"]}
-        locations={[0, 0.2, 0.5, 0.78, 1]}
+        colors={["#C2410C", "#EA580C", "#F97316", "#FB923C", "#FED7AA"]}
+        locations={[0, 0.25, 0.55, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />
 

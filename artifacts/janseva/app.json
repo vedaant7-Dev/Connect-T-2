@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#C2410C"
+      "backgroundColor": "#EA580C"
     },
     "ios": {
       "supportsTablet": false
@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#C2410C"
+        "backgroundColor": "#EA580C"
       }
     },
     "androidStatusBar": {
