@@ -180,14 +180,19 @@ function ComplaintCard({ complaint, onPress }: { complaint: Complaint; onPress: 
   );
 }
 
-function ChatBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
+function ChatBubble({ msg, isMe, onLongPress }: { msg: ChatMessage; isMe: boolean; onLongPress: () => void }) {
   const roleInfo = roleBadgeColor[msg.authorRole] || roleBadgeColor.citizen;
   return (
-    <View style={[styles.bubble, isMe && styles.bubbleMe]}>
-      {!isMe && <Avatar name={msg.authorName} color={msg.avatarColor} size={34} />}
+    <TouchableOpacity
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      activeOpacity={0.85}
+      style={[styles.bubble, isMe && styles.bubbleMe]}
+    >
+      {!isMe && <Avatar name={msg.authorName} color={msg.avatarColor} size={32} />}
       <View style={[styles.bubbleContent, isMe && styles.bubbleContentMe]}>
         {!isMe && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 2 }}>
             <Text style={styles.bubbleName}>{msg.authorName}</Text>
             <View style={[styles.roleBadge, { backgroundColor: roleInfo.bg }]}>
               <Text style={[styles.roleBadgeText, { color: roleInfo.text }]}>{msg.authorRole}</Text>
@@ -197,7 +202,7 @@ function ChatBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
         <Text style={[styles.bubbleText, isMe && styles.bubbleTextMe]}>{msg.text}</Text>
         <Text style={[styles.bubbleTime, isMe && { textAlign: "right" }]}>{timeAgo(msg.createdAt)}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -374,7 +379,7 @@ export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const router = useRouter();
-  const { posts, chatMessages, addPost, addChatMessage, toggleLike, isSubscribed, isBlocked, subscribe, blocked } = useFeed();
+  const { posts, chatMessages, addPost, addChatMessage, deleteChatMessage, editChatMessage, toggleLike, isSubscribed, isBlocked, subscribe, blocked } = useFeed();
   const { user } = useAuth();
   const { complaints } = useComplaints();
   const { t } = useLanguage();
@@ -390,6 +395,10 @@ export default function FeedScreen() {
   const [showSubscribe, setShowSubscribe] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatWarning, setChatWarning] = useState("");
+  const [selectedMsg, setSelectedMsg] = useState<ChatMessage | null>(null);
+  const [showMsgActions, setShowMsgActions] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
   const chatRef = useRef<FlatList>(null);
 
   const canPostAnnouncement = user?.role === "nagarsevak";
@@ -438,6 +447,55 @@ export default function FeedScreen() {
     }
   };
 
+  const handleMsgLongPress = (msg: ChatMessage) => {
+    Haptics.selectionAsync();
+    setSelectedMsg(msg);
+    setShowMsgActions(true);
+  };
+
+  const handleCopyMsg = async () => {
+    if (!selectedMsg) return;
+    const { Clipboard } = await import("react-native");
+    Clipboard.setString(selectedMsg.text);
+    setShowMsgActions(false);
+  };
+
+  const handleDeleteMsg = () => {
+    if (!selectedMsg) return;
+    deleteChatMessage(selectedMsg.id);
+    setShowMsgActions(false);
+    setSelectedMsg(null);
+  };
+
+  const handleStartEdit = () => {
+    if (!selectedMsg) return;
+    setEditingMsgId(selectedMsg.id);
+    setEditingText(selectedMsg.text.replace(" (edited)", ""));
+    setShowMsgActions(false);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMsgId || !editingText.trim()) return;
+    editChatMessage(editingMsgId, editingText.trim());
+    setEditingMsgId(null);
+    setEditingText("");
+  };
+
+  const handlePickChatImage = async () => {
+    if (Platform.OS !== "web") {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") { return; }
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"], allowsEditing: false, quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const text = `📷 [Photo shared]`;
+      const r = addChatMessage(text, userId, user?.name || "Anonymous", user?.role || "citizen", user?.avatarColor || "#EA580C");
+      if (!r.success) setChatWarning("🚫 Unable to share photo at this time.");
+    }
+  };
+
   const handleSubscribe = async () => {
     await subscribe(userId);
     setShowSubscribe(false);
@@ -474,7 +532,7 @@ export default function FeedScreen() {
             <Text style={styles.headerTitle}>Community Feed</Text>
             <Text style={styles.headerSub}>Ambernath · BJP Ward Network</Text>
           </View>
-          {subscribed ? (
+          {activeTab !== "chat" && (subscribed ? (
             <TouchableOpacity style={styles.newPostBtn} onPress={() => userBlocked ? Alert.alert("Blocked", `You are blocked until ${blockedUntil}.`) : setShowNewPost(true)} activeOpacity={0.85}>
               <Feather name="edit-2" size={14} color="white" />
               <Text style={styles.newPostBtnText}>Post</Text>
@@ -484,7 +542,7 @@ export default function FeedScreen() {
               <Feather name="zap" size={14} color="white" />
               <Text style={styles.newPostBtnText}>₹199</Text>
             </TouchableOpacity>
-          )}
+          ))}
         </View>
         {!subscribed && (
           <View style={styles.premiumBadge}>
@@ -561,7 +619,13 @@ export default function FeedScreen() {
               ref={chatRef}
               data={chatMessages}
               keyExtractor={(m) => m.id}
-              renderItem={({ item }) => <ChatBubble msg={item} isMe={item.authorId === userId} />}
+              renderItem={({ item }) => (
+                <ChatBubble
+                  msg={item}
+                  isMe={item.authorId === userId}
+                  onLongPress={() => handleMsgLongPress(item)}
+                />
+              )}
               contentContainerStyle={[styles.chatList, { paddingBottom: Math.max(insets.bottom, 8) + 60 }]}
               showsVerticalScrollIndicator={false}
               onContentSizeChange={() => chatRef.current?.scrollToEnd({ animated: false })}
@@ -575,10 +639,10 @@ export default function FeedScreen() {
                 </View>
               )}
             <View style={[styles.chatInputBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-              <TouchableOpacity style={styles.chatAttachBtn} activeOpacity={0.75} onPress={() => setShowNewPost(true)}>
+              <TouchableOpacity style={styles.chatAttachBtn} activeOpacity={0.75} onPress={handlePickChatImage}>
                 <Feather name="image" size={26} color="#EA580C" />
               </TouchableOpacity>
-              <View style={[styles.chatInputPill, !!chatWarning && { borderColor: "#EF4444" }]}>
+              <View style={[styles.chatInputPill, !!chatWarning && { backgroundColor: "#FEF2F2", borderWidth: 1.5, borderColor: "#EF4444" }]}>
                 <TextInput
                   style={styles.chatInput}
                   value={chatInput}
@@ -653,6 +717,71 @@ export default function FeedScreen() {
 
       <NewPostModal visible={showNewPost} onClose={() => setShowNewPost(false)} onSubmit={handlePost} canPostAnnouncement={canPostAnnouncement} />
       <SubscribeModal visible={showSubscribe} onClose={() => setShowSubscribe(false)} onSubscribe={handleSubscribe} />
+
+      {/* Message long-press action sheet */}
+      <Modal visible={showMsgActions} transparent animationType="fade" onRequestClose={() => setShowMsgActions(false)}>
+        <TouchableOpacity style={styles.actionOverlay} activeOpacity={1} onPress={() => setShowMsgActions(false)}>
+          <View style={styles.actionSheet}>
+            <View style={styles.actionHandle} />
+            {selectedMsg && (
+              <View style={styles.actionPreview}>
+                <Text style={styles.actionPreviewText} numberOfLines={2}>{selectedMsg.text}</Text>
+              </View>
+            )}
+            <TouchableOpacity style={styles.actionItem} onPress={handleCopyMsg}>
+              <Feather name="copy" size={20} color="#334155" />
+              <Text style={styles.actionItemText}>Copy</Text>
+            </TouchableOpacity>
+            {selectedMsg?.authorId === userId && (
+              <>
+                <TouchableOpacity style={styles.actionItem} onPress={handleStartEdit}>
+                  <Feather name="edit-2" size={20} color="#2563EB" />
+                  <Text style={[styles.actionItemText, { color: "#2563EB" }]}>Edit</Text>
+                </TouchableOpacity>
+                <View style={styles.actionDivider} />
+                <TouchableOpacity style={styles.actionItem} onPress={handleDeleteMsg}>
+                  <Feather name="trash-2" size={20} color="#DC2626" />
+                  <Text style={[styles.actionItemText, { color: "#DC2626" }]}>Unsend</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={[styles.actionItem, { justifyContent: "center" }]} onPress={() => setShowMsgActions(false)}>
+              <Text style={[styles.actionItemText, { color: "#94A3B8" }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Inline edit overlay */}
+      <Modal visible={!!editingMsgId} transparent animationType="slide" onRequestClose={() => setEditingMsgId(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+          <TouchableOpacity style={styles.actionOverlay} activeOpacity={1} onPress={() => setEditingMsgId(null)}>
+            <View style={[styles.actionSheet, { paddingBottom: 24 }]}>
+              <View style={styles.actionHandle} />
+              <Text style={styles.editModalTitle}>Edit Message</Text>
+              <TextInput
+                style={styles.editModalInput}
+                value={editingText}
+                onChangeText={setEditingText}
+                multiline
+                autoFocus
+                maxLength={300}
+                placeholderTextColor="#94A3B8"
+              />
+              <TouchableOpacity
+                style={[styles.editModalSave, !editingText.trim() && { opacity: 0.4 }]}
+                onPress={handleSaveEdit}
+                disabled={!editingText.trim()}
+                activeOpacity={0.85}
+              >
+                <LinearGradient colors={["#B45309", "#EA580C"]} style={styles.editModalSaveGrad}>
+                  <Text style={styles.editModalSaveText}>Save</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -713,18 +842,33 @@ const styles = StyleSheet.create({
   bubbleTime: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 4 },
   chatWarningBanner: { backgroundColor: "#FEF2F2", borderTopWidth: 1, borderTopColor: "#FECACA", paddingHorizontal: 14, paddingVertical: 8 },
   chatWarningText: { fontSize: 12, color: "#DC2626", fontFamily: "Inter_400Regular", lineHeight: 18 },
-  chatInputBar: { backgroundColor: "white", borderTopWidth: 1, borderTopColor: "#F1F5F9", paddingHorizontal: 10, paddingTop: 8, flexDirection: "row", alignItems: "flex-end", gap: 6 },
-  chatAttachBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-  chatInputPill: { flex: 1, backgroundColor: "#F8FAFC", borderRadius: 22, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 6, minHeight: 40, maxHeight: 100, justifyContent: "center" },
-  chatInput: { fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", padding: 0, margin: 0 },
-  chatSendBtn: { borderRadius: 20, overflow: "hidden", marginBottom: 2 },
+  chatInputBar: { backgroundColor: "#FFFFFF", borderTopWidth: 0.5, borderTopColor: "#E2E8F0", paddingHorizontal: 12, paddingTop: 10, flexDirection: "row", alignItems: "flex-end", gap: 8, shadowColor: "#000", shadowOffset: { width: 0, height: -1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+  chatAttachBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center", marginBottom: 1 },
+  chatInputPill: { flex: 1, backgroundColor: "#F1F5F9", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, minHeight: 38, maxHeight: 110, justifyContent: "center" },
+  chatInput: { fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", lineHeight: 20, padding: 0, margin: 0 },
+  chatSendBtn: { borderRadius: 19, overflow: "hidden", marginBottom: 1 },
   chatSendGrad: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
-  chatIdleActions: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
+  chatIdleActions: { flexDirection: "row", alignItems: "center", marginBottom: 1 },
   chatIdleBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
 
   blockedScreen: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
   blockedScreenTitle: { fontSize: 20, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_700Bold", textAlign: "center" },
   blockedScreenSub: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
+
+  actionOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  actionSheet: { backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 32 },
+  actionHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#E2E8F0", alignSelf: "center", marginBottom: 10 },
+  actionPreview: { marginHorizontal: 8, marginBottom: 6, padding: 12, backgroundColor: "#F8FAFC", borderRadius: 14 },
+  actionPreviewText: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular", lineHeight: 20 },
+  actionItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 16 },
+  actionItemText: { fontSize: 16, color: "#0F172A", fontFamily: "Inter_400Regular" },
+  actionDivider: { height: 1, backgroundColor: "#F1F5F9", marginHorizontal: 8 },
+
+  editModalTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold", paddingHorizontal: 20, marginBottom: 12 },
+  editModalInput: { marginHorizontal: 12, backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", minHeight: 80, marginBottom: 14 },
+  editModalSave: { marginHorizontal: 12, borderRadius: 14, overflow: "hidden" },
+  editModalSaveGrad: { paddingVertical: 14, alignItems: "center", justifyContent: "center" },
+  editModalSaveText: { fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
 
   premiumTeaser: { marginHorizontal: 12, marginTop: 10, marginBottom: 4, borderRadius: 18, overflow: "hidden" },
   premiumTeaserGrad: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },

@@ -54,6 +54,8 @@ interface FeedContextType {
     authorRole: string,
     avatarColor: string
   ) => { success: boolean; reason?: string };
+  deleteChatMessage: (msgId: string) => void;
+  editChatMessage: (msgId: string, newText: string) => void;
   toggleLike: (postId: string, userId: string) => void;
 }
 
@@ -312,6 +314,15 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
+  const deleteChatMessage = (msgId: string) => {
+    saveChat(chatMessages.filter((m) => m.id !== msgId));
+  };
+
+  const editChatMessage = (msgId: string, newText: string) => {
+    if (!newText.trim() || hasBadContent(newText)) return;
+    saveChat(chatMessages.map((m) => m.id === msgId ? { ...m, text: newText.trim() + " (edited)" } : m));
+  };
+
   const toggleLike = (postId: string, userId: string) => {
     const updated = posts.map((p) => {
       if (p.id !== postId) return p;
@@ -326,7 +337,7 @@ export function FeedProvider({ children }: { children: ReactNode }) {
       posts, chatMessages, loading,
       subscriptions, blocked,
       subscribe, isSubscribed, isBlocked, blockUser,
-      addPost, addChatMessage, toggleLike,
+      addPost, addChatMessage, deleteChatMessage, editChatMessage, toggleLike,
     }}>
       {children}
     </FeedContext.Provider>
