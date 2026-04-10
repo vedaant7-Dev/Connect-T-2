@@ -234,16 +234,6 @@ export default function ComplaintsScreen() {
         }
       />
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push("/complaint/new")}
-        activeOpacity={0.85}
-      >
-        <LinearGradient colors={["#B45309", "#EA580C"]} style={styles.fabGrad}>
-          <Feather name="camera" size={20} color="white" />
-          <Text style={styles.fabText}>{t("reportProblemAction")}</Text>
-        </LinearGradient>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -352,25 +342,4 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", paddingTop: 60, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#334155", fontFamily: "Inter_700Bold" },
   emptySub: { fontSize: 13, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  fab: {
-    position: "absolute",
-    bottom: 90,
-    left: 20,
-    right: 20,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: "#B45309",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  fabGrad: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-  },
-  fabText: { fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
 });
