@@ -98,18 +98,7 @@ function AnimatedTabBar(props: any) {
                     gap: 1,
                   }}
                 >
-                  <Feather name="phone-call" size={18} color="white" />
-                  <Text
-                    style={{
-                      fontSize: 8,
-                      fontWeight: "900",
-                      color: "white",
-                      letterSpacing: 1.5,
-                      fontFamily: "Inter_700Bold",
-                    }}
-                  >
-                    SOS
-                  </Text>
+                  <Feather name="phone-call" size={22} color="white" />
                 </View>
               </TouchableOpacity>
             );

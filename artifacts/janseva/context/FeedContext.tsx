@@ -5,6 +5,7 @@ export type PostType = "announcement" | "update" | "complaint" | "general";
 
 export interface FeedPost {
   id: string;
+  authorId: string;
   authorName: string;
   authorRole: string;
   avatarColor: string;
@@ -17,28 +18,78 @@ export interface FeedPost {
   pinned?: boolean;
 }
 
+export interface ChatMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorRole: string;
+  avatarColor: string;
+  text: string;
+  createdAt: string;
+}
+
 interface FeedContextType {
   posts: FeedPost[];
-  addPost: (content: string, type: PostType, authorName: string, authorRole: string, avatarColor: string) => void;
-  toggleLike: (postId: string, userId: string) => void;
+  chatMessages: ChatMessage[];
   loading: boolean;
+  subscriptions: Record<string, boolean>;
+  blocked: Record<string, number>;
+  subscribe: (userId: string) => Promise<void>;
+  isSubscribed: (userId: string) => boolean;
+  isBlocked: (userId: string) => boolean;
+  blockUser: (userId: string) => Promise<void>;
+  addPost: (
+    content: string,
+    type: PostType,
+    authorName: string,
+    authorRole: string,
+    avatarColor: string,
+    authorId: string,
+    imageUri?: string
+  ) => { success: boolean; reason?: string };
+  addChatMessage: (
+    text: string,
+    authorId: string,
+    authorName: string,
+    authorRole: string,
+    avatarColor: string
+  ) => { success: boolean; reason?: string };
+  toggleLike: (postId: string, userId: string) => void;
 }
 
 const FeedContext = createContext<FeedContextType | null>(null);
+
 const STORAGE_KEY = "janseva_feed";
+const CHAT_KEY = "janseva_chat";
+const SUBSCRIPTIONS_KEY = "janseva_subscriptions";
+const BLOCKED_KEY = "janseva_blocked";
+
+const BAD_WORDS = [
+  "fuck", "shit", "ass", "bitch", "bastard", "cunt", "cock", "dick",
+  "pussy", "whore", "slut", "porn", "nude", "naked", "boob", "rape",
+  "chutiya", "madarchod", "bhenchod", "gaandu", "randi", "harami",
+  "bhosdike", "lavda", "lund", "chut", "madarjat", "bhosdi", "gandu",
+  "saala", "haramzada", "kamina", "kutiya", "randwa",
+];
+
+export function hasBadContent(text: string): boolean {
+  const lower = text.toLowerCase().replace(/\s+/g, " ");
+  return BAD_WORDS.some((word) => lower.includes(word));
+}
 
 function generateId() {
-  return "POST" + Date.now().toString().slice(-6) + Math.random().toString(36).substr(2, 3).toUpperCase();
+  return "P" + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 3).toUpperCase();
 }
 
 const SEED_POSTS: FeedPost[] = [
   {
     id: "POST001",
+    authorId: "SYSTEM",
     authorName: "AMC Ambernath",
     authorRole: "Nagarsevak",
     avatarColor: "#059669",
     type: "announcement",
-    content: "🚨 Important: Water supply will be suspended in Station Area East & Vithalwadi on Sunday 6AM–2PM for pipe maintenance at Barvi Dam distribution line. Please store water in advance. Tanker service available — call 0251-2604155.",
+    content: "🚨 Important: Water supply will be suspended in Station Area East & Vithalwadi on Sunday 6AM–2PM for pipe maintenance at Barvi Dam distribution line. Please store water in advance. Tanker service: 0251-2604155.",
     likes: [],
     commentsCount: 12,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
@@ -46,6 +97,7 @@ const SEED_POSTS: FeedPost[] = [
   },
   {
     id: "POST002",
+    authorId: "SYSTEM",
     authorName: "Ward Officer Deshmukh",
     authorRole: "Nagarsevak",
     avatarColor: "#059669",
@@ -57,17 +109,19 @@ const SEED_POSTS: FeedPost[] = [
   },
   {
     id: "POST003",
+    authorId: "U001",
     authorName: "Rajesh Patil",
     authorRole: "Citizen",
     avatarColor: "#7C3AED",
     type: "general",
-    content: "The new streetlights near Ambernath Railway Station are excellent! Finally feel safe walking at night. Great work AMC Ambernath 👏",
+    content: "The new streetlights near Ambernath Railway Station are excellent! Finally feel safe walking at night. Great work AMC 👏",
     likes: [],
     commentsCount: 3,
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "POST004",
+    authorId: "SYSTEM",
     authorName: "AMC Ambernath",
     authorRole: "Nagarsevak",
     avatarColor: "#059669",
@@ -79,6 +133,7 @@ const SEED_POSTS: FeedPost[] = [
   },
   {
     id: "POST005",
+    authorId: "U002",
     authorName: "Sunita Bai",
     authorRole: "Citizen",
     avatarColor: "#D97706",
@@ -90,40 +145,150 @@ const SEED_POSTS: FeedPost[] = [
   },
 ];
 
+const SEED_CHAT: ChatMessage[] = [
+  {
+    id: "CHAT001",
+    authorId: "SYSTEM",
+    authorName: "AMC Ambernath",
+    authorRole: "Nagarsevak",
+    avatarColor: "#059669",
+    text: "Welcome to Connect T Community Chat! Share updates, ask questions and stay connected with your ward. Please be respectful 🙏",
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "CHAT002",
+    authorId: "U001",
+    authorName: "Rajesh Patil",
+    authorRole: "Citizen",
+    avatarColor: "#7C3AED",
+    text: "Anyone knows when the Shivaji Chowk road widening work will be complete?",
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "CHAT003",
+    authorId: "SYSTEM",
+    authorName: "Ward Officer Deshmukh",
+    authorRole: "Nagarsevak",
+    avatarColor: "#059669",
+    text: "Road widening expected to complete by end of April. Thank you for patience!",
+    createdAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+  },
+];
+
 export function FeedProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Record<string, boolean>>({});
+  const [blocked, setBlocked] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored) {
-        setPosts(JSON.parse(stored));
-      } else {
-        setPosts(SEED_POSTS);
-        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_POSTS));
-      }
+    Promise.all([
+      AsyncStorage.getItem(STORAGE_KEY),
+      AsyncStorage.getItem(CHAT_KEY),
+      AsyncStorage.getItem(SUBSCRIPTIONS_KEY),
+      AsyncStorage.getItem(BLOCKED_KEY),
+    ]).then(([storedPosts, storedChat, storedSubs, storedBlocked]) => {
+      setPosts(storedPosts ? JSON.parse(storedPosts) : SEED_POSTS);
+      setChatMessages(storedChat ? JSON.parse(storedChat) : SEED_CHAT);
+      setSubscriptions(storedSubs ? JSON.parse(storedSubs) : {});
+      setBlocked(storedBlocked ? JSON.parse(storedBlocked) : {});
+      if (!storedPosts) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_POSTS));
+      if (!storedChat) AsyncStorage.setItem(CHAT_KEY, JSON.stringify(SEED_CHAT));
       setLoading(false);
     });
   }, []);
 
-  const save = (updated: FeedPost[]) => {
+  const savePosts = (updated: FeedPost[]) => {
     setPosts(updated);
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  const addPost = (content: string, type: PostType, authorName: string, authorRole: string, avatarColor: string) => {
+  const saveChat = (updated: ChatMessage[]) => {
+    setChatMessages(updated);
+    AsyncStorage.setItem(CHAT_KEY, JSON.stringify(updated));
+  };
+
+  const isSubscribed = (userId: string) => !!subscriptions[userId];
+
+  const isBlocked = (userId: string) => {
+    const until = blocked[userId];
+    if (!until) return false;
+    if (Date.now() > until) {
+      const next = { ...blocked };
+      delete next[userId];
+      setBlocked(next);
+      AsyncStorage.setItem(BLOCKED_KEY, JSON.stringify(next));
+      return false;
+    }
+    return true;
+  };
+
+  const subscribe = async (userId: string) => {
+    const next = { ...subscriptions, [userId]: true };
+    setSubscriptions(next);
+    await AsyncStorage.setItem(SUBSCRIPTIONS_KEY, JSON.stringify(next));
+  };
+
+  const blockUser = async (userId: string) => {
+    const until = Date.now() + 24 * 60 * 60 * 1000;
+    const next = { ...blocked, [userId]: until };
+    setBlocked(next);
+    await AsyncStorage.setItem(BLOCKED_KEY, JSON.stringify(next));
+  };
+
+  const addPost = (
+    content: string,
+    type: PostType,
+    authorName: string,
+    authorRole: string,
+    avatarColor: string,
+    authorId: string,
+    imageUri?: string
+  ): { success: boolean; reason?: string } => {
+    if (hasBadContent(content)) {
+      blockUser(authorId);
+      return { success: false, reason: "blocked" };
+    }
     const post: FeedPost = {
       id: generateId(),
+      authorId,
       authorName,
       authorRole,
       avatarColor,
       type,
       content,
+      imageUri,
       likes: [],
       commentsCount: 0,
       createdAt: new Date().toISOString(),
     };
-    save([post, ...posts]);
+    savePosts([post, ...posts]);
+    return { success: true };
+  };
+
+  const addChatMessage = (
+    text: string,
+    authorId: string,
+    authorName: string,
+    authorRole: string,
+    avatarColor: string
+  ): { success: boolean; reason?: string } => {
+    if (hasBadContent(text)) {
+      blockUser(authorId);
+      return { success: false, reason: "blocked" };
+    }
+    const msg: ChatMessage = {
+      id: generateId(),
+      authorId,
+      authorName,
+      authorRole,
+      avatarColor,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    saveChat([...chatMessages, msg]);
+    return { success: true };
   };
 
   const toggleLike = (postId: string, userId: string) => {
@@ -132,11 +297,16 @@ export function FeedProvider({ children }: { children: ReactNode }) {
       const liked = p.likes.includes(userId);
       return { ...p, likes: liked ? p.likes.filter((id) => id !== userId) : [...p.likes, userId] };
     });
-    save(updated);
+    savePosts(updated);
   };
 
   return (
-    <FeedContext.Provider value={{ posts, addPost, toggleLike, loading }}>
+    <FeedContext.Provider value={{
+      posts, chatMessages, loading,
+      subscriptions, blocked,
+      subscribe, isSubscribed, isBlocked, blockUser,
+      addPost, addChatMessage, toggleLike,
+    }}>
       {children}
     </FeedContext.Provider>
   );
