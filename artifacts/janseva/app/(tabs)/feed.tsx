@@ -532,7 +532,7 @@ export default function FeedScreen() {
             <Text style={styles.headerTitle}>Community Feed</Text>
             <Text style={styles.headerSub}>Ambernath · BJP Ward Network</Text>
           </View>
-          {activeTab !== "chat" && (subscribed ? (
+          {activeTab !== "chat" && activeTab !== "complaints" && activeTab !== "resolved" && (subscribed ? (
             <TouchableOpacity style={styles.newPostBtn} onPress={() => userBlocked ? Alert.alert("Blocked", `You are blocked until ${blockedUntil}.`) : setShowNewPost(true)} activeOpacity={0.85}>
               <Feather name="edit-2" size={14} color="white" />
               <Text style={styles.newPostBtnText}>Post</Text>
