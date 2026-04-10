@@ -463,7 +463,7 @@ export default function AdminScreen() {
                 <Text style={{ fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 20 }}>Edit Profile</Text>
                 <Text style={{ fontSize: 10, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.2, fontFamily: "Inter_600SemiBold", marginBottom: 6 }}>FULL NAME</Text>
                 <TextInput
-                  style={{ backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", marginBottom: 16 }}
+                  style={{ backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", marginBottom: 16, outlineWidth: 0 } as any}
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="Your name"
@@ -472,7 +472,7 @@ export default function AdminScreen() {
                 />
                 <Text style={{ fontSize: 10, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.2, fontFamily: "Inter_600SemiBold", marginBottom: 6 }}>WARD</Text>
                 <TextInput
-                  style={{ backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", marginBottom: 24 }}
+                  style={{ backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", marginBottom: 24, outlineWidth: 0 } as any}
                   value={editWard}
                   onChangeText={setEditWard}
                   placeholder="Your ward"
@@ -599,7 +599,7 @@ const modalStyles = StyleSheet.create({
   optionRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   optionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, backgroundColor: "white" },
   optionText: { fontSize: 12, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
-  noteInput: { borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: "#0F172A", fontFamily: "Inter_400Regular", height: 90, marginBottom: 16 },
+  noteInput: { borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: "#0F172A", fontFamily: "Inter_400Regular", height: 90, marginBottom: 16, outlineWidth: 0 } as any,
   btnRow: { flexDirection: "row", gap: 10 },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center", backgroundColor: "#F1F5F9" },
   cancelBtnText: { fontSize: 14, fontWeight: "700", color: "#64748B", fontFamily: "Inter_700Bold" },

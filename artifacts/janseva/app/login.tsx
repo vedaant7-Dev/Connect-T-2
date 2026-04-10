@@ -609,7 +609,8 @@ const s = StyleSheet.create({
     backgroundColor: "#F8FAFC", borderRadius: 12, paddingHorizontal: 14,
     paddingVertical: 12, fontSize: 14, color: "#0F172A",
     fontFamily: "Inter_400Regular", borderWidth: 1.5, borderColor: "#E2E8F0",
-  },
+    outlineWidth: 0,
+  } as any,
   phoneRow: { flexDirection: "row", gap: 8 },
   countryCode: {
     backgroundColor: "#F1F5F9", borderRadius: 12, paddingHorizontal: 12,
@@ -662,7 +663,8 @@ const s = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     textAlign: "center",
     textAlignVertical: "center",
-  },
+    outlineWidth: 0,
+  } as any,
   otpBoxFilled: { borderColor: "#EA580C", backgroundColor: "#FFF7ED" },
   otpHint: {
     fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular",

@@ -441,7 +441,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#0F172A",
     fontFamily: "Inter_400Regular",
-  },
+    outlineWidth: 0,
+  } as any,
   textarea: {
     height: 110,
     paddingTop: 13,

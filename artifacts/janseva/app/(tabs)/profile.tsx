@@ -610,8 +610,8 @@ const styles = StyleSheet.create({
   fieldInput: {
     backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0",
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#0F172A",
-    fontFamily: "Inter_400Regular",
-  },
+    fontFamily: "Inter_400Regular", outlineWidth: 0,
+  } as any,
   editBtnRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 8 },
   cancelEditBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center", backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0" },
   cancelEditText: { fontSize: 14, fontWeight: "700", color: "#64748B", fontFamily: "Inter_700Bold" },
