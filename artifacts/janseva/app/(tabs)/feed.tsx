@@ -524,7 +524,7 @@ export default function FeedScreen() {
           data={posts}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => <PostCard post={item} userId={userId} subscribed={subscribed} />}
-          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 70 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -603,22 +603,6 @@ export default function FeedScreen() {
         />
       )}
 
-      {subscribed && activeTab === "community" && (
-        <View style={[styles.composeBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-          <TouchableOpacity style={styles.composeInner} onPress={() => userBlocked ? Alert.alert("Blocked", `You are blocked until ${blockedUntil}.`) : setShowNewPost(true)} activeOpacity={0.85}>
-            {user && <Avatar name={user.name} color={user.avatarColor || "#EA580C"} size={34} />}
-            <Text style={styles.composePlaceholder}>Share with your ward...</Text>
-            <TouchableOpacity style={styles.composeImgBtn} onPress={() => userBlocked ? null : setShowNewPost(true)} activeOpacity={0.8}>
-              <Feather name="image" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.composeSendWrap} onPress={() => userBlocked ? null : setShowNewPost(true)} activeOpacity={0.85}>
-              <LinearGradient colors={["#B45309", "#EA580C"]} style={styles.composeSendGrad}>
-                <Feather name="send" size={14} color="white" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {!subscribed && activeTab === "news" && (
         <View style={[styles.composeBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
