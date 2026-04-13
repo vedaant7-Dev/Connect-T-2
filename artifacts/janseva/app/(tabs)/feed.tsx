@@ -387,6 +387,13 @@ export default function FeedScreen() {
   const { t } = useLanguage();
   const { handleScroll, tabBarTranslateY } = useTabBarVisibility();
 
+  const userId = user?.id || "guest";
+  const subscribed = isSubscribed(userId);
+  const userBlocked = isBlocked(userId);
+  const blockedUntil = blocked[userId] ? new Date(blocked[userId]).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
+
+  const [activeTab, setActiveTab] = useState<FeedTab>(subscribed ? "community" : "news");
+
   const isSubTab = activeTab === "chat" || activeTab === "complaints" || activeTab === "resolved";
 
   useEffect(() => {
@@ -397,12 +404,6 @@ export default function FeedScreen() {
     }
   }, [isSubTab]);
 
-  const userId = user?.id || "guest";
-  const subscribed = isSubscribed(userId);
-  const userBlocked = isBlocked(userId);
-  const blockedUntil = blocked[userId] ? new Date(blocked[userId]).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
-
-  const [activeTab, setActiveTab] = useState<FeedTab>(subscribed ? "community" : "news");
   const [showNewPost, setShowNewPost] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
   const [chatInput, setChatInput] = useState("");
