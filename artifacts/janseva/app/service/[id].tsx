@@ -15,6 +15,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { serviceCategories } from "@/data/mumbaiServices";
+import { ServiceMap } from "@/components/ServiceMap";
 
 function StarRating({ rating, size = 13 }: { rating: number; size?: number }) {
   return (
@@ -130,6 +131,14 @@ export default function ServiceDetailScreen() {
             </View>
           )}
         </View>
+
+        {/* Map */}
+        <ServiceMap
+          address={place.address}
+          name={place.name}
+          color={category.color}
+          bgColor={category.bgColor}
+        />
 
         {/* Rating */}
         {place.rating !== undefined && (
