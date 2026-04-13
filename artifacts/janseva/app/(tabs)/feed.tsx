@@ -870,7 +870,7 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F1F5F9" },
-  header: { paddingHorizontal: 16, paddingBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  header: { paddingHorizontal: 16, paddingBottom: 6, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 2 },
