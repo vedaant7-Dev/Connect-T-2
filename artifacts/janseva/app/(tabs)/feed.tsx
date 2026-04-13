@@ -688,7 +688,7 @@ export default function FeedScreen() {
             />
           )}
           {!userBlocked && (
-            <View style={{ marginBottom: TAB_H }}>
+            <View style={{ marginBottom: 0 }}>
               {!!chatWarning && (
                 <View style={styles.chatWarningBanner}>
                   <Text style={styles.chatWarningText}>{chatWarning}</Text>
@@ -742,7 +742,7 @@ export default function FeedScreen() {
           data={complaints}
           keyExtractor={(c) => c.id}
           renderItem={({ item }) => <ComplaintCard complaint={item} onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })} />}
-          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 + TAB_H }]}
+          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -756,7 +756,7 @@ export default function FeedScreen() {
           data={resolvedComplaints}
           keyExtractor={(c) => c.id}
           renderItem={({ item }) => <ComplaintCard complaint={item} onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })} />}
-          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 + TAB_H }]}
+          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
