@@ -15,6 +15,7 @@ import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintCo
 import { useRouter } from "expo-router";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
+import { withTiming, Easing } from "react-native-reanimated";
 
 type FeedTab = "news" | "community" | "chat" | "complaints" | "resolved";
 
@@ -384,7 +385,17 @@ export default function FeedScreen() {
   const { user } = useAuth();
   const { complaints } = useComplaints();
   const { t } = useLanguage();
-  const { handleScroll } = useTabBarVisibility();
+  const { handleScroll, tabBarTranslateY } = useTabBarVisibility();
+
+  const isSubTab = activeTab === "chat" || activeTab === "complaints" || activeTab === "resolved";
+
+  useEffect(() => {
+    if (isSubTab) {
+      tabBarTranslateY.value = withTiming(200, { duration: 220, easing: Easing.in(Easing.cubic) });
+    } else {
+      tabBarTranslateY.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.cubic) });
+    }
+  }, [isSubTab]);
 
   const userId = user?.id || "guest";
   const subscribed = isSubscribed(userId);
@@ -529,11 +540,20 @@ export default function FeedScreen() {
     <View style={styles.root}>
       <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
         <View style={styles.headerRow}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Community Feed</Text>
             <Text style={styles.headerSub}>Ambernath · BJP Ward Network</Text>
           </View>
-          {activeTab !== "chat" && activeTab !== "complaints" && activeTab !== "resolved" && (subscribed ? (
+          {isSubTab ? (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => setActiveTab(subscribed ? "community" : "news")}
+              activeOpacity={0.8}
+            >
+              <Feather name="chevron-left" size={16} color="white" />
+              <Text style={styles.backBtnText}>Back</Text>
+            </TouchableOpacity>
+          ) : (subscribed ? (
             <TouchableOpacity style={styles.newPostBtn} onPress={() => userBlocked ? Alert.alert("Blocked", `You are blocked until ${blockedUntil}.`) : setShowNewPost(true)} activeOpacity={0.85}>
               <Feather name="edit-2" size={14} color="white" />
               <Text style={styles.newPostBtnText}>Post</Text>
@@ -824,6 +844,8 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 2 },
   newPostBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   newPostBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  backBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  backBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
   premiumBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,0.2)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10 },
   premiumBadgeText: { fontSize: 11, color: "#FDE68A", fontFamily: "Inter_400Regular", flex: 1 },
   premiumBadgeLink: { fontSize: 11, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
