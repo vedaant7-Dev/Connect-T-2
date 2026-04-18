@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Platform, Modal, TextInput, ScrollView, ActivityIndicator,
@@ -9,7 +9,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { useFeed, FeedPost, ChatMessage, PostType, hasBadContent } from "@/context/FeedContext";
+import { useFeed, FeedPost, PostType, hasBadContent } from "@/context/FeedContext";
 import { useAuth } from "@/context/AuthContext";
 import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintContext";
 import { useRouter } from "expo-router";
@@ -17,7 +17,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { withTiming, Easing } from "react-native-reanimated";
 
-type FeedTab = "news" | "community" | "chat" | "complaints" | "resolved";
+type FeedTab = "news" | "community" | "complaints" | "resolved";
 
 const postTypeConfig: Record<PostType, { color: string; bg: string; icon: string }> = {
   announcement: { color: "#DC2626", bg: "#FEE2E2", icon: "alert-circle" },
@@ -173,31 +173,6 @@ function ComplaintCard({ complaint, onPress }: { complaint: Complaint; onPress: 
   );
 }
 
-function ChatBubble({ msg, isMe, onLongPress }: { msg: ChatMessage; isMe: boolean; onLongPress: () => void }) {
-  const roleInfo = roleBadgeColor[msg.authorRole] || roleBadgeColor.citizen;
-  return (
-    <TouchableOpacity
-      onLongPress={onLongPress}
-      delayLongPress={350}
-      activeOpacity={0.85}
-      style={[styles.bubble, isMe && styles.bubbleMe]}
-    >
-      {!isMe && <Avatar name={msg.authorName} color={msg.avatarColor} size={32} />}
-      <View style={[styles.bubbleContent, isMe && styles.bubbleContentMe]}>
-        {!isMe && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 2 }}>
-            <Text style={styles.bubbleName}>{msg.authorName}</Text>
-            <View style={[styles.roleBadge, { backgroundColor: roleInfo.bg }]}>
-              <Text style={[styles.roleBadgeText, { color: roleInfo.text }]}>{msg.authorRole}</Text>
-            </View>
-          </View>
-        )}
-        <Text style={[styles.bubbleText, isMe && styles.bubbleTextMe]}>{msg.text}</Text>
-        <Text style={[styles.bubbleTime, isMe && { textAlign: "right" }]}>{timeAgo(msg.createdAt)}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
 
 function NewPostModal({ visible, onClose, onSubmit, canPostAnnouncement }: {
   visible: boolean; onClose: () => void;
@@ -373,7 +348,7 @@ export default function FeedScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const TAB_H = Platform.OS === "web" ? 72 : 56 + Math.max(insets.bottom, 8);
   const router = useRouter();
-  const { posts, chatMessages, addPost, addChatMessage, deleteChatMessage, editChatMessage, toggleLike, isSubscribed, isBlocked, subscribe, blocked } = useFeed();
+  const { posts, addPost, toggleLike, isSubscribed, isBlocked, subscribe, blocked } = useFeed();
   const { user } = useAuth();
   const { complaints } = useComplaints();
   const { t } = useLanguage();
@@ -386,7 +361,7 @@ export default function FeedScreen() {
 
   const [activeTab, setActiveTab] = useState<FeedTab>(subscribed ? "community" : "news");
 
-  const isSubTab = activeTab === "chat" || activeTab === "complaints" || activeTab === "resolved";
+  const isSubTab = activeTab === "complaints" || activeTab === "resolved";
 
   useEffect(() => {
     if (isSubTab) {
@@ -398,126 +373,15 @@ export default function FeedScreen() {
 
   const [showNewPost, setShowNewPost] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
-  const [chatInput, setChatInput] = useState("");
-  const [chatWarning, setChatWarning] = useState("");
-  const [selectedMsg, setSelectedMsg] = useState<ChatMessage | null>(null);
-  const [showMsgActions, setShowMsgActions] = useState(false);
-  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState("");
-  const chatRef = useRef<FlatList>(null);
-
   const canPostAnnouncement = user?.role === "nagarsevak";
   const officialPosts = posts.filter((p) => p.authorRole === "Nagarsevak" || p.authorRole === "nagarsevak" || p.type === "announcement" || p.type === "update");
   const activeComplaints = complaints.filter((c) => ["submitted", "assigned", "in_progress"].includes(c.status));
   const resolvedComplaints = complaints.filter((c) => c.status === "resolved" || c.status === "rejected");
 
-  useEffect(() => {
-    if (chatRef.current && chatMessages.length > 0) {
-      setTimeout(() => chatRef.current?.scrollToEnd({ animated: true }), 100);
-    }
-  }, [chatMessages]);
-
   const handlePost = (content: string, type: PostType, imageUri?: string) => {
     const result = addPost(content, type, user?.name || "Anonymous", user?.role || "citizen", user?.avatarColor || "#EA580C", userId, imageUri);
     if (!result.success && result.reason === "blocked") {
       Alert.alert("Content Violation", "Your post contains inappropriate content. You have been blocked from posting for 24 hours.");
-    }
-  };
-
-  const handleChatInputChange = (text: string) => {
-    setChatInput(text);
-    if (hasBadContent(text)) {
-      setChatWarning("⚠️ Inappropriate language detected. Remove it before sending.");
-    } else {
-      setChatWarning("");
-    }
-  };
-
-  const handleSendChat = () => {
-    if (!chatInput.trim()) return;
-    if (userBlocked) {
-      setChatWarning(`🚫 You are blocked from posting until ${blockedUntil}.`);
-      return;
-    }
-    if (hasBadContent(chatInput)) {
-      setChatWarning("⚠️ Your message contains inappropriate content. Please remove it.");
-      return;
-    }
-    const result = addChatMessage(chatInput.trim(), userId, user?.name || "Anonymous", user?.role || "citizen", user?.avatarColor || "#EA580C");
-    if (!result.success && result.reason === "blocked") {
-      setChatWarning("🚫 Inappropriate content detected. You have been blocked for 24 hours.");
-    } else {
-      setChatInput("");
-      setChatWarning("");
-    }
-  };
-
-  const handleMsgLongPress = (msg: ChatMessage) => {
-    Haptics.selectionAsync();
-    setSelectedMsg(msg);
-    setShowMsgActions(true);
-  };
-
-  const handleCopyMsg = async () => {
-    if (!selectedMsg) return;
-    const { Clipboard } = await import("react-native");
-    Clipboard.setString(selectedMsg.text);
-    setShowMsgActions(false);
-  };
-
-  const handleDeleteMsg = () => {
-    if (!selectedMsg) return;
-    deleteChatMessage(selectedMsg.id);
-    setShowMsgActions(false);
-    setSelectedMsg(null);
-  };
-
-  const handleStartEdit = () => {
-    if (!selectedMsg) return;
-    setEditingMsgId(selectedMsg.id);
-    setEditingText(selectedMsg.text.replace(" (edited)", ""));
-    setShowMsgActions(false);
-  };
-
-  const handleSaveEdit = () => {
-    if (!editingMsgId || !editingText.trim()) return;
-    editChatMessage(editingMsgId, editingText.trim());
-    setEditingMsgId(null);
-    setEditingText("");
-  };
-
-  const [showCameraSheet, setShowCameraSheet] = useState(false);
-
-  const handleCameraPress = () => setShowCameraSheet(true);
-
-  const handleTakePhoto = async () => {
-    setShowCameraSheet(false);
-    if (Platform.OS === "web") {
-      Alert.alert("Camera", "Camera is not available in the browser. Please use Gallery instead.");
-      return;
-    }
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") { Alert.alert("Permission needed", "Camera access is required to take photos."); return; }
-    const result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.8 });
-    if (!result.canceled && result.assets[0]) {
-      const r = addChatMessage("📷 [Photo shared]", userId, user?.name || "Anonymous", user?.role || "citizen", user?.avatarColor || "#EA580C");
-      if (!r.success) setChatWarning("🚫 Unable to share photo at this time.");
-    }
-  };
-
-  const handlePickChatImage = async () => {
-    setShowCameraSheet(false);
-    if (Platform.OS !== "web") {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") { return; }
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"], allowsEditing: false, quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const text = `📷 [Photo shared]`;
-      const r = addChatMessage(text, userId, user?.name || "Anonymous", user?.role || "citizen", user?.avatarColor || "#EA580C");
-      if (!r.success) setChatWarning("🚫 Unable to share photo at this time.");
     }
   };
 
@@ -532,7 +396,6 @@ export default function FeedScreen() {
   const tabs: { id: FeedTab; label: string; count?: number; locked?: boolean }[] = subscribed
     ? [
         { id: "community", label: "Community" },
-        { id: "chat", label: "Chat" },
         { id: "complaints", label: "Complaints", count: complaints.length },
         { id: "resolved", label: "Resolved", count: resolvedComplaints.length },
       ]
@@ -650,84 +513,6 @@ export default function FeedScreen() {
         />
       )}
 
-      {activeTab === "chat" && (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? topPad + 60 : 0}
-        >
-          {userBlocked ? (
-            <View style={styles.blockedScreen}>
-              <Feather name="shield-off" size={48} color="#FCA5A5" />
-              <Text style={styles.blockedScreenTitle}>You're Temporarily Blocked</Text>
-              <Text style={styles.blockedScreenSub}>Chat access restricted until {blockedUntil} due to community guideline violation.</Text>
-            </View>
-          ) : (
-            <FlatList
-              ref={chatRef}
-              data={chatMessages}
-              keyExtractor={(m) => m.id}
-              renderItem={({ item }) => (
-                <ChatBubble
-                  msg={item}
-                  isMe={item.authorId === userId}
-                  onLongPress={() => handleMsgLongPress(item)}
-                />
-              )}
-              contentContainerStyle={[styles.chatList, { paddingBottom: 8 }]}
-              showsVerticalScrollIndicator={false}
-              onContentSizeChange={() => chatRef.current?.scrollToEnd({ animated: false })}
-            />
-          )}
-          {!userBlocked && (
-            <View style={{ marginBottom: 0 }}>
-              {!!chatWarning && (
-                <View style={styles.chatWarningBanner}>
-                  <Text style={styles.chatWarningText}>{chatWarning}</Text>
-                </View>
-              )}
-              <View style={[styles.chatInputBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-                <View style={styles.chatInputRow}>
-                  {/* Camera button — opens camera/gallery sheet */}
-                  <TouchableOpacity onPress={handleCameraPress} activeOpacity={0.8} style={styles.chatCameraWrap}>
-                    <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} style={styles.chatCameraGrad}>
-                      <Feather name="camera" size={18} color="white" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-
-                  {/* Input pill */}
-                  <View style={[styles.chatInputPill, !!chatWarning && { borderColor: "#EF4444", borderWidth: 1.5 }]}>
-                    <TextInput
-                      style={styles.chatInput}
-                      value={chatInput}
-                      onChangeText={handleChatInputChange}
-                      placeholder="Message..."
-                      placeholderTextColor="#94A3B8"
-                      returnKeyType="send"
-                      onSubmitEditing={handleSendChat}
-                      maxLength={300}
-                      multiline
-                    />
-                  </View>
-
-                  {/* Right action icons */}
-                  {chatInput.trim() ? (
-                    <TouchableOpacity onPress={handleSendChat} style={styles.chatSendBtn} activeOpacity={0.85}>
-                      <LinearGradient colors={["#C2410C", "#EA580C"]} style={styles.chatSendGrad}>
-                        <Feather name="send" size={16} color="white" />
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity style={styles.chatIconBtn} activeOpacity={0.7}>
-                      <Feather name="mic" size={20} color="#64748B" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </View>
-          )}
-        </KeyboardAvoidingView>
-      )}
 
       {activeTab === "complaints" && (
         <FlatList
@@ -773,97 +558,6 @@ export default function FeedScreen() {
       <NewPostModal visible={showNewPost} onClose={() => setShowNewPost(false)} onSubmit={handlePost} canPostAnnouncement={canPostAnnouncement} />
       <SubscribeModal visible={showSubscribe} onClose={() => setShowSubscribe(false)} onSubscribe={handleSubscribe} />
 
-      {/* Message long-press action sheet */}
-      <Modal visible={showMsgActions} transparent animationType="fade" onRequestClose={() => setShowMsgActions(false)}>
-        <TouchableOpacity style={styles.actionOverlay} activeOpacity={1} onPress={() => setShowMsgActions(false)}>
-          <View style={styles.actionSheet}>
-            <View style={styles.actionHandle} />
-            {selectedMsg && (
-              <View style={styles.actionPreview}>
-                <Text style={styles.actionPreviewText} numberOfLines={2}>{selectedMsg.text}</Text>
-              </View>
-            )}
-            <TouchableOpacity style={styles.actionItem} onPress={handleCopyMsg}>
-              <Feather name="copy" size={20} color="#334155" />
-              <Text style={styles.actionItemText}>Copy</Text>
-            </TouchableOpacity>
-            {selectedMsg?.authorId === userId && (
-              <>
-                <TouchableOpacity style={styles.actionItem} onPress={handleStartEdit}>
-                  <Feather name="edit-2" size={20} color="#2563EB" />
-                  <Text style={[styles.actionItemText, { color: "#2563EB" }]}>Edit</Text>
-                </TouchableOpacity>
-                <View style={styles.actionDivider} />
-                <TouchableOpacity style={styles.actionItem} onPress={handleDeleteMsg}>
-                  <Feather name="trash-2" size={20} color="#DC2626" />
-                  <Text style={[styles.actionItemText, { color: "#DC2626" }]}>Unsend</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <TouchableOpacity style={[styles.actionItem, { justifyContent: "center" }]} onPress={() => setShowMsgActions(false)}>
-              <Text style={[styles.actionItemText, { color: "#94A3B8" }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Camera / Gallery picker sheet */}
-      <Modal visible={showCameraSheet} transparent animationType="fade" onRequestClose={() => setShowCameraSheet(false)}>
-        <TouchableOpacity style={styles.actionOverlay} activeOpacity={1} onPress={() => setShowCameraSheet(false)}>
-          <View style={[styles.actionSheet, { paddingBottom: 28 }]}>
-            <View style={styles.actionHandle} />
-            <Text style={[styles.editModalTitle, { marginBottom: 8 }]}>Add Photo</Text>
-            <TouchableOpacity style={styles.actionItem} onPress={handleTakePhoto} activeOpacity={0.8}>
-              <LinearGradient colors={["#C2410C", "#EA580C"]} style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }}>
-                <Feather name="camera" size={18} color="white" />
-              </LinearGradient>
-              <Text style={styles.actionItemText}>Take Photo</Text>
-            </TouchableOpacity>
-            <View style={styles.actionDivider} />
-            <TouchableOpacity style={styles.actionItem} onPress={handlePickChatImage} activeOpacity={0.8}>
-              <LinearGradient colors={["#EA580C", "#FB923C"]} style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }}>
-                <Feather name="image" size={18} color="white" />
-              </LinearGradient>
-              <Text style={styles.actionItemText}>Choose from Gallery</Text>
-            </TouchableOpacity>
-            <View style={styles.actionDivider} />
-            <TouchableOpacity style={[styles.actionItem, { justifyContent: "center" }]} onPress={() => setShowCameraSheet(false)}>
-              <Text style={[styles.actionItemText, { color: "#94A3B8" }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Inline edit overlay */}
-      <Modal visible={!!editingMsgId} transparent animationType="slide" onRequestClose={() => setEditingMsgId(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-          <TouchableOpacity style={styles.actionOverlay} activeOpacity={1} onPress={() => setEditingMsgId(null)}>
-            <View style={[styles.actionSheet, { paddingBottom: 24 }]}>
-              <View style={styles.actionHandle} />
-              <Text style={styles.editModalTitle}>Edit Message</Text>
-              <TextInput
-                style={styles.editModalInput}
-                value={editingText}
-                onChangeText={setEditingText}
-                multiline
-                autoFocus
-                maxLength={300}
-                placeholderTextColor="#94A3B8"
-              />
-              <TouchableOpacity
-                style={[styles.editModalSave, !editingText.trim() && { opacity: 0.4 }]}
-                onPress={handleSaveEdit}
-                disabled={!editingText.trim()}
-                activeOpacity={0.85}
-              >
-                <LinearGradient colors={["#EA580C", "#FB923C"]} style={styles.editModalSaveGrad}>
-                  <Text style={styles.editModalSaveText}>Save</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
