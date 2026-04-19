@@ -61,8 +61,8 @@ interface FeedContextType {
 
 const FeedContext = createContext<FeedContextType | null>(null);
 
-const STORAGE_KEY = "janseva_feed_v2";
-const CHAT_KEY = "janseva_chat_v2";
+const STORAGE_KEY = "janseva_feed_v3";
+const CHAT_KEY = "janseva_chat_v3";
 const SUBSCRIPTIONS_KEY = "janseva_subscriptions";
 const BLOCKED_KEY = "janseva_blocked";
 
