@@ -306,7 +306,7 @@ export default function LoginScreen() {
       </Text>
       <View style={s.phoneRow}>
         <View style={s.countryCode}>
-          <Text style={s.countryCodeText}>🇮🇳 +91</Text>
+          <Text style={s.countryCodeText}>IN +91</Text>
         </View>
         <TextInput
           style={[s.input, s.phoneInput]}
@@ -414,7 +414,7 @@ export default function LoginScreen() {
       <Text style={s.fieldLabel}>{t("phoneNumber")}</Text>
       <View style={s.phoneRow}>
         <View style={s.countryCode}>
-          <Text style={s.countryCodeText}>🇮🇳 +91</Text>
+          <Text style={s.countryCodeText}>IN +91</Text>
         </View>
         <TextInput
           style={[s.input, s.phoneInput]}
