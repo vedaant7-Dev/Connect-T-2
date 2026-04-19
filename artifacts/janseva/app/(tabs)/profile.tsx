@@ -15,6 +15,7 @@ import { useLanguage, languageOptions, Language } from "@/context/LanguageContex
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { ambernathWards } from "@/data/mumbaiServices";
 import DecorativeCircles from "@/components/DecorativeCircles";
+import TopShade from "@/components/TopShade";
 
 const roleConfig = {
   citizen: {
@@ -160,6 +161,7 @@ export default function ProfileScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: topPad + 12, overflow: "hidden" }]}
       >
+        <TopShade height={100} />
         <DecorativeCircles />
         <View style={styles.headerContent}>
           <AvatarWithPhoto

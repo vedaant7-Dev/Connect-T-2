@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintContext";
 import DecorativeCircles from "@/components/DecorativeCircles";
+import TopShade from "@/components/TopShade";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
@@ -164,6 +165,7 @@ export default function ComplaintsScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: topPad + 12, overflow: "hidden" }]}
       >
+        <TopShade height={100} />
         <DecorativeCircles />
         <View style={styles.headerRow}>
           <View>

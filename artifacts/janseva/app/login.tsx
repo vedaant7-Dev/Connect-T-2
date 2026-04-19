@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { useAuth } from "@/context/AuthContext";
+import TopShade from "@/components/TopShade";
 import { ambernathWards } from "@/data/mumbaiServices";
 import { useLanguage, languageOptions } from "@/context/LanguageContext";
 
@@ -459,6 +460,7 @@ export default function LoginScreen() {
       locations={[0, 0.25, 0.65, 1]}
       style={[s.root, { paddingTop: topPad }]}
     >
+      <TopShade height={220} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}

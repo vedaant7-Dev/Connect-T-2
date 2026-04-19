@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useJobsAuth, JobsUserRole, randomColor } from "@/context/JobsAuthContext";
 import DecorativeCircles from "@/components/DecorativeCircles";
+import TopShade from "@/components/TopShade";
 
 type AuthTab = "login" | "register";
 type Step = "form" | "otp" | "success";
@@ -294,6 +295,7 @@ export default function JobsLoginScreen() {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={[styles.header, { paddingTop: (Platform.OS === "web" ? 44 : insets.top) + 20, overflow: "hidden" }]}
         >
+          <TopShade height={120} />
           <DecorativeCircles />
           <Text style={styles.headerTitle}>Connect T Jobs</Text>
           <Text style={styles.headerSub}>Ambernath's #1 Local Job Portal</Text>

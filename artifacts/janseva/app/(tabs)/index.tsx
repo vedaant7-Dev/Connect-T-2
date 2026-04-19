@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 
 import { UtilityCard } from "@/components/UtilityCard";
 import DecorativeCircles from "@/components/DecorativeCircles";
+import TopShade from "@/components/TopShade";
 import { SectionHeader } from "@/components/SectionHeader";
 import { emergencyContacts } from "@/data/mumbaiServices";
 import { useAuth } from "@/context/AuthContext";
@@ -82,6 +83,7 @@ export default function HomeScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: topPad + 12, overflow: "hidden" }]}
       >
+        <TopShade height={100} />
         <DecorativeCircles />
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>

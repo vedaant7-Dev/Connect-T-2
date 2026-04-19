@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import TopShade from "@/components/TopShade";
 
 const { width } = Dimensions.get("window");
 
@@ -18,6 +19,7 @@ export default function PortalSelectScreen() {
         locations={[0, 0.25, 0.55, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />
+      <TopShade height={220} />
       <View style={ps.b1} />
       <View style={ps.b2} />
       <View style={ps.r1} />

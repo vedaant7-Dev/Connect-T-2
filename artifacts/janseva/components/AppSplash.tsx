@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, Image,
 } from "react-native";
 import DecorativeCircles from "@/components/DecorativeCircles";
+import TopShade from "@/components/TopShade";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 
@@ -29,6 +30,7 @@ export function AppSplash({ onFinish }: AppSplashProps) {
         style={StyleSheet.absoluteFill}
       />
 
+      <TopShade height={220} />
       <View style={[s2.blob, s2.b1]} />
       <View style={[s2.blob, s2.b2]} />
       <View style={[s2.blob, s2.b3]} />
