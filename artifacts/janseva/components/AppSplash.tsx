@@ -72,13 +72,6 @@ export function AppSplash({ onFinish }: AppSplashProps) {
 
       {step === "choose" && (
         <Animated.View style={[styles.chooseWrap, { opacity: fadeAnim }]}>
-          <View style={styles.chooseLogo}>
-            <Image
-              source={require("../assets/images/logo_transparent.png")}
-              style={styles.chooseLogoImg}
-              resizeMode="contain"
-            />
-          </View>
           <Text style={styles.chooseTitle}>Connect T</Text>
           <Text style={styles.chooseSubtitle}>Choose your portal to continue</Text>
 
@@ -171,8 +164,6 @@ const styles = StyleSheet.create({
   continueHint: { fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "Inter_400Regular", letterSpacing: 0.5 },
 
   chooseWrap: { flex: 1, width: "100%", alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
-  chooseLogo: { marginBottom: 8 },
-  chooseLogoImg: { width: 72, height: 72 },
   chooseTitle: { fontSize: 26, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3, marginBottom: 4 },
   chooseSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginBottom: 32, textAlign: "center" },
 
