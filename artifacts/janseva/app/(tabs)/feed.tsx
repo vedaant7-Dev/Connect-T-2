@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Platform, Modal, TextInput, ScrollView, ActivityIndicator,
-  Image, Alert, KeyboardAvoidingView,
+  Platform, Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
-import { useFeed, FeedPost, PostType, hasBadContent } from "@/context/FeedContext";
+import { useFeed, FeedPost, PostType } from "@/context/FeedContext";
 import { useAuth } from "@/context/AuthContext";
-import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
 type FeedTab = "community";
@@ -103,126 +100,17 @@ function PostCard({ post, userId }: { post: FeedPost; userId: string }) {
   );
 }
 
-function NewPostModal({ visible, onClose, onSubmit, canPostAnnouncement }: {
-  visible: boolean; onClose: () => void;
-  onSubmit: (content: string, type: PostType, imageUri?: string) => void;
-  canPostAnnouncement: boolean;
-}) {
-  const [content, setContent] = useState("");
-  const [type, setType] = useState<PostType>("general");
-  const [imageUri, setImageUri] = useState<string | undefined>();
-  const types: PostType[] = canPostAnnouncement ? ["announcement", "update", "general"] : ["general", "complaint"];
-
-  const pickImage = async () => {
-    if (Platform.OS !== "web") {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo library access."); return; }
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"], allowsEditing: true, aspect: [4, 3], quality: 0.7,
-    });
-    if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
-  };
-
-  const handleSubmit = () => {
-    if (!content.trim()) return;
-    onSubmit(content.trim(), type, imageUri);
-    setContent(""); setImageUri(undefined); onClose();
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <View style={modalStyles.overlay}>
-          <View style={modalStyles.sheet}>
-            <View style={modalStyles.handle} />
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 16 }}>
-              <Text style={modalStyles.title}>New Post</Text>
-              <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
-                <Feather name="x" size={18} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-            <Text style={modalStyles.label}>Post Type</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
-              {types.map((pt) => {
-                const tc = postTypeConfig[pt];
-                const sel = type === pt;
-                return (
-                  <TouchableOpacity key={pt} style={[modalStyles.typeBtn, { borderColor: tc.color + "40", backgroundColor: sel ? tc.color : tc.bg }]} onPress={() => setType(pt)} activeOpacity={0.8}>
-                    <Feather name={tc.icon as any} size={13} color={sel ? "white" : tc.color} />
-                    <Text style={[modalStyles.typeBtnText, { color: sel ? "white" : tc.color }]}>{pt}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-            <TextInput
-              style={modalStyles.textInput}
-              value={content}
-              onChangeText={setContent}
-              placeholder="Share with your community..."
-              placeholderTextColor="#CBD5E1"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              maxLength={500}
-            />
-            <Text style={modalStyles.charCount}>{content.length}/500</Text>
-            {imageUri ? (
-              <View style={{ width: "100%", marginBottom: 12 }}>
-                <Image source={{ uri: imageUri }} style={{ width: "100%", height: 160, borderRadius: 12 }} resizeMode="cover" />
-                <TouchableOpacity onPress={() => setImageUri(undefined)} style={modalStyles.removeImg}>
-                  <Feather name="x" size={14} color="white" />
-                </TouchableOpacity>
-              </View>
-            ) : null}
-            <View style={modalStyles.btnRow}>
-              <TouchableOpacity style={modalStyles.imgBtn} onPress={pickImage} activeOpacity={0.8}>
-                <Feather name="image" size={18} color="#EA580C" />
-                <Text style={modalStyles.imgBtnText}>Add Photo</Text>
-              </TouchableOpacity>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose} activeOpacity={0.8}>
-                  <Text style={modalStyles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[modalStyles.postBtnWrap, !content.trim() && { opacity: 0.5 }]} onPress={handleSubmit} disabled={!content.trim()} activeOpacity={0.85}>
-                  <LinearGradient colors={["#EA580C", "#FB923C"]} style={modalStyles.postBtn}>
-                    <Feather name="send" size={14} color="white" />
-                    <Text style={modalStyles.postBtnText}>Post</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-}
-
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const TAB_H = Platform.OS === "web" ? 72 : 56 + Math.max(insets.bottom, 8);
-  const { posts, addPost, toggleLike, isBlocked, blocked } = useFeed();
+  const { posts, toggleLike } = useFeed();
   const { user } = useAuth();
-  const { t } = useLanguage();
   const { handleScroll } = useTabBarVisibility();
 
   const userId = user?.id || "guest";
-  const userBlocked = isBlocked(userId);
-  const blockedUntil = blocked[userId] ? new Date(blocked[userId]).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
 
   const [activeTab] = useState<FeedTab>("community");
-
-  const [showNewPost, setShowNewPost] = useState(false);
-  const canPostAnnouncement = user?.role === "nagarsevak";
-
-  const handlePost = (content: string, type: PostType, imageUri?: string) => {
-    const result = addPost(content, type, user?.name || "Anonymous", user?.role || "citizen", user?.avatarColor || "#EA580C", userId, imageUri);
-    if (!result.success && result.reason === "blocked") {
-      Alert.alert("Content Violation", "Your post contains inappropriate content. You have been blocked from posting for 24 hours.");
-    }
-  };
 
   return (
     <View style={styles.root}>
@@ -232,17 +120,7 @@ export default function FeedScreen() {
             <Text style={styles.headerTitle}>News Feed</Text>
             <Text style={styles.headerSub}>Ambernath · BJP Ward Network</Text>
           </View>
-          <TouchableOpacity style={styles.newPostBtn} onPress={() => userBlocked ? Alert.alert("Blocked", `You are blocked until ${blockedUntil}.`) : setShowNewPost(true)} activeOpacity={0.85}>
-              <Feather name="edit-2" size={14} color="white" />
-              <Text style={styles.newPostBtnText}>Post</Text>
-            </TouchableOpacity>
         </View>
-        {userBlocked && (
-          <View style={styles.blockedBanner}>
-            <Feather name="alert-triangle" size={12} color="#FDE68A" />
-            <Text style={styles.blockedBannerText}>Posting blocked until {blockedUntil} · Community guideline violation</Text>
-          </View>
-        )}
         <View style={styles.tabRow}>
           <View style={[styles.tab, styles.tabActive]}>
             <Text style={[styles.tabText, styles.tabTextActive]}>News</Text>
@@ -269,8 +147,6 @@ export default function FeedScreen() {
         />
       )}
 
-
-      <NewPostModal visible={showNewPost} onClose={() => setShowNewPost(false)} onSubmit={handlePost} canPostAnnouncement={canPostAnnouncement} />
 
     </View>
   );
