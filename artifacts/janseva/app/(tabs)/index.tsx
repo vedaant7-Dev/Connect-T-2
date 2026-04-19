@@ -14,8 +14,7 @@ import { emergencyContacts } from "@/data/mumbaiServices";
 import { useAuth } from "@/context/AuthContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { useLanguage } from "@/context/LanguageContext";
-
-const alertsAndNews: { id: string; type: string; icon: string; color: string; bg: string; title: string; body: string; detail: string; source: string; date: string; time: string }[] = [];
+import { useAlerts, AppAlert } from "@/context/AlertContext";
 
 const quickServices = [
   { id: "hospital", label: "Hospitals", icon: "activity", color: "#DC2626", bg: "#FEE2E2" },
@@ -53,13 +52,14 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { handleScroll } = useTabBarVisibility();
-  const [selectedAlert, setSelectedAlert] = useState<typeof alertsAndNews[0] | null>(null);
+  const { alerts } = useAlerts();
+  const [selectedAlert, setSelectedAlert] = useState<AppAlert | null>(null);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [selectedUtility, setSelectedUtility] = useState<string | null>(null);
 
   const roleColor = getRoleColor(user?.role);
 
-  const notifCount = alertsAndNews.filter((i) => i.type === "alert").length;
+  const notifCount = alerts.filter((i) => i.type === "alert").length;
 
   const handleCall = (number: string) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -130,27 +130,49 @@ export default function HomeScreen() {
               <Text style={styles.alertsLiveText}>{t("live")}</Text>
             </View>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingBottom: 2 }}>
-            {alertsAndNews.filter((item) => item.type === "alert").map((item) => (
-              <TouchableOpacity key={item.id} style={styles.alertCard} activeOpacity={0.88} onPress={() => setSelectedAlert(item)}>
-                <View style={[styles.alertCardIcon, { backgroundColor: item.bg }]}>
-                  <Feather name={item.icon as any} size={16} color={item.color} />
-                </View>
-                <View style={styles.alertCardBody}>
-                  <View style={styles.alertCardRow}>
-                    <View style={[styles.alertTypePill, { backgroundColor: item.bg }]}>
-                      <Text style={[styles.alertTypeText, { color: item.color }]}>
-                        {item.type === "alert" ? `⚠ ${t("alert")}` : `📢 ${t("news")}`}
-                      </Text>
+          {alerts.length === 0 ? (
+            <View style={styles.alertsEmpty}>
+              <Feather name="bell-off" size={20} color="#CBD5E1" />
+              <Text style={styles.alertsEmptyText}>No alerts right now</Text>
+            </View>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingBottom: 2 }}>
+              {alerts.map((item) => {
+                const isAlert = item.type === "alert";
+                const cardColor = isAlert ? "#DC2626" : "#EA580C";
+                const cardBg = isAlert ? "#FEE2E2" : "#FFEDD5";
+                const timeStr = (() => {
+                  const diff = Date.now() - new Date(item.createdAt).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  const hours = Math.floor(mins / 60);
+                  const days = Math.floor(hours / 24);
+                  if (days > 0) return `${days}d ago`;
+                  if (hours > 0) return `${hours}h ago`;
+                  if (mins > 0) return `${mins}m ago`;
+                  return "just now";
+                })();
+                return (
+                  <TouchableOpacity key={item.id} style={styles.alertCard} activeOpacity={0.88} onPress={() => setSelectedAlert(item)}>
+                    <View style={[styles.alertCardIcon, { backgroundColor: cardBg }]}>
+                      <Feather name={isAlert ? "alert-triangle" : "radio"} size={16} color={cardColor} />
                     </View>
-                    <Text style={styles.alertCardTime}>{item.time}</Text>
-                  </View>
-                  <Text style={styles.alertCardTitle}>{item.title}</Text>
-                  <Text style={styles.alertCardDesc} numberOfLines={2}>{item.body}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                    <View style={styles.alertCardBody}>
+                      <View style={styles.alertCardRow}>
+                        <View style={[styles.alertTypePill, { backgroundColor: cardBg }]}>
+                          <Text style={[styles.alertTypeText, { color: cardColor }]}>
+                            {isAlert ? `⚠ ${t("alert")}` : `📢 ${t("news")}`}
+                          </Text>
+                        </View>
+                        <Text style={styles.alertCardTime}>{timeStr}</Text>
+                      </View>
+                      <Text style={styles.alertCardTitle}>{item.title}</Text>
+                      <Text style={styles.alertCardDesc} numberOfLines={2}>{item.body}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
 
         {/* REPORT A PROBLEM CTA */}
@@ -328,32 +350,39 @@ export default function HomeScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 500 }}>
-              {selectedAlert && (
-                <>
-                  <View style={[styles.modalIconWrap, { backgroundColor: selectedAlert.bg }]}>
-                    <Feather name={selectedAlert.icon as any} size={28} color={selectedAlert.color} />
-                  </View>
-                  <View style={[styles.modalTypePill, { backgroundColor: selectedAlert.bg }]}>
-                    <Text style={[styles.modalTypeText, { color: selectedAlert.color }]}>
-                      {selectedAlert.type === "alert" ? `⚠ ${t("alert")}` : `📢 ${t("news")}`}
-                    </Text>
-                  </View>
-                  <Text style={styles.modalTitle}>{selectedAlert.title}</Text>
-                  <View style={styles.modalMetaRow}>
-                    <Feather name="calendar" size={12} color="#94A3B8" />
-                    <Text style={styles.modalMetaText}>{selectedAlert.date}</Text>
-                    <View style={styles.modalMetaDot} />
-                    <Feather name="clock" size={12} color="#94A3B8" />
-                    <Text style={styles.modalMetaText}>{selectedAlert.time}</Text>
-                  </View>
-                  <View style={styles.modalDivider} />
-                  <Text style={styles.modalBody}>{selectedAlert.detail}</Text>
-                  <View style={styles.modalSourceRow}>
-                    <Feather name="info" size={12} color="#64748B" />
-                    <Text style={styles.modalSourceText}>Source: {selectedAlert.source}</Text>
-                  </View>
-                </>
-              )}
+              {selectedAlert && (() => {
+                const isAlert = selectedAlert.type === "alert";
+                const cardColor = isAlert ? "#DC2626" : "#EA580C";
+                const cardBg = isAlert ? "#FEE2E2" : "#FFEDD5";
+                const dateStr = new Date(selectedAlert.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                const timeStr = new Date(selectedAlert.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+                return (
+                  <>
+                    <View style={[styles.modalIconWrap, { backgroundColor: cardBg }]}>
+                      <Feather name={isAlert ? "alert-triangle" : "radio"} size={28} color={cardColor} />
+                    </View>
+                    <View style={[styles.modalTypePill, { backgroundColor: cardBg }]}>
+                      <Text style={[styles.modalTypeText, { color: cardColor }]}>
+                        {isAlert ? `⚠ ${t("alert")}` : `📢 ${t("news")}`}
+                      </Text>
+                    </View>
+                    <Text style={styles.modalTitle}>{selectedAlert.title}</Text>
+                    <View style={styles.modalMetaRow}>
+                      <Feather name="calendar" size={12} color="#94A3B8" />
+                      <Text style={styles.modalMetaText}>{dateStr}</Text>
+                      <View style={styles.modalMetaDot} />
+                      <Feather name="clock" size={12} color="#94A3B8" />
+                      <Text style={styles.modalMetaText}>{timeStr}</Text>
+                    </View>
+                    <View style={styles.modalDivider} />
+                    <Text style={styles.modalBody}>{selectedAlert.body}</Text>
+                    <View style={styles.modalSourceRow}>
+                      <Feather name="user" size={12} color="#64748B" />
+                      <Text style={styles.modalSourceText}>Posted by: {selectedAlert.postedBy}</Text>
+                    </View>
+                  </>
+                );
+              })()}
             </ScrollView>
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setSelectedAlert(null)} activeOpacity={0.85}>
               <Text style={styles.modalCloseBtnText}>{t("cancel")}</Text>
@@ -440,6 +469,8 @@ const styles = StyleSheet.create({
   emergencyIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", marginBottom: 2 },
   emergencyName: { fontSize: 9, fontWeight: "700", color: "#475569", textAlign: "center", fontFamily: "Inter_600SemiBold" },
   emergencyNumber: { fontSize: 14, fontWeight: "900", fontFamily: "Inter_700Bold" },
+  alertsEmpty: { height: 88, borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", borderStyle: "dashed", backgroundColor: "#F8FAFC", alignItems: "center", justifyContent: "center", gap: 6 },
+  alertsEmptyText: { fontSize: 12, color: "#CBD5E1", fontFamily: "Inter_500Medium", fontWeight: "500" },
   alertsSection: { marginBottom: 18 },
   alertsSectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   alertsSectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },

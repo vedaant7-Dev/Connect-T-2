@@ -20,6 +20,7 @@ import { Feather } from "@expo/vector-icons";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplash } from "@/components/AppSplash";
 import { ComplaintProvider } from "@/context/ComplaintContext";
+import { AlertProvider } from "@/context/AlertContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { FeedProvider } from "@/context/FeedContext";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -126,6 +127,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>
             <AuthProvider>
+              <AlertProvider>
               <ComplaintProvider>
                 <FeedProvider>
                   <GestureHandlerRootView style={{ flex: 1 }}>
@@ -147,6 +149,7 @@ export default function RootLayout() {
                   </GestureHandlerRootView>
                 </FeedProvider>
               </ComplaintProvider>
+              </AlertProvider>
             </AuthProvider>
           </LanguageProvider>
         </QueryClientProvider>

@@ -8,6 +8,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintContext";
+import { useAlerts, AlertType } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
 import { useLanguage } from "@/context/LanguageContext";
@@ -192,6 +193,7 @@ export default function AdminScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user, logout, updateUser } = useAuth();
   const { complaints, updateStatus } = useComplaints();
+  const { alerts, addAlert, removeAlert } = useAlerts();
   const router = useRouter();
   const { t } = useLanguage();
   const [filter, setFilter] = useState<ComplaintStatus | "all">("all");
@@ -201,6 +203,10 @@ export default function AdminScreen() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editName, setEditName] = useState("");
   const [editWard, setEditWard] = useState("");
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertBody, setAlertBody] = useState("");
+  const [alertType, setAlertType] = useState<AlertType>("alert");
 
   if (!user || user.role !== "nagarsevak") {
     return (
@@ -289,6 +295,67 @@ export default function AdminScreen() {
         </View>
       )}
 
+      {/* ALERTS PANEL */}
+      <View style={styles.alertPanel}>
+        <View style={styles.alertPanelHeader}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Feather name="bell" size={14} color="#C2410C" />
+            <Text style={styles.alertPanelTitle}>Alerts & News</Text>
+            {alerts.length > 0 && (
+              <View style={styles.alertCountBadge}>
+                <Text style={styles.alertCountText}>{alerts.length}</Text>
+              </View>
+            )}
+          </View>
+          <TouchableOpacity
+            style={styles.postAlertBtn}
+            onPress={() => { setAlertTitle(""); setAlertBody(""); setAlertType("alert"); setShowAlertModal(true); }}
+            activeOpacity={0.85}
+          >
+            <Feather name="plus" size={13} color="white" />
+            <Text style={styles.postAlertBtnText}>Post Alert</Text>
+          </TouchableOpacity>
+        </View>
+
+        {alerts.length === 0 ? (
+          <View style={styles.alertPanelEmpty}>
+            <Feather name="bell-off" size={22} color="#CBD5E1" />
+            <Text style={styles.alertPanelEmptyText}>No alerts posted yet</Text>
+            <Text style={styles.alertPanelEmptySub}>Tap "Post Alert" to broadcast to all citizens</Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingBottom: 4 }}>
+            {alerts.map((a) => {
+              const isAlert = a.type === "alert";
+              const cardColor = isAlert ? "#DC2626" : "#EA580C";
+              const cardBg = isAlert ? "#FEE2E2" : "#FFEDD5";
+              return (
+                <View key={a.id} style={[styles.alertChip, { borderColor: cardBg }]}>
+                  <View style={[styles.alertChipPill, { backgroundColor: cardBg }]}>
+                    <Text style={[styles.alertChipPillText, { color: cardColor }]}>
+                      {isAlert ? "⚠ Alert" : "📢 News"}
+                    </Text>
+                  </View>
+                  <Text style={styles.alertChipTitle} numberOfLines={1}>{a.title}</Text>
+                  <Text style={styles.alertChipBody} numberOfLines={2}>{a.body}</Text>
+                  <TouchableOpacity
+                    style={styles.alertChipDelete}
+                    onPress={() => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      removeAlert(a.id);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name="trash-2" size={12} color="#DC2626" />
+                    <Text style={styles.alertChipDeleteText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </ScrollView>
+        )}
+      </View>
+
       <FlatList
         data={filtered}
         keyExtractor={(c) => c.id}
@@ -311,6 +378,77 @@ export default function AdminScreen() {
           }} />
         </Modal>
       )}
+
+      {/* POST ALERT MODAL */}
+      <Modal visible={showAlertModal} transparent animationType="slide" onRequestClose={() => setShowAlertModal(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Math.max(insets.bottom, 16) + 10 }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "#E2E8F0", alignSelf: "center", marginBottom: 16 }} />
+            <Text style={{ fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 4 }}>Post Alert</Text>
+            <Text style={{ fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular", marginBottom: 16 }}>Visible to all citizens on the home screen</Text>
+
+            <Text style={{ fontSize: 11, fontWeight: "700", color: "#475569", fontFamily: "Inter_700Bold", marginBottom: 6 }}>TYPE</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+              {(["alert", "news"] as AlertType[]).map((t2) => (
+                <TouchableOpacity
+                  key={t2}
+                  style={{ flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: alertType === t2 ? "#C2410C" : "#E2E8F0", backgroundColor: alertType === t2 ? "#FFF7ED" : "white", alignItems: "center" }}
+                  onPress={() => setAlertType(t2)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: alertType === t2 ? "#C2410C" : "#94A3B8", fontFamily: "Inter_700Bold" }}>
+                    {t2 === "alert" ? "⚠ Alert" : "📢 News"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={{ fontSize: 11, fontWeight: "700", color: "#475569", fontFamily: "Inter_700Bold", marginBottom: 6 }}>TITLE</Text>
+            <TextInput
+              style={{ borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular", marginBottom: 12 }}
+              value={alertTitle}
+              onChangeText={setAlertTitle}
+              placeholder="e.g. Water supply cut tomorrow"
+              placeholderTextColor="#CBD5E1"
+              maxLength={80}
+            />
+
+            <Text style={{ fontSize: 11, fontWeight: "700", color: "#475569", fontFamily: "Inter_700Bold", marginBottom: 6 }}>MESSAGE</Text>
+            <TextInput
+              style={{ borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, color: "#0F172A", fontFamily: "Inter_400Regular", height: 88, textAlignVertical: "top", marginBottom: 16 }}
+              value={alertBody}
+              onChangeText={setAlertBody}
+              placeholder="Explain the alert in detail..."
+              placeholderTextColor="#CBD5E1"
+              multiline
+              numberOfLines={4}
+              maxLength={300}
+            />
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity style={{ flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", alignItems: "center" }} onPress={() => setShowAlertModal(false)} activeOpacity={0.8}>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#94A3B8", fontFamily: "Inter_700Bold" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 2, borderRadius: 14, overflow: "hidden", opacity: alertTitle.trim() && alertBody.trim() ? 1 : 0.5 }}
+                onPress={() => {
+                  if (!alertTitle.trim() || !alertBody.trim()) return;
+                  if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  addAlert({ title: alertTitle.trim(), body: alertBody.trim(), type: alertType }, user?.name || "Nagarsevak");
+                  setShowAlertModal(false);
+                }}
+                disabled={!alertTitle.trim() || !alertBody.trim()}
+                activeOpacity={0.85}
+              >
+                <LinearGradient colors={["#C2410C", "#EA580C"]} style={{ paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}>
+                  <Feather name="send" size={15} color="white" />
+                  <Text style={{ fontSize: 14, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" }}>Broadcast</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={showProfile} transparent animationType="slide" onRequestClose={() => setShowProfile(false)}>
         <View style={pStyles.root}>
@@ -551,6 +689,23 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: "rgba(255,255,255,0.25)" },
   filterText: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.6)", fontFamily: "Inter_600SemiBold" },
   urgentBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEE2E2", paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#FECACA" },
+  alertPanel: { backgroundColor: "white", marginHorizontal: 14, marginTop: 12, marginBottom: 4, borderRadius: 18, padding: 14, shadowColor: "#B45309", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
+  alertPanelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  alertPanelTitle: { fontSize: 13, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
+  alertCountBadge: { backgroundColor: "#FEE2E2", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  alertCountText: { fontSize: 10, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_700Bold" },
+  postAlertBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#C2410C", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
+  postAlertBtnText: { fontSize: 12, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  alertPanelEmpty: { height: 80, borderRadius: 12, borderWidth: 1.5, borderColor: "#E2E8F0", borderStyle: "dashed", alignItems: "center", justifyContent: "center", gap: 4 },
+  alertPanelEmptyText: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_600SemiBold", fontWeight: "600" },
+  alertPanelEmptySub: { fontSize: 10, color: "#CBD5E1", fontFamily: "Inter_400Regular" },
+  alertChip: { width: 200, backgroundColor: "#FAFAFA", borderRadius: 14, borderWidth: 1, padding: 12, gap: 4 },
+  alertChipPill: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  alertChipPillText: { fontSize: 9, fontWeight: "700", fontFamily: "Inter_700Bold" },
+  alertChipTitle: { fontSize: 12, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
+  alertChipBody: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", lineHeight: 15 },
+  alertChipDelete: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  alertChipDeleteText: { fontSize: 10, fontWeight: "600", color: "#DC2626", fontFamily: "Inter_600SemiBold" },
   urgentText: { fontSize: 12, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_600SemiBold" },
   card: { backgroundColor: "white", borderRadius: 16, marginBottom: 10, overflow: "hidden", shadowColor: "#166534", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, paddingBottom: 10 },
