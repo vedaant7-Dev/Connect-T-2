@@ -17,7 +17,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { withTiming, Easing } from "react-native-reanimated";
 
-type FeedTab = "news" | "community" | "complaints" | "resolved";
+type FeedTab = "community" | "complaints" | "resolved";
 
 const postTypeConfig: Record<PostType, { color: string; bg: string; icon: string }> = {
   announcement: { color: "#DC2626", bg: "#FEE2E2", icon: "alert-circle" },
@@ -75,7 +75,7 @@ function Avatar({ name, color, size = 40, photoUri }: { name: string; color: str
   );
 }
 
-function PostCard({ post, userId, subscribed }: { post: FeedPost; userId: string; subscribed: boolean }) {
+function PostCard({ post, userId }: { post: FeedPost; userId: string }) {
   const { toggleLike } = useFeed();
   const liked = post.likes.includes(userId);
   const tc = postTypeConfig[post.type];
@@ -107,7 +107,6 @@ function PostCard({ post, userId, subscribed }: { post: FeedPost; userId: string
       ) : null}
       <View style={styles.cardActions}>
         <TouchableOpacity style={styles.action} onPress={() => {
-          if (!subscribed) return;
           if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           toggleLike(post.id, userId);
         }} activeOpacity={0.8}>
@@ -270,96 +269,22 @@ function NewPostModal({ visible, onClose, onSubmit, canPostAnnouncement }: {
   );
 }
 
-function SubscribeModal({ visible, onClose, onSubscribe }: { visible: boolean; onClose: () => void; onSubscribe: () => void }) {
-  const features = [
-    "Post text & photos to community",
-    "Real-time group community chat",
-    "Like & engage with posts",
-    "Connect with BJP members in your ward",
-    "Priority announcements & alerts",
-  ];
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={subStyles.overlay}>
-        <View style={subStyles.sheet}>
-          <View style={subStyles.handle} />
-          <LinearGradient colors={["#7C2D12", "#C2410C", "#EA580C"]} style={subStyles.banner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-            <Feather name="users" size={32} color="white" />
-            <Text style={subStyles.bannerTitle}>Community Premium</Text>
-            <Text style={subStyles.bannerSub}>Connect T — BJP Member Network</Text>
-          </LinearGradient>
-          <View style={subStyles.priceRow}>
-            <View>
-              <Text style={subStyles.priceCurrency}>₹</Text>
-            </View>
-            <Text style={subStyles.priceAmt}>199</Text>
-            <View style={subStyles.priceBadge}>
-              <Text style={subStyles.priceBadgeText}>One Time</Text>
-            </View>
-          </View>
-          <Text style={subStyles.priceNote}>Lifetime access · No renewal · No hidden charges</Text>
-          <View style={subStyles.featureList}>
-            {features.map((f) => (
-              <View key={f} style={subStyles.featureRow}>
-                <View style={subStyles.featureCheck}>
-                  <Feather name="check" size={12} color="white" />
-                </View>
-                <Text style={subStyles.featureText}>{f}</Text>
-              </View>
-            ))}
-          </View>
-          <TouchableOpacity style={subStyles.subscribeWrap} onPress={onSubscribe} activeOpacity={0.85}>
-            <LinearGradient colors={["#15803D", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={subStyles.subscribeBtn}>
-              <Feather name="zap" size={18} color="white" />
-              <Text style={subStyles.subscribeBtnText}>Subscribe & Pay ₹199</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={{ marginTop: 6 }}>
-            <Text style={subStyles.maybeLater}>Maybe later</Text>
-          </TouchableOpacity>
-          <Text style={subStyles.terms}>By subscribing you agree to Connect T terms of service. This is a simulated payment.</Text>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function PremiumTeaser({ onPress }: { onPress: () => void }) {
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.premiumTeaser}>
-      <LinearGradient colors={["#7C2D12", "#C2410C", "#EA580C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.premiumTeaserGrad}>
-        <View style={styles.premiumTeaserIcon}>
-          <Feather name="lock" size={18} color="#EA580C" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.premiumTeaserTitle}>Unlock Community</Text>
-          <Text style={styles.premiumTeaserSub}>Post, chat & share photos · ₹199 one-time</Text>
-        </View>
-        <View style={styles.premiumTeaserBtn}>
-          <Text style={styles.premiumTeaserBtnText}>Join</Text>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
-
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const TAB_H = Platform.OS === "web" ? 72 : 56 + Math.max(insets.bottom, 8);
   const router = useRouter();
-  const { posts, addPost, toggleLike, isSubscribed, isBlocked, subscribe, blocked } = useFeed();
+  const { posts, addPost, toggleLike, isBlocked, blocked } = useFeed();
   const { user } = useAuth();
   const { complaints } = useComplaints();
   const { t } = useLanguage();
   const { handleScroll, tabBarTranslateY } = useTabBarVisibility();
 
   const userId = user?.id || "guest";
-  const subscribed = isSubscribed(userId);
   const userBlocked = isBlocked(userId);
   const blockedUntil = blocked[userId] ? new Date(blocked[userId]).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
 
-  const [activeTab, setActiveTab] = useState<FeedTab>(subscribed ? "community" : "news");
+  const [activeTab, setActiveTab] = useState<FeedTab>("community");
 
   const isSubTab = activeTab === "complaints" || activeTab === "resolved";
 
@@ -372,9 +297,7 @@ export default function FeedScreen() {
   }, [isSubTab]);
 
   const [showNewPost, setShowNewPost] = useState(false);
-  const [showSubscribe, setShowSubscribe] = useState(false);
   const canPostAnnouncement = user?.role === "nagarsevak";
-  const officialPosts = posts.filter((p) => p.authorRole === "Nagarsevak" || p.authorRole === "nagarsevak" || p.type === "announcement" || p.type === "update");
   const activeComplaints = complaints.filter((c) => ["submitted", "assigned", "in_progress"].includes(c.status));
   const resolvedComplaints = complaints.filter((c) => c.status === "resolved" || c.status === "rejected");
 
@@ -385,25 +308,11 @@ export default function FeedScreen() {
     }
   };
 
-  const handleSubscribe = async () => {
-    await subscribe(userId);
-    setShowSubscribe(false);
-    setActiveTab("community");
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert("Welcome to News! 🎉", "You now have full access to Connect T News & Community features.");
-  };
-
-  const tabs: { id: FeedTab; label: string; count?: number; locked?: boolean }[] = subscribed
-    ? [
-        { id: "community", label: "News" },
-        { id: "complaints", label: "Complaints", count: complaints.length },
-        { id: "resolved", label: "Resolved", count: resolvedComplaints.length },
-      ]
-    : [
-        { id: "news", label: "News" },
-        { id: "complaints", label: "Complaints", count: complaints.length },
-        { id: "resolved", label: "Resolved", count: resolvedComplaints.length },
-      ];
+  const tabs: { id: FeedTab; label: string; count?: number }[] = [
+    { id: "community", label: "News" },
+    { id: "complaints", label: "Complaints", count: complaints.length },
+    { id: "resolved", label: "Resolved", count: resolvedComplaints.length },
+  ];
 
   const renderEmptyComplaints = (msg: string, icon: string) => (
     <View style={styles.emptyState}>
@@ -423,34 +332,20 @@ export default function FeedScreen() {
           {isSubTab ? (
             <TouchableOpacity
               style={styles.backBtn}
-              onPress={() => setActiveTab(subscribed ? "community" : "news")}
+              onPress={() => setActiveTab("community")}
               activeOpacity={0.8}
             >
               <Feather name="chevron-left" size={16} color="white" />
               <Text style={styles.backBtnText}>Back</Text>
             </TouchableOpacity>
-          ) : (subscribed ? (
+          ) : (
             <TouchableOpacity style={styles.newPostBtn} onPress={() => userBlocked ? Alert.alert("Blocked", `You are blocked until ${blockedUntil}.`) : setShowNewPost(true)} activeOpacity={0.85}>
               <Feather name="edit-2" size={14} color="white" />
               <Text style={styles.newPostBtnText}>Post</Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={[styles.newPostBtn, { backgroundColor: "rgba(255,255,255,0.3)" }]} onPress={() => setShowSubscribe(true)} activeOpacity={0.85}>
-              <Feather name="zap" size={14} color="white" />
-              <Text style={styles.newPostBtnText}>₹199</Text>
-            </TouchableOpacity>
-          ))}
+          )}
         </View>
-        {!subscribed && (
-          <View style={styles.premiumBadge}>
-            <Feather name="lock" size={10} color="#FDE68A" />
-            <Text style={styles.premiumBadgeText}>Subscribe ₹199 to post, chat & share photos</Text>
-            <TouchableOpacity onPress={() => setShowSubscribe(true)}>
-              <Text style={styles.premiumBadgeLink}>Upgrade →</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        {subscribed && userBlocked && (
+        {userBlocked && (
           <View style={styles.blockedBanner}>
             <Feather name="alert-triangle" size={12} color="#FDE68A" />
             <Text style={styles.blockedBannerText}>Posting blocked until {blockedUntil} · Community guideline violation</Text>
@@ -482,28 +377,11 @@ export default function FeedScreen() {
         </View>
       </LinearGradient>
 
-      {activeTab === "news" && (
-        <>
-          <FlatList
-            data={officialPosts}
-            keyExtractor={(p) => p.id}
-            renderItem={({ item }) => <PostCard post={item} userId={userId} subscribed={false} />}
-            contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 70 + TAB_H }]}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListHeaderComponent={<PremiumTeaser onPress={() => setShowSubscribe(true)} />}
-            ListEmptyComponent={renderEmptyComplaints("No news yet", "inbox")}
-          />
-        </>
-      )}
-
       {activeTab === "community" && (
         <FlatList
           data={posts}
           keyExtractor={(p) => p.id}
-          renderItem={({ item }) => <PostCard post={item} userId={userId} subscribed={subscribed} />}
+          renderItem={({ item }) => <PostCard post={item} userId={userId} />}
           contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 + TAB_H }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
@@ -543,20 +421,7 @@ export default function FeedScreen() {
       )}
 
 
-      {!subscribed && activeTab === "news" && (
-        <View style={[styles.composeBar, { paddingBottom: Math.max(insets.bottom, 8), bottom: TAB_H }]}>
-          <TouchableOpacity style={[styles.composeInner, { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }]} onPress={() => setShowSubscribe(true)} activeOpacity={0.85}>
-            <Feather name="lock" size={18} color="#EA580C" />
-            <Text style={[styles.composePlaceholder, { color: "#C2410C", fontFamily: "Inter_600SemiBold" }]}>Subscribe to post & chat — ₹199</Text>
-            <View style={{ backgroundColor: "#EA580C", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}>
-              <Text style={{ color: "white", fontSize: 12, fontWeight: "700", fontFamily: "Inter_700Bold" }}>Join</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      )}
-
       <NewPostModal visible={showNewPost} onClose={() => setShowNewPost(false)} onSubmit={handlePost} canPostAnnouncement={canPostAnnouncement} />
-      <SubscribeModal visible={showSubscribe} onClose={() => setShowSubscribe(false)} onSubscribe={handleSubscribe} />
 
     </View>
   );
@@ -572,9 +437,6 @@ const styles = StyleSheet.create({
   newPostBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   backBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  premiumBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,0.2)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10 },
-  premiumBadgeText: { fontSize: 11, color: "#FDE68A", fontFamily: "Inter_400Regular", flex: 1 },
-  premiumBadgeLink: { fontSize: 11, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
   blockedBanner: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(220,38,38,0.3)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10 },
   blockedBannerText: { fontSize: 11, color: "#FDE68A", fontFamily: "Inter_400Regular", flex: 1 },
   tabScroll: { flexGrow: 0 },
@@ -718,14 +580,6 @@ const styles = StyleSheet.create({
   editModalSaveGrad: { paddingVertical: 14, alignItems: "center", justifyContent: "center" },
   editModalSaveText: { fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
 
-  premiumTeaser: { marginHorizontal: 12, marginTop: 10, marginBottom: 4, borderRadius: 18, overflow: "hidden" },
-  premiumTeaserGrad: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
-  premiumTeaserIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "white", alignItems: "center", justifyContent: "center" },
-  premiumTeaserTitle: { fontSize: 14, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" },
-  premiumTeaserSub: { fontSize: 11, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  premiumTeaserBtn: { backgroundColor: "white", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 },
-  premiumTeaserBtnText: { fontSize: 12, fontWeight: "700", color: "#C2410C", fontFamily: "Inter_700Bold" },
-
   emptyState: { alignItems: "center", paddingTop: 60, gap: 8 },
   emptyTitle: { fontSize: 15, fontWeight: "700", color: "#94A3B8", fontFamily: "Inter_700Bold" },
 
@@ -759,26 +613,3 @@ const modalStyles = StyleSheet.create({
   postBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
 });
 
-const subStyles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "white", borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 32, alignItems: "center", overflow: "hidden" },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#E2E8F0", marginTop: 12, marginBottom: 0 },
-  banner: { width: "100%", paddingVertical: 28, paddingHorizontal: 24, alignItems: "center", gap: 8, marginBottom: 20 },
-  bannerTitle: { fontSize: 22, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
-  bannerSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular" },
-  priceRow: { flexDirection: "row", alignItems: "flex-start", gap: 4, marginBottom: 4 },
-  priceCurrency: { fontSize: 20, fontWeight: "700", color: "#C2410C", fontFamily: "Inter_700Bold", marginTop: 6 },
-  priceAmt: { fontSize: 56, fontWeight: "900", color: "#C2410C", fontFamily: "Inter_700Bold", lineHeight: 60 },
-  priceBadge: { backgroundColor: "#FFF7ED", borderWidth: 1.5, borderColor: "#FED7AA", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, alignSelf: "center" },
-  priceBadgeText: { fontSize: 12, fontWeight: "700", color: "#C2410C", fontFamily: "Inter_700Bold" },
-  priceNote: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular", marginBottom: 20 },
-  featureList: { width: "100%", paddingHorizontal: 24, gap: 10, marginBottom: 24 },
-  featureRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  featureCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: "#059669", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  featureText: { fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular", flex: 1 },
-  subscribeWrap: { width: "88%", borderRadius: 18, overflow: "hidden", marginBottom: 12 },
-  subscribeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 18 },
-  subscribeBtnText: { fontSize: 16, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" },
-  maybeLater: { fontSize: 13, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  terms: { fontSize: 10, color: "#CBD5E1", fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 24, marginTop: 10, lineHeight: 14 },
-});
