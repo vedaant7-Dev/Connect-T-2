@@ -8,18 +8,8 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useJobsAuth } from "@/context/JobsAuthContext";
-import { useJobs, categoryConfig, typeConfig, JobCategory, Job } from "@/context/JobsContext";
+import { useJobs, categoryConfig, typeConfig, Job } from "@/context/JobsContext";
 
-const ALL_CATS: { id: JobCategory | "all"; label: string }[] = [
-  { id: "all", label: "All Jobs" },
-  { id: "manufacturing", label: "Factory" },
-  { id: "it", label: "IT" },
-  { id: "retail", label: "Retail" },
-  { id: "healthcare", label: "Health" },
-  { id: "transport", label: "Transport" },
-  { id: "education", label: "Teaching" },
-  { id: "security", label: "Security" },
-];
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -111,11 +101,8 @@ export default function JobsHomeScreen() {
   const { jobsUser } = useJobsAuth();
   const { jobs, applyJob, hasApplied } = useJobs();
   const router = useRouter();
-  const [activeCat, setActiveCat] = useState<JobCategory | "all">("all");
-
   const activeJobs = jobs.filter((j) => j.active);
   const nearbyJobs = activeJobs.filter((j) => isNearby(j.location, jobsUser?.location));
-  const allFiltered = activeJobs.filter((j) => activeCat === "all" || j.category === activeCat);
 
   const handleApply = (job: Job) => {
     if (!jobsUser) return;
@@ -161,18 +148,6 @@ export default function JobsHomeScreen() {
           </View>
         </TouchableOpacity>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
-          {ALL_CATS.map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              style={[styles.catChip, activeCat === c.id && styles.catChipActive]}
-              onPress={() => setActiveCat(c.id)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.catChipText, activeCat === c.id && styles.catChipTextActive]}>{c.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </LinearGradient>
 
       <FlatList
@@ -183,7 +158,7 @@ export default function JobsHomeScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
-            {nearbyJobs.length > 0 && activeCat === "all" && (
+            {nearbyJobs.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Feather name="map-pin" size={15} color="#059669" />
@@ -205,21 +180,19 @@ export default function JobsHomeScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Feather name="briefcase" size={15} color="#EA580C" />
-                <Text style={styles.sectionTitle}>
-                  {activeCat === "all" ? "All Available Jobs" : `${ALL_CATS.find(c => c.id === activeCat)?.label} Jobs`}
-                </Text>
+                <Text style={styles.sectionTitle}>All Available Jobs</Text>
                 <View style={[styles.sectionBadge, { backgroundColor: "#FFEDD5" }]}>
-                  <Text style={[styles.sectionBadgeText, { color: "#EA580C" }]}>{allFiltered.length}</Text>
+                  <Text style={[styles.sectionBadgeText, { color: "#EA580C" }]}>{activeJobs.length}</Text>
                 </View>
               </View>
 
-              {allFiltered.length === 0 ? (
+              {activeJobs.length === 0 ? (
                 <View style={styles.empty}>
                   <Feather name="briefcase" size={44} color="#CBD5E1" />
                   <Text style={styles.emptyText}>No jobs in this category yet</Text>
                 </View>
               ) : (
-                allFiltered.map((job) => (
+                activeJobs.map((job) => (
                   <JobCard
                     key={job.id}
                     job={job}
