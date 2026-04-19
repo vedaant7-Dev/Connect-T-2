@@ -9,6 +9,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
 import { UtilityCard } from "@/components/UtilityCard";
+import DecorativeCircles from "@/components/DecorativeCircles";
 import { SectionHeader } from "@/components/SectionHeader";
 import { emergencyContacts } from "@/data/mumbaiServices";
 import { useAuth } from "@/context/AuthContext";
@@ -79,8 +80,9 @@ export default function HomeScreen() {
         colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: topPad + 12 }]}
+        style={[styles.header, { paddingTop: topPad + 12, overflow: "hidden" }]}
       >
+        <DecorativeCircles />
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.greeting}>{greeting}</Text>

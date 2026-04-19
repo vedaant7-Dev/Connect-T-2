@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import DecorativeCircles from "./DecorativeCircles";
 
 interface GradientHeaderProps {
   title: string;
@@ -18,8 +19,9 @@ export function GradientHeader({ title, subtitle, rightComponent }: GradientHead
       colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={[styles.header, { paddingTop: topPadding + 12 }]}
+      style={[styles.header, { paddingTop: topPadding + 12, overflow: "hidden" }]}
     >
+      <DecorativeCircles />
       <View style={styles.row}>
         <View style={styles.textBlock}>
           <Text style={styles.title}>{title}</Text>

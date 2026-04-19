@@ -13,6 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintContext";
+import DecorativeCircles from "@/components/DecorativeCircles";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
@@ -161,8 +162,9 @@ export default function ComplaintsScreen() {
         colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: topPad + 12 }]}
+        style={[styles.header, { paddingTop: topPad + 12, overflow: "hidden" }]}
       >
+        <DecorativeCircles />
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>{t("myComplaints")}</Text>

@@ -14,6 +14,7 @@ import { useComplaints } from "@/context/ComplaintContext";
 import { useLanguage, languageOptions, Language } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { ambernathWards } from "@/data/mumbaiServices";
+import DecorativeCircles from "@/components/DecorativeCircles";
 
 const roleConfig = {
   citizen: {
@@ -157,8 +158,9 @@ export default function ProfileScreen() {
         colors={rc.grad}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: topPad + 12 }]}
+        style={[styles.header, { paddingTop: topPad + 12, overflow: "hidden" }]}
       >
+        <DecorativeCircles />
         <View style={styles.headerContent}>
           <AvatarWithPhoto
             name={user.name}

@@ -10,6 +10,7 @@ import * as Haptics from "expo-haptics";
 import { useFeed, FeedPost, PostType } from "@/context/FeedContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
+import DecorativeCircles from "@/components/DecorativeCircles";
 
 type FeedTab = "community";
 
@@ -114,7 +115,8 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
+      <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12, overflow: "hidden" }]}>
+        <DecorativeCircles />
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>News Feed</Text>
