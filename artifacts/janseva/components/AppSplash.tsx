@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, Image,
 } from "react-native";
+import DecorativeCircles from "@/components/DecorativeCircles";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 
@@ -28,8 +29,12 @@ export function AppSplash({ onFinish }: AppSplashProps) {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={[styles.ring, styles.ringOuter]} />
-      <View style={[styles.ring, styles.ringInner]} />
+      <View style={[s2.blob, s2.b1]} />
+      <View style={[s2.blob, s2.b2]} />
+      <View style={[s2.blob, s2.b3]} />
+      <View style={[s2.ring, s2.r1]} />
+      <View style={[s2.ring, s2.r2]} />
+      <View style={[s2.ring, s2.r3]} />
 
       {step === "splash" && (
         <>
@@ -127,14 +132,6 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     overflow: "hidden",
   },
-  ring: {
-    position: "absolute",
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: "rgba(251,146,60,0.18)",
-  },
-  ringOuter: { width: width * 1.6, height: width * 1.6, top: -width * 0.92 },
-  ringInner: { width: width * 1.15, height: width * 1.15, bottom: -width * 0.78 },
 
   centre: { alignItems: "center", flex: 1, justifyContent: "center" },
   logoWrap: { marginBottom: 18, alignItems: "center", justifyContent: "center" },
@@ -178,4 +175,15 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
   },
   chooseFooter: { fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "Inter_400Regular", letterSpacing: 1 },
+});
+
+const s2 = StyleSheet.create({
+  blob: { position: "absolute", borderRadius: 9999, backgroundColor: "rgba(255,255,255,0.18)" },
+  ring: { position: "absolute", borderRadius: 9999, borderColor: "rgba(255,255,255,0.50)" },
+  b1: { width: width * 0.55, height: width * 0.55, top: -width * 0.18, right: -width * 0.18 },
+  b2: { width: width * 0.35, height: width * 0.35, bottom: -width * 0.12, left: -width * 0.10 },
+  b3: { width: width * 0.20, height: width * 0.20, top: "30%", left: "60%" },
+  r1: { width: width * 0.80, height: width * 0.80, top: -width * 0.28, right: -width * 0.28, borderWidth: 3 },
+  r2: { width: width * 0.55, height: width * 0.55, bottom: -width * 0.22, left: -width * 0.18, borderWidth: 2.5 },
+  r3: { width: width * 0.35, height: width * 0.35, top: "25%", left: "22%", borderWidth: 2 },
 });

@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DecorativeCircles from "@/components/DecorativeCircles";
 
 const { width } = Dimensions.get("window");
 
@@ -18,8 +19,7 @@ export default function PortalSelectScreen() {
         locations={[0, 0.25, 0.55, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <View style={[styles.ring, styles.ringOuter]} />
-      <View style={[styles.ring, styles.ringInner]} />
+      <DecorativeCircles />
 
       <View style={[styles.wrap, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}>
         <View style={styles.logoRow}>
@@ -66,10 +66,7 @@ export default function PortalSelectScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  ring: { position: "absolute", borderRadius: 9999, borderWidth: 1, borderColor: "rgba(251,146,60,0.18)" },
-  ringOuter: { width: width * 1.6, height: width * 1.6, top: -width * 0.92 },
-  ringInner: { width: width * 1.15, height: width * 1.15, bottom: -width * 0.78 },
+  root: { flex: 1, overflow: "hidden" },
 
   wrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
 
