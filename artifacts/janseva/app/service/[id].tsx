@@ -150,21 +150,25 @@ export default function ServiceDetailScreen() {
                 <Text style={styles.reviewCount}>{place.reviewCount} reviews</Text>
               )}
             </View>
-            <View style={styles.ratingDivider} />
-            <View style={styles.ratingRight}>
-              {[5, 4, 3, 2, 1].map((star) => {
-                const count = place.reviews?.filter((r) => Math.round(r.rating) === star).length ?? 0;
-                const pct = place.reviewCount ? (count / place.reviewCount) * 100 : 0;
-                return (
-                  <View key={star} style={styles.ratingBar}>
-                    <Text style={styles.ratingBarLabel}>{star}</Text>
-                    <View style={styles.ratingBarTrack}>
-                      <View style={[styles.ratingBarFill, { width: `${pct}%` as any, backgroundColor: category.color }]} />
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
+            {place.reviews && place.reviews.length > 0 && (
+              <>
+                <View style={styles.ratingDivider} />
+                <View style={styles.ratingRight}>
+                  {[5, 4, 3, 2, 1].map((star) => {
+                    const count = place.reviews!.filter((r) => Math.round(r.rating) === star).length;
+                    const pct = place.reviewCount ? (count / place.reviewCount) * 100 : 0;
+                    return (
+                      <View key={star} style={styles.ratingBar}>
+                        <Text style={styles.ratingBarLabel}>{star}</Text>
+                        <View style={styles.ratingBarTrack}>
+                          <View style={[styles.ratingBarFill, { width: `${pct}%` as any, backgroundColor: category.color }]} />
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
           </View>
         )}
 
