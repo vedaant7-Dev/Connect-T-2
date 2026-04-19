@@ -560,7 +560,7 @@ export default function LoginScreen() {
 const s = StyleSheet.create({
   root: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 40, alignItems: "center" },
-  langRow: { flexDirection: "row", gap: 8, marginBottom: 4, alignSelf: "center" },
+  langRow: { flexDirection: "row", gap: 8, marginBottom: 20, alignSelf: "center" },
   langPill: {
     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1,
