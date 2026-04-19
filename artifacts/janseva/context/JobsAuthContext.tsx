@@ -29,6 +29,16 @@ export interface JobsUser {
   // Employer profile
   company?: string;
   gstNo?: string;
+  companyType?: string;
+  companySize?: string;
+  industry?: string;
+  website?: string;
+  companyDescription?: string;
+  address?: string;
+  pincode?: string;
+  whatsapp?: string;
+  yearEstablished?: string;
+  contactPerson?: string;
 }
 
 export interface ProfileField {
