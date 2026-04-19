@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import {
-  View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated,
+  View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import ConnectTLogoSvg from "./ConnectTLogoSvg";
 
 const { width } = Dimensions.get("window");
 
@@ -36,7 +35,11 @@ export function AppSplash({ onFinish }: AppSplashProps) {
         <>
           <View style={styles.centre}>
             <View style={styles.logoWrap}>
-              <ConnectTLogoSvg size={190} green="#4ADE80" />
+              <Image
+                source={require("../assets/images/connectt-logo-v2-nobg.png")}
+                style={styles.logoImg}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.appName}>Connect T</Text>
             <View style={styles.taglineWrap}>
@@ -135,6 +138,7 @@ const styles = StyleSheet.create({
 
   centre: { alignItems: "center", flex: 1, justifyContent: "center" },
   logoWrap: { marginBottom: 18, alignItems: "center", justifyContent: "center" },
+  logoImg: { width: 200, height: 200 },
   appName: {
     fontSize: 32, fontWeight: "900", color: "white",
     fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginBottom: 10,
