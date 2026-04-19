@@ -13,7 +13,7 @@ function JobsTabBar() {
   const TAB_H = Platform.OS === "web" ? 64 : 56 + Math.max(insets.bottom, 8);
 
   const TABS = [
-    { name: "index",   label: "Jobs",     icon: "briefcase"   as const, path: "/jobs/(tabs)" },
+    { name: "index",   label: "Jobs",     icon: "home"   as const, path: "/jobs/(tabs)" },
     ...(jobsUser?.role === "employer"
       ? [{ name: "post", label: "Post Job", icon: "plus-circle" as const, path: "/jobs/(tabs)/post" }]
       : [{ name: "applied", label: "Applied",  icon: "check-circle" as const, path: "/jobs/(tabs)/applied" }]),
