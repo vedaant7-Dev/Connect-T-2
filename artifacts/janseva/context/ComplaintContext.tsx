@@ -51,7 +51,7 @@ interface ComplaintContextType {
 
 const ComplaintContext = createContext<ComplaintContextType | null>(null);
 
-const STORAGE_KEY = "janseva_complaints";
+const STORAGE_KEY = "janseva_complaints_v2";
 
 function generateId(): string {
   return "CMP" + Date.now().toString().slice(-6) + Math.random().toString(36).substr(2, 4).toUpperCase();
@@ -71,10 +71,8 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       if (stored) {
         setComplaints(JSON.parse(stored));
       } else {
-        // Seed with demo complaints
-        const demos = getDemoComplaints();
-        setComplaints(demos);
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(demos));
+        setComplaints([]);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([]));
       }
     } catch (e) {
       console.error("Failed to load complaints", e);
@@ -161,70 +159,3 @@ function getDefaultNote(status: ComplaintStatus): string {
   }
 }
 
-function getDemoComplaints(): Complaint[] {
-  const now = Date.now();
-  return [
-    {
-      id: "CMP001AB",
-      title: "Pothole on Main Road",
-      description: "Large pothole near Old Ambernath main road causing accidents",
-      category: "roads",
-      location: "Near Old Ambernath Main Road",
-      ward: "Old Ambernath — Ambernath",
-      status: "in_progress",
-      createdAt: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      timeline: [
-        { status: "submitted", timestamp: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(), note: "Complaint registered", updatedBy: "System" },
-        { status: "assigned", timestamp: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(), note: "Assigned to road maintenance team", updatedBy: "Ward Officer Patil" },
-        { status: "in_progress", timestamp: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(), note: "Team is working on repair", updatedBy: "Ward Officer Patil" },
-      ],
-      assignedTo: "Road Maintenance Team",
-      userName: "Rajesh Sharma",
-      userMobile: "9876543210",
-      userAddress: "B-12, Sindhi Colony, Old Ambernath, Ambernath",
-      userAge: 42,
-    },
-    {
-      id: "CMP002CD",
-      title: "No Water Supply for 2 Days",
-      description: "Water supply completely stopped in our building",
-      category: "water",
-      location: "Building 12, MIDC Area Ambernath",
-      ward: "Ward 4 — MIDC Area",
-      status: "resolved",
-      createdAt: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(now - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      timeline: [
-        { status: "submitted", timestamp: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(), note: "Complaint registered", updatedBy: "System" },
-        { status: "assigned", timestamp: new Date(now - 6 * 24 * 60 * 60 * 1000).toISOString(), note: "Assigned to AMC water dept", updatedBy: "Admin" },
-        { status: "in_progress", timestamp: new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString(), note: "Pipeline repair started", updatedBy: "AMC Team" },
-        { status: "resolved", timestamp: new Date(now - 4 * 24 * 60 * 60 * 1000).toISOString(), note: "Water supply restored", updatedBy: "AMC Team" },
-      ],
-      resolvedNote: "Water supply restored. Pipe replaced.",
-      userName: "Priya Deshmukh",
-      userMobile: "9123456789",
-      userAddress: "Flat 3B, Sagar Apt, MIDC Area, Ambernath",
-      userAge: 35,
-      userEmail: "priya.d@email.com",
-    },
-    {
-      id: "CMP003EF",
-      title: "Street Light Not Working",
-      description: "5 street lights not working near school causing safety issues at night",
-      category: "streetlight",
-      location: "School Road, Vithalwadi Ambernath",
-      ward: "Ward 5 — Vithalwadi",
-      status: "submitted",
-      createdAt: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      timeline: [
-        { status: "submitted", timestamp: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(), note: "Complaint registered", updatedBy: "System" },
-      ],
-      userName: "Amit Jadhav",
-      userMobile: "9988776655",
-      userAddress: "Near School, Vithalwadi, Ambernath",
-      userAge: 28,
-    },
-  ];
-}

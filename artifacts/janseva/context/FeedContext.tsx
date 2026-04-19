@@ -61,8 +61,8 @@ interface FeedContextType {
 
 const FeedContext = createContext<FeedContextType | null>(null);
 
-const STORAGE_KEY = "janseva_feed";
-const CHAT_KEY = "janseva_chat";
+const STORAGE_KEY = "janseva_feed_v2";
+const CHAT_KEY = "janseva_chat_v2";
 const SUBSCRIPTIONS_KEY = "janseva_subscriptions";
 const BLOCKED_KEY = "janseva_blocked";
 
@@ -104,99 +104,6 @@ function generateId() {
   return "P" + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 3).toUpperCase();
 }
 
-const SEED_POSTS: FeedPost[] = [
-  {
-    id: "POST001",
-    authorId: "SYSTEM",
-    authorName: "AMC Ambernath",
-    authorRole: "Nagarsevak",
-    avatarColor: "#059669",
-    type: "announcement",
-    content: "🚨 Important: Water supply will be suspended in Station Area East & Vithalwadi on Sunday 6AM–2PM for pipe maintenance at Barvi Dam distribution line. Please store water in advance. Tanker service: 0251-2604155.",
-    likes: [],
-    commentsCount: 12,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    pinned: true,
-  },
-  {
-    id: "POST002",
-    authorId: "SYSTEM",
-    authorName: "Ward Officer Deshmukh",
-    authorRole: "Nagarsevak",
-    avatarColor: "#059669",
-    type: "update",
-    content: "✅ Update: The pothole near Shivaji Chowk main road has been repaired. Road stretching 300m has been resurfaced under Smart City Mission. Thank you for your patience.",
-    likes: [],
-    commentsCount: 5,
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "POST003",
-    authorId: "U001",
-    authorName: "Rajesh Patil",
-    authorRole: "Citizen",
-    avatarColor: "#7C3AED",
-    type: "general",
-    content: "The new streetlights near Ambernath Railway Station are excellent! Finally feel safe walking at night. Great work AMC 👏",
-    likes: [],
-    commentsCount: 3,
-    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "POST004",
-    authorId: "SYSTEM",
-    authorName: "AMC Ambernath",
-    authorRole: "Nagarsevak",
-    avatarColor: "#059669",
-    type: "announcement",
-    content: "📋 PM Awas Yojana applications open until April 30. Eligible Ambernath citizens can apply at Ward Office, Shivaji Chowk or online at pmaymis.gov.in. Required: Aadhaar, PAN, income proof.",
-    likes: [],
-    commentsCount: 18,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "POST005",
-    authorId: "U002",
-    authorName: "Sunita Bai",
-    authorRole: "Citizen",
-    avatarColor: "#D97706",
-    type: "general",
-    content: "Garbage has not been collected from our lane in MIDC Area for 3 days. Area near Old Ambernath Market is smelling badly. Please take action 🙏",
-    likes: [],
-    commentsCount: 7,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const SEED_CHAT: ChatMessage[] = [
-  {
-    id: "CHAT001",
-    authorId: "SYSTEM",
-    authorName: "AMC Ambernath",
-    authorRole: "Nagarsevak",
-    avatarColor: "#059669",
-    text: "Welcome to Connect T Community Chat! Share updates, ask questions and stay connected with your ward. Please be respectful 🙏",
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "CHAT002",
-    authorId: "U001",
-    authorName: "Rajesh Patil",
-    authorRole: "Citizen",
-    avatarColor: "#7C3AED",
-    text: "Anyone knows when the Shivaji Chowk road widening work will be complete?",
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "CHAT003",
-    authorId: "SYSTEM",
-    authorName: "Ward Officer Deshmukh",
-    authorRole: "Nagarsevak",
-    avatarColor: "#059669",
-    text: "Road widening expected to complete by end of April. Thank you for patience!",
-    createdAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-  },
-];
 
 export function FeedProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<FeedPost[]>([]);
@@ -212,12 +119,12 @@ export function FeedProvider({ children }: { children: ReactNode }) {
       AsyncStorage.getItem(SUBSCRIPTIONS_KEY),
       AsyncStorage.getItem(BLOCKED_KEY),
     ]).then(([storedPosts, storedChat, storedSubs, storedBlocked]) => {
-      setPosts(storedPosts ? JSON.parse(storedPosts) : SEED_POSTS);
-      setChatMessages(storedChat ? JSON.parse(storedChat) : SEED_CHAT);
+      setPosts(storedPosts ? JSON.parse(storedPosts) : []);
+      setChatMessages(storedChat ? JSON.parse(storedChat) : []);
       setSubscriptions(storedSubs ? JSON.parse(storedSubs) : {});
       setBlocked(storedBlocked ? JSON.parse(storedBlocked) : {});
-      if (!storedPosts) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_POSTS));
-      if (!storedChat) AsyncStorage.setItem(CHAT_KEY, JSON.stringify(SEED_CHAT));
+      if (!storedPosts) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      if (!storedChat) AsyncStorage.setItem(CHAT_KEY, JSON.stringify([]));
       setLoading(false);
     });
   }, []);
