@@ -384,7 +384,6 @@ function EmployerDashboard({
         myJobs.map((job) => {
           const cat = categoryConfig[job.category];
           const pending = job.applicants.filter((id) => !job.shortlisted.includes(id) && !job.rejected.includes(id)).length;
-          const fillPct = job.openings > 0 ? Math.min(job.shortlisted.length / job.openings, 1) : 0;
           return (
             <View key={job.id} style={s.jobPerfCard}>
               <View style={s.jobPerfTop}>
@@ -424,15 +423,6 @@ function EmployerDashboard({
                 <View style={s.perfStat}>
                   <Text style={[s.perfStatNum, { color: "#D97706" }]}>{pending}</Text>
                   <Text style={s.perfStatLabel}>Pending</Text>
-                </View>
-              </View>
-
-              {/* Fill progress */}
-              <View style={s.fillRow}>
-                <Text style={s.fillLabel}>Openings filled: {job.shortlisted.length}/{job.openings}</Text>
-                <View style={s.fillBar}>
-                  <View style={[s.fillFill, { flex: fillPct || 0.001 }]} />
-                  <View style={{ flex: 1 - fillPct || 0.001 }} />
                 </View>
               </View>
 
