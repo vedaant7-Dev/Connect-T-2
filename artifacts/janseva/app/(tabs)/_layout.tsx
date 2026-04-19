@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { useAuth } from "@/context/AuthContext";
+import ComplaintBubbleIcon from "@/components/ComplaintBubbleIcon";
 
 function AnimatedTabBar(props: any) {
   const { state, descriptors, navigation } = props;
@@ -74,7 +75,6 @@ function AnimatedTabBar(props: any) {
             profile: "user",
           };
 
-          const iconName = iconMap[route.name] || "circle";
           const label = typeof options.title === "string" ? options.title : route.name;
 
           return (
@@ -88,7 +88,11 @@ function AnimatedTabBar(props: any) {
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={label}
             >
-              <Feather name={iconName as any} size={22} color={tintColor} />
+              {route.name === "complaints" ? (
+                <ComplaintBubbleIcon color={tintColor} size={22} />
+              ) : (
+                <Feather name={(iconMap[route.name] || "circle") as any} size={22} color={tintColor} />
+              )}
               <Text
                 style={{
                   fontSize: 10,
@@ -134,7 +138,13 @@ export default function TabLayout() {
         name="emergency"
         options={{ href: null }}
       />
-      <Tabs.Screen name="complaints" options={{ href: null }} />
+      <Tabs.Screen
+        name="complaints"
+        options={{
+          title: t("complaints"),
+          href: isNagarsevak ? null : undefined,
+        }}
+      />
 
       <Tabs.Screen
         name="feed"
