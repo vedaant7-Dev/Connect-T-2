@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Platform, Alert, ScrollView,
+  Platform, Alert, ScrollView, Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useJobsAuth } from "@/context/JobsAuthContext";
 import { useJobs, categoryConfig, typeConfig, Job } from "@/context/JobsContext";
-
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -23,11 +22,11 @@ function timeAgo(dateStr: string) {
 function isNearby(jobLocation: string, userLocation?: string): boolean {
   if (!userLocation) return false;
   const jl = jobLocation.toLowerCase();
-  const ul = userLocation.toLowerCase();
-  const parts = ul.split(/[\s,]+/);
+  const parts = userLocation.toLowerCase().split(/[\s,]+/);
   return parts.some((p) => p.length > 3 && jl.includes(p));
 }
 
+// Card uses plain View wrapper to avoid nested-touchable swallowing clicks on web
 function JobCard({
   job, onApply, applied, near,
 }: { job: Job; applied: boolean; onApply: () => void; near?: boolean }) {
@@ -36,34 +35,49 @@ function JobCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.92} onPress={() => setExpanded(!expanded)}>
+    <View style={styles.card}>
       {near && (
         <View style={styles.nearBadge}>
           <Feather name="map-pin" size={10} color="#059669" />
           <Text style={styles.nearBadgeText}>Near You</Text>
         </View>
       )}
-      <View style={styles.cardHeader}>
-        <View style={[styles.catIcon, { backgroundColor: cat.bg }]}>
-          <Feather name={cat.icon as any} size={18} color={cat.color} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle} numberOfLines={1}>{job.title}</Text>
-          <Text style={styles.cardCompany} numberOfLines={1}>{job.company}</Text>
-        </View>
-        <Text style={styles.cardTime}>{timeAgo(job.createdAt)}</Text>
-      </View>
 
-      <View style={styles.cardMeta}>
-        <View style={styles.metaChip}><Feather name="map-pin" size={11} color="#64748B" /><Text style={styles.metaText}>{job.location}</Text></View>
-        <View style={[styles.metaChip, { backgroundColor: type.bg }]}><Text style={[styles.metaText, { color: type.color, fontFamily: "Inter_600SemiBold" }]}>{type.label}</Text></View>
-        <View style={styles.metaChip}><Feather name="users" size={11} color="#64748B" /><Text style={styles.metaText}>{job.openings} opening{job.openings > 1 ? "s" : ""}</Text></View>
-      </View>
+      {/* Tappable top area for expand/collapse */}
+      <TouchableOpacity activeOpacity={0.75} onPress={() => setExpanded(!expanded)} style={styles.cardTappable}>
+        <View style={styles.cardHeader}>
+          <View style={[styles.catIcon, { backgroundColor: cat.bg }]}>
+            <Feather name={cat.icon as any} size={18} color={cat.color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle} numberOfLines={1}>{job.title}</Text>
+            <Text style={styles.cardCompany} numberOfLines={1}>{job.company}</Text>
+          </View>
+          <Feather
+            name={expanded ? "chevron-up" : "chevron-down"}
+            size={16} color="#94A3B8"
+          />
+        </View>
 
-      <View style={styles.salaryRow}>
-        <Feather name="dollar-sign" size={14} color="#059669" />
-        <Text style={styles.salary}>{job.salary}</Text>
-      </View>
+        <View style={styles.cardMeta}>
+          <View style={styles.metaChip}>
+            <Feather name="map-pin" size={11} color="#64748B" />
+            <Text style={styles.metaText}>{job.location}</Text>
+          </View>
+          <View style={[styles.metaChip, { backgroundColor: type.bg }]}>
+            <Text style={[styles.metaText, { color: type.color, fontFamily: "Inter_600SemiBold" }]}>{type.label}</Text>
+          </View>
+          <View style={styles.metaChip}>
+            <Feather name="users" size={11} color="#64748B" />
+            <Text style={styles.metaText}>{job.openings} opening{job.openings > 1 ? "s" : ""}</Text>
+          </View>
+        </View>
+
+        <View style={styles.salaryRow}>
+          <Feather name="dollar-sign" size={14} color="#059669" />
+          <Text style={styles.salary}>{job.salary}</Text>
+        </View>
+      </TouchableOpacity>
 
       {expanded && (
         <View style={styles.expandedSection}>
@@ -74,24 +88,73 @@ function JobCard({
         </View>
       )}
 
+      {/* Footer lives outside the tappable area so Apply has its own hit zone */}
       <View style={styles.cardFooter}>
         <Text style={styles.applicantsText}>{job.applicants.length} applied</Text>
-        <TouchableOpacity
-          style={[styles.applyBtn, applied && styles.applyBtnDone]}
-          onPress={onApply}
-          activeOpacity={0.85}
-          disabled={applied}
-        >
-          {applied ? (
-            <><Feather name="check" size={14} color="#059669" /><Text style={[styles.applyBtnText, { color: "#059669" }]}>Applied</Text></>
-          ) : (
-            <LinearGradient colors={["#C2410C", "#EA580C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.applyGrad}>
+
+        {applied ? (
+          <View style={styles.applyBtnDone}>
+            <Feather name="check" size={14} color="#059669" />
+            <Text style={[styles.applyBtnText, { color: "#059669" }]}>Applied</Text>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={onApply} activeOpacity={0.85} style={styles.applyBtn}>
+            <LinearGradient
+              colors={["#C2410C", "#EA580C"]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={styles.applyGrad}
+            >
               <Text style={styles.applyBtnTextWhite}>Apply Now</Text>
             </LinearGradient>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
       </View>
-    </TouchableOpacity>
+    </View>
+  );
+}
+
+function NotificationsModal({ visible, onClose, jobs }: { visible: boolean; onClose: () => void; jobs: Job[] }) {
+  const insets = useSafeAreaInsets();
+  const recentJobs = [...jobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 8);
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.notifOverlay}>
+        <View style={[styles.notifPanel, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={styles.notifHandle} />
+          <View style={styles.notifHeader}>
+            <Text style={styles.notifTitle}>Notifications</Text>
+            <TouchableOpacity onPress={onClose} style={styles.notifClose}>
+              <Feather name="x" size={18} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {recentJobs.length === 0 ? (
+            <View style={styles.notifEmpty}>
+              <Feather name="bell-off" size={36} color="#CBD5E1" />
+              <Text style={styles.notifEmptyText}>No notifications yet</Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {recentJobs.map((job) => {
+                const cat = categoryConfig[job.category];
+                return (
+                  <View key={job.id} style={styles.notifItem}>
+                    <View style={[styles.notifDot, { backgroundColor: cat.bg }]}>
+                      <Feather name={cat.icon as any} size={14} color={cat.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.notifItemTitle}>New job: {job.title}</Text>
+                      <Text style={styles.notifItemSub}>{job.company} · {job.location}</Text>
+                    </View>
+                    <Text style={styles.notifTime}>{timeAgo(job.createdAt)}</Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -101,17 +164,17 @@ export default function JobsHomeScreen() {
   const { jobsUser } = useJobsAuth();
   const { jobs, applyJob, hasApplied } = useJobs();
   const router = useRouter();
+  const [showNotifs, setShowNotifs] = useState(false);
+
   const activeJobs = jobs.filter((j) => j.active);
   const nearbyJobs = activeJobs.filter((j) => isNearby(j.location, jobsUser?.location));
 
   const handleApply = (job: Job) => {
     if (!jobsUser) return;
-    if (jobsUser.role === "employer") { Alert.alert("Employers cannot apply for jobs."); return; }
+    if (jobsUser.role === "employer") { Alert.alert("Not allowed", "Employers cannot apply for jobs."); return; }
     if (hasApplied(job.id, jobsUser.id)) return;
-    Alert.alert("Apply for this job?", `${job.title} at ${job.company}`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Apply", onPress: () => { applyJob(job.id, jobsUser.id); Alert.alert("Applied!", "Your interest has been registered. The employer will contact you."); } },
-    ]);
+    applyJob(job.id, jobsUser.id);
+    Alert.alert("Applied! ✅", `You have applied for ${job.title} at ${job.company}. The employer will contact you.`);
   };
 
   return (
@@ -130,8 +193,17 @@ export default function JobsHomeScreen() {
                 : `Hello, ${jobsUser?.name?.split(" ")[0] || "there"} 👋`}
             </Text>
           </View>
-          <TouchableOpacity style={styles.headerBadge} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.headerBadge}
+            onPress={() => setShowNotifs(true)}
+            activeOpacity={0.8}
+          >
             <Feather name="bell" size={18} color="white" />
+            {activeJobs.length > 0 && (
+              <View style={styles.notifBubble}>
+                <Text style={styles.notifBubbleText}>{activeJobs.length}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -146,7 +218,6 @@ export default function JobsHomeScreen() {
             <Feather name="sliders" size={14} color="#EA580C" />
           </View>
         </TouchableOpacity>
-
       </LinearGradient>
 
       <FlatList
@@ -162,13 +233,13 @@ export default function JobsHomeScreen() {
                 <View style={styles.sectionHeader}>
                   <Feather name="map-pin" size={15} color="#059669" />
                   <Text style={styles.sectionTitle}>Jobs Near You</Text>
-                  <View style={styles.sectionBadge}><Text style={styles.sectionBadgeText}>{nearbyJobs.length}</Text></View>
+                  <View style={styles.sectionBadge}>
+                    <Text style={styles.sectionBadgeText}>{nearbyJobs.length}</Text>
+                  </View>
                 </View>
                 {nearbyJobs.map((job) => (
                   <JobCard
-                    key={job.id}
-                    job={job}
-                    near
+                    key={job.id} job={job} near
                     applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
                     onApply={() => handleApply(job)}
                   />
@@ -188,13 +259,12 @@ export default function JobsHomeScreen() {
               {activeJobs.length === 0 ? (
                 <View style={styles.empty}>
                   <Feather name="briefcase" size={44} color="#CBD5E1" />
-                  <Text style={styles.emptyText}>No jobs in this category yet</Text>
+                  <Text style={styles.emptyText}>No jobs available yet</Text>
                 </View>
               ) : (
                 activeJobs.map((job) => (
                   <JobCard
-                    key={job.id}
-                    job={job}
+                    key={job.id} job={job}
                     applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
                     onApply={() => handleApply(job)}
                   />
@@ -204,28 +274,29 @@ export default function JobsHomeScreen() {
           </>
         }
       />
+
+      <NotificationsModal
+        visible={showNotifs}
+        onClose={() => setShowNotifs(false)}
+        jobs={activeJobs}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#FFF7ED" },
-  header: { paddingHorizontal: 16, paddingBottom: 6, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  header: { paddingHorizontal: 16, paddingBottom: 14, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 },
   headerTitle: { fontSize: 20, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  headerBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  headerBadgeText: { fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  headerBadge: { position: "relative", width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  notifBubble: { position: "absolute", top: 5, right: 5, width: 16, height: 16, borderRadius: 8, backgroundColor: "#FCD34D", alignItems: "center", justifyContent: "center" },
+  notifBubbleText: { fontSize: 8, fontWeight: "800", color: "#92400E", fontFamily: "Inter_700Bold" },
 
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10, marginBottom: 12 },
+  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
   searchPlaceholder: { flex: 1, fontSize: 13, color: "#94A3B8", fontFamily: "Inter_400Regular" },
   filterIconBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center" },
-
-  catRow: { gap: 8, paddingBottom: 10, paddingHorizontal: 2 },
-  catChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)" },
-  catChipActive: { backgroundColor: "white" },
-  catChipText: { fontSize: 12, color: "rgba(255,255,255,0.85)", fontFamily: "Inter_500Medium" },
-  catChipTextActive: { color: "#EA580C", fontFamily: "Inter_700Bold" },
 
   list: { padding: 14 },
   section: { marginBottom: 8 },
@@ -234,29 +305,44 @@ const styles = StyleSheet.create({
   sectionBadge: { backgroundColor: "#D1FAE5", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   sectionBadgeText: { fontSize: 12, fontWeight: "700", color: "#059669", fontFamily: "Inter_700Bold" },
 
-  card: { backgroundColor: "white", borderRadius: 18, padding: 14, shadowColor: "#EA580C", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3, marginBottom: 10 },
-  nearBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#D1FAE5", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, alignSelf: "flex-start", marginBottom: 8 },
+  card: { backgroundColor: "white", borderRadius: 18, shadowColor: "#EA580C", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3, marginBottom: 10, overflow: "hidden" },
+  cardTappable: { padding: 14 },
+  nearBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#D1FAE5", paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start", margin: 10, marginBottom: 0, borderRadius: 8 },
   nearBadgeText: { fontSize: 10, fontWeight: "700", color: "#059669", fontFamily: "Inter_700Bold" },
   cardHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 10 },
   catIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   cardTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
   cardCompany: { fontSize: 12, color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 2 },
-  cardTime: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular" },
   cardMeta: { flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 10 },
   metaChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F1F5F9", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   metaText: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular" },
-  salaryRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 12 },
+  salaryRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   salary: { fontSize: 15, fontWeight: "700", color: "#059669", fontFamily: "Inter_700Bold" },
-  expandedSection: { backgroundColor: "#F8FAFC", borderRadius: 12, padding: 12, marginBottom: 12, gap: 6 },
+  expandedSection: { backgroundColor: "#F8FAFC", padding: 14, gap: 6 },
   expandLabel: { fontSize: 11, fontWeight: "700", color: "#475569", fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 0.5 },
   expandText: { fontSize: 13, color: "#334155", fontFamily: "Inter_400Regular", lineHeight: 18 },
-  cardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  cardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: "#F1F5F9" },
   applicantsText: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular" },
   applyBtn: { borderRadius: 10, overflow: "hidden" },
   applyBtnDone: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#D1FAE5", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   applyGrad: { paddingHorizontal: 18, paddingVertical: 9 },
   applyBtnText: { fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
   applyBtnTextWhite: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+
   empty: { alignItems: "center", justifyContent: "center", paddingTop: 48, gap: 12 },
   emptyText: { fontSize: 15, color: "#94A3B8", fontFamily: "Inter_400Regular" },
+
+  notifOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+  notifPanel: { backgroundColor: "white", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 16, paddingTop: 12, maxHeight: "80%" },
+  notifHandle: { width: 40, height: 4, backgroundColor: "#E2E8F0", borderRadius: 2, alignSelf: "center", marginBottom: 12 },
+  notifHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
+  notifTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold" },
+  notifClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
+  notifEmpty: { alignItems: "center", paddingVertical: 40, gap: 10 },
+  notifEmptyText: { fontSize: 14, color: "#94A3B8", fontFamily: "Inter_400Regular" },
+  notifItem: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
+  notifDot: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  notifItemTitle: { fontSize: 13, fontWeight: "600", color: "#0F172A", fontFamily: "Inter_600SemiBold" },
+  notifItemSub: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 2 },
+  notifTime: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular" },
 });
