@@ -521,14 +521,16 @@ export default function JobsHomeScreen() {
                 : `Hello, ${jobsUser?.name?.split(" ")[0] || "there"} 👋`}
             </Text>
           </View>
-          <TouchableOpacity style={s.headerBadge} onPress={() => setShowNotifs(true)} activeOpacity={0.8}>
-            <Feather name="bell" size={18} color="white" />
-            {activeJobs.length > 0 && (
-              <View style={s.notifBubble}>
-                <Text style={s.notifBubbleText}>{activeJobs.length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          {!isEmployer && (
+            <TouchableOpacity style={s.headerBadge} onPress={() => setShowNotifs(true)} activeOpacity={0.8}>
+              <Feather name="bell" size={18} color="white" />
+              {activeJobs.length > 0 && (
+                <View style={s.notifBubble}>
+                  <Text style={s.notifBubbleText}>{activeJobs.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
         {!isEmployer && (
