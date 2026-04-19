@@ -153,6 +153,22 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
+        {/* REPORT A PROBLEM CTA */}
+        <TouchableOpacity style={styles.complaintCTA} onPress={() => router.push("/complaint/new")} activeOpacity={0.88}>
+          <LinearGradient colors={["#15803D", "#16A34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.complaintCTAGrad}>
+            <View style={styles.complaintCTAIcon}>
+              <Feather name="camera" size={24} color="white" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.complaintCTATitle}>{t("reportProblem")}</Text>
+              <Text style={styles.complaintCTASub}>{t("reportProblemSub")}</Text>
+            </View>
+            <View style={styles.complaintCTAArrow}>
+              <Feather name="arrow-right" size={18} color="white" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* UTILITY STATUS */}
         <SectionHeader title={t("utilityStatus")} />
         <View style={styles.utilityRow}>
