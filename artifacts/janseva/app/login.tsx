@@ -457,8 +457,8 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]}
-      locations={[0, 0.25, 0.65, 1]}
+      colors={["#9A3412", "#C2410C", "#EA580C", "#F97316", "#FB923C"]}
+      locations={[0, 0.2, 0.45, 0.75, 1]}
       style={[s.root, { paddingTop: topPad, overflow: "hidden" }]}
     >
       <TopShade height={220} />

@@ -15,7 +15,7 @@ export default function PortalSelectScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={["#C2410C", "#EA580C", "#F97316", "#FB923C", "#FED7AA"]}
+        colors={["#9A3412", "#C2410C", "#EA580C", "#F97316", "#FB923C"]}
         locations={[0, 0.25, 0.55, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />

@@ -291,7 +291,7 @@ export default function JobsLoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]}
+          colors={["#9A3412", "#C2410C", "#EA580C", "#F97316", "#FB923C"]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={[styles.header, { paddingTop: (Platform.OS === "web" ? 44 : insets.top) + 20, overflow: "hidden" }]}
         >
