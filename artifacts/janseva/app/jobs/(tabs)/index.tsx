@@ -10,6 +10,99 @@ import { useRouter } from "expo-router";
 import { useJobsAuth } from "@/context/JobsAuthContext";
 import { useJobs, categoryConfig, typeConfig, Job } from "@/context/JobsContext";
 
+function EmployerDashboard({ jobs, employerId, onPostJob }: { jobs: Job[]; employerId: string; onPostJob: () => void }) {
+  const myJobs = jobs.filter((j) => j.employerId === employerId);
+  const totalApplicants = myJobs.reduce((s, j) => s + j.applicants.length, 0);
+  const activeCount = myJobs.filter((j) => j.active).length;
+
+  return (
+    <View>
+      {/* Stats row */}
+      <View style={styles.statsRow}>
+        <View style={[styles.statCard, { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }]}>
+          <Text style={[styles.statNum, { color: "#C2410C" }]}>{myJobs.length}</Text>
+          <Text style={styles.statLabel}>Jobs Posted</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }]}>
+          <Text style={[styles.statNum, { color: "#15803D" }]}>{activeCount}</Text>
+          <Text style={styles.statLabel}>Active</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: "#EFF6FF", borderColor: "#BFDBFE" }]}>
+          <Text style={[styles.statNum, { color: "#1D4ED8" }]}>{totalApplicants}</Text>
+          <Text style={styles.statLabel}>Applicants</Text>
+        </View>
+      </View>
+
+      {/* Post job CTA */}
+      <TouchableOpacity onPress={onPostJob} activeOpacity={0.85} style={{ marginBottom: 16 }}>
+        <LinearGradient
+          colors={["#C2410C", "#EA580C", "#F97316"]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={styles.postCta}
+        >
+          <Feather name="plus-circle" size={20} color="white" />
+          <Text style={styles.postCtaText}>Post a New Job</Text>
+          <Feather name="arrow-right" size={16} color="rgba(255,255,255,0.7)" />
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Posted jobs list */}
+      <View style={styles.sectionHeader}>
+        <Feather name="list" size={15} color="#EA580C" />
+        <Text style={styles.sectionTitle}>Your Posted Jobs</Text>
+        <View style={[styles.sectionBadge, { backgroundColor: "#FFEDD5" }]}>
+          <Text style={[styles.sectionBadgeText, { color: "#EA580C" }]}>{myJobs.length}</Text>
+        </View>
+      </View>
+
+      {myJobs.length === 0 ? (
+        <View style={styles.empty}>
+          <Feather name="inbox" size={44} color="#CBD5E1" />
+          <Text style={styles.emptyText}>No jobs posted yet</Text>
+          <Text style={styles.emptySubText}>Tap "Post a New Job" above to get started</Text>
+        </View>
+      ) : (
+        myJobs.map((job) => {
+          const cat = categoryConfig[job.category];
+          return (
+            <View key={job.id} style={styles.card}>
+              <View style={styles.cardTappable}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.catIcon, { backgroundColor: cat.bg }]}>
+                    <Feather name={cat.icon as any} size={18} color={cat.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle} numberOfLines={1}>{job.title}</Text>
+                    <Text style={styles.cardCompany} numberOfLines={1}>{job.location}</Text>
+                  </View>
+                  <View style={[styles.statusPill, { backgroundColor: job.active ? "#D1FAE5" : "#F1F5F9" }]}>
+                    <Text style={[styles.statusPillText, { color: job.active ? "#059669" : "#94A3B8" }]}>
+                      {job.active ? "Active" : "Paused"}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.employerCardMeta}>
+                  <View style={styles.metaChip}>
+                    <Feather name="users" size={11} color="#64748B" />
+                    <Text style={styles.metaText}>{job.applicants.length} applicant{job.applicants.length !== 1 ? "s" : ""}</Text>
+                  </View>
+                  <View style={styles.metaChip}>
+                    <Feather name="briefcase" size={11} color="#64748B" />
+                    <Text style={styles.metaText}>{job.openings} opening{job.openings > 1 ? "s" : ""}</Text>
+                  </View>
+                  <View style={styles.metaChip}>
+                    <Text style={styles.metaText}>{job.salary}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          );
+        })
+      )}
+    </View>
+  );
+}
+
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
@@ -226,51 +319,59 @@ export default function JobsHomeScreen() {
         contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <>
-            {nearbyJobs.length > 0 && (
+          jobsUser?.role === "employer" ? (
+            <EmployerDashboard
+              jobs={jobs}
+              employerId={jobsUser.id}
+              onPostJob={() => router.push("/jobs/(tabs)/post" as any)}
+            />
+          ) : (
+            <>
+              {nearbyJobs.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Feather name="map-pin" size={15} color="#059669" />
+                    <Text style={styles.sectionTitle}>Jobs Near You</Text>
+                    <View style={styles.sectionBadge}>
+                      <Text style={styles.sectionBadgeText}>{nearbyJobs.length}</Text>
+                    </View>
+                  </View>
+                  {nearbyJobs.map((job) => (
+                    <JobCard
+                      key={job.id} job={job} near
+                      applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
+                      onApply={() => handleApply(job)}
+                    />
+                  ))}
+                </View>
+              )}
+
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Feather name="map-pin" size={15} color="#059669" />
-                  <Text style={styles.sectionTitle}>Jobs Near You</Text>
-                  <View style={styles.sectionBadge}>
-                    <Text style={styles.sectionBadgeText}>{nearbyJobs.length}</Text>
+                  <Feather name="briefcase" size={15} color="#EA580C" />
+                  <Text style={styles.sectionTitle}>All Available Jobs</Text>
+                  <View style={[styles.sectionBadge, { backgroundColor: "#FFEDD5" }]}>
+                    <Text style={[styles.sectionBadgeText, { color: "#EA580C" }]}>{activeJobs.length}</Text>
                   </View>
                 </View>
-                {nearbyJobs.map((job) => (
-                  <JobCard
-                    key={job.id} job={job} near
-                    applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
-                    onApply={() => handleApply(job)}
-                  />
-                ))}
-              </View>
-            )}
 
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Feather name="briefcase" size={15} color="#EA580C" />
-                <Text style={styles.sectionTitle}>All Available Jobs</Text>
-                <View style={[styles.sectionBadge, { backgroundColor: "#FFEDD5" }]}>
-                  <Text style={[styles.sectionBadgeText, { color: "#EA580C" }]}>{activeJobs.length}</Text>
-                </View>
+                {activeJobs.length === 0 ? (
+                  <View style={styles.empty}>
+                    <Feather name="briefcase" size={44} color="#CBD5E1" />
+                    <Text style={styles.emptyText}>No jobs available yet</Text>
+                  </View>
+                ) : (
+                  activeJobs.map((job) => (
+                    <JobCard
+                      key={job.id} job={job}
+                      applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
+                      onApply={() => handleApply(job)}
+                    />
+                  ))
+                )}
               </View>
-
-              {activeJobs.length === 0 ? (
-                <View style={styles.empty}>
-                  <Feather name="briefcase" size={44} color="#CBD5E1" />
-                  <Text style={styles.emptyText}>No jobs available yet</Text>
-                </View>
-              ) : (
-                activeJobs.map((job) => (
-                  <JobCard
-                    key={job.id} job={job}
-                    applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
-                    onApply={() => handleApply(job)}
-                  />
-                ))
-              )}
-            </View>
-          </>
+            </>
+          )
         }
       />
 
@@ -330,6 +431,19 @@ const styles = StyleSheet.create({
 
   empty: { alignItems: "center", justifyContent: "center", paddingTop: 48, gap: 12 },
   emptyText: { fontSize: 15, color: "#94A3B8", fontFamily: "Inter_400Regular" },
+  emptySubText: { fontSize: 12, color: "#CBD5E1", fontFamily: "Inter_400Regular", textAlign: "center" },
+
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  statCard: { flex: 1, borderRadius: 14, borderWidth: 1, padding: 14, alignItems: "center", gap: 4 },
+  statNum: { fontSize: 24, fontWeight: "800", fontFamily: "Inter_700Bold" },
+  statLabel: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular" },
+
+  postCta: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 16, padding: 16 },
+  postCtaText: { flex: 1, fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+
+  statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  statusPillText: { fontSize: 11, fontWeight: "700", fontFamily: "Inter_700Bold" },
+  employerCardMeta: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
 
   notifOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   notifPanel: { backgroundColor: "white", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 16, paddingTop: 12, maxHeight: "80%" },
