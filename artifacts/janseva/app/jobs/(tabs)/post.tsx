@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Platform, Alert, ActivityIndicator,
+  TextInput, Platform, Alert, ActivityIndicator, Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -13,6 +13,104 @@ import { useRouter } from "expo-router";
 const categories = Object.entries(categoryConfig).map(([id, cfg]) => ({ id: id as JobCategory, ...cfg }));
 const types = Object.entries(typeConfig).map(([id, cfg]) => ({ id: id as JobType, ...cfg }));
 
+// ─── Category Dropdown ────────────────────────────────────────────────────────
+function CategoryDropdown({
+  value, customLabel, onSelect, onCustomChange,
+}: {
+  value: JobCategory;
+  customLabel: string;
+  onSelect: (id: JobCategory) => void;
+  onCustomChange: (text: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = categories.find((c) => c.id === value);
+  const displayLabel = value === "other" && customLabel.trim() ? customLabel : selected?.label ?? "Select Category";
+
+  return (
+    <View>
+      {/* Trigger button */}
+      <TouchableOpacity
+        style={styles.dropdownBtn}
+        activeOpacity={0.85}
+        onPress={() => setOpen(true)}
+      >
+        {selected && value !== "other" && (
+          <View style={[styles.dropdownIcon, { backgroundColor: selected.bg }]}>
+            <Feather name={selected.icon as any} size={14} color={selected.color} />
+          </View>
+        )}
+        {value === "other" && (
+          <View style={[styles.dropdownIcon, { backgroundColor: "#F1F5F9" }]}>
+            <Feather name="edit-3" size={14} color="#64748B" />
+          </View>
+        )}
+        <Text style={styles.dropdownBtnText} numberOfLines={1}>{displayLabel}</Text>
+        <Feather name="chevron-down" size={16} color="#94A3B8" />
+      </TouchableOpacity>
+
+      {/* Manual input when "Other" is selected */}
+      {value === "other" && (
+        <TextInput
+          style={[styles.input, { marginTop: 8 }]}
+          value={customLabel}
+          onChangeText={onCustomChange}
+          placeholder="Type your job category (e.g. Agriculture, Tailoring…)"
+          placeholderTextColor="#CBD5E1"
+        />
+      )}
+
+      {/* Dropdown modal */}
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
+          <View style={styles.dropdownList}>
+            <View style={styles.dropdownListHeader}>
+              <Text style={styles.dropdownListTitle}>Select Job Category</Text>
+              <TouchableOpacity onPress={() => setOpen(false)} style={styles.dropdownClose}>
+                <Feather name="x" size={16} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
+              {categories.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[styles.dropdownItem, value === c.id && styles.dropdownItemActive]}
+                  activeOpacity={0.75}
+                  onPress={() => { onSelect(c.id); setOpen(false); }}
+                >
+                  <View style={[styles.dropdownItemIcon, { backgroundColor: c.bg }]}>
+                    <Feather name={c.icon as any} size={16} color={c.color} />
+                  </View>
+                  <Text style={[styles.dropdownItemText, value === c.id && { color: "#EA580C", fontFamily: "Inter_600SemiBold" }]}>
+                    {c.label}
+                  </Text>
+                  {value === c.id && <Feather name="check" size={14} color="#EA580C" />}
+                </TouchableOpacity>
+              ))}
+
+              {/* Manual / Other option */}
+              <TouchableOpacity
+                style={[styles.dropdownItem, value === "other" && styles.dropdownItemActive]}
+                activeOpacity={0.75}
+                onPress={() => { onSelect("other"); setOpen(false); }}
+              >
+                <View style={[styles.dropdownItemIcon, { backgroundColor: "#F1F5F9" }]}>
+                  <Feather name="edit-3" size={16} color="#64748B" />
+                </View>
+                <Text style={[styles.dropdownItemText, value === "other" && { color: "#EA580C", fontFamily: "Inter_600SemiBold" }]}>
+                  Other / Type Manually
+                </Text>
+                {value === "other" && <Feather name="check" size={14} color="#EA580C" />}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function PostJobScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -22,6 +120,7 @@ export default function PostJobScreen() {
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<JobCategory>("manufacturing");
+  const [customCategory, setCustomCategory] = useState("");
   const [type, setType] = useState<JobType>("full-time");
   const [salary, setSalary] = useState("");
   const [location, setLocation] = useState("Ambernath");
@@ -42,6 +141,7 @@ export default function PostJobScreen() {
 
   const handleSubmit = async () => {
     if (!title.trim()) { Alert.alert("Enter job title"); return; }
+    if (category === "other" && !customCategory.trim()) { Alert.alert("Enter your custom job category"); return; }
     if (!salary.trim()) { Alert.alert("Enter salary range"); return; }
     if (!description.trim()) { Alert.alert("Enter job description"); return; }
     if (!requirements.trim()) { Alert.alert("Enter requirements"); return; }
@@ -78,28 +178,30 @@ export default function PostJobScreen() {
         <Text style={styles.headerSub}>Fill in the details to attract candidates</Text>
       </LinearGradient>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.form, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.form, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.field}>
           <Text style={styles.label}>Job Title *</Text>
-          <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="e.g. Factory Operator, Sales Executive" placeholderTextColor="#CBD5E1" />
+          <TextInput
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g. Factory Operator, Sales Executive"
+            placeholderTextColor="#CBD5E1"
+          />
         </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Job Category *</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
-            {categories.map((c) => (
-              <TouchableOpacity
-                key={c.id}
-                style={[styles.chip, category === c.id && { backgroundColor: "#EA580C" }]}
-                onPress={() => setCategory(c.id)}
-                activeOpacity={0.8}
-              >
-                <Feather name={c.icon as any} size={13} color={category === c.id ? "white" : c.color} />
-                <Text style={[styles.chipText, category === c.id && { color: "white" }]}>{c.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <CategoryDropdown
+            value={category}
+            customLabel={customCategory}
+            onSelect={setCategory}
+            onCustomChange={setCustomCategory}
+          />
         </View>
 
         <View style={styles.field}>
@@ -121,31 +223,73 @@ export default function PostJobScreen() {
         <View style={styles.row}>
           <View style={[styles.field, { flex: 1 }]}>
             <Text style={styles.label}>Salary *</Text>
-            <TextInput style={styles.input} value={salary} onChangeText={setSalary} placeholder="e.g. ₹12,000–₹18,000/mo" placeholderTextColor="#CBD5E1" />
+            <TextInput
+              style={styles.input}
+              value={salary}
+              onChangeText={setSalary}
+              placeholder="e.g. ₹12,000–₹18,000/mo"
+              placeholderTextColor="#CBD5E1"
+            />
           </View>
           <View style={[styles.field, { width: 90 }]}>
             <Text style={styles.label}>Openings</Text>
-            <TextInput style={styles.input} value={openings} onChangeText={(v) => setOpenings(v.replace(/\D/g, ""))} placeholder="1" placeholderTextColor="#CBD5E1" keyboardType="number-pad" maxLength={2} />
+            <TextInput
+              style={styles.input}
+              value={openings}
+              onChangeText={(v) => setOpenings(v.replace(/\D/g, ""))}
+              placeholder="1"
+              placeholderTextColor="#CBD5E1"
+              keyboardType="number-pad"
+              maxLength={2}
+            />
           </View>
         </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Location *</Text>
-          <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="e.g. MIDC Ambernath" placeholderTextColor="#CBD5E1" />
+          <TextInput
+            style={styles.input}
+            value={location}
+            onChangeText={setLocation}
+            placeholder="e.g. MIDC Ambernath"
+            placeholderTextColor="#CBD5E1"
+          />
         </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Job Description *</Text>
-          <TextInput style={[styles.input, styles.textarea]} value={description} onChangeText={setDescription} placeholder="Describe the job role and responsibilities…" placeholderTextColor="#CBD5E1" multiline numberOfLines={4} textAlignVertical="top" />
+          <TextInput
+            style={[styles.input, styles.textarea]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Describe the job role and responsibilities…"
+            placeholderTextColor="#CBD5E1"
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
         </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Requirements *</Text>
-          <TextInput style={[styles.input, styles.textarea]} value={requirements} onChangeText={setRequirements} placeholder="Qualifications, experience, skills needed…" placeholderTextColor="#CBD5E1" multiline numberOfLines={3} textAlignVertical="top" />
+          <TextInput
+            style={[styles.input, styles.textarea]}
+            value={requirements}
+            onChangeText={setRequirements}
+            placeholder="Qualifications, experience, skills needed…"
+            placeholderTextColor="#CBD5E1"
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
         </View>
 
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} activeOpacity={0.85} disabled={submitting}>
-          <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.submitGrad}>
+          <LinearGradient
+            colors={["#C2410C", "#EA580C", "#FB923C"]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.submitGrad}
+          >
             {submitting ? <ActivityIndicator color="white" /> : (
               <><Feather name="upload" size={18} color="white" /><Text style={styles.submitText}>Post Job</Text></>
             )}
@@ -167,8 +311,6 @@ const styles = StyleSheet.create({
   input: { backgroundColor: "white", borderWidth: 1.5, borderColor: "#FED7AA", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular" },
   textarea: { minHeight: 90, paddingTop: 12 },
   row: { flexDirection: "row", gap: 10 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: "#FFF7ED", borderWidth: 1.5, borderColor: "#FED7AA" },
-  chipText: { fontSize: 12, fontFamily: "Inter_500Medium", color: "#92400E" },
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   typeChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: "#FED7AA", backgroundColor: "white" },
   typeChipText: { fontSize: 13, fontFamily: "Inter_500Medium", color: "#92400E" },
@@ -178,4 +320,18 @@ const styles = StyleSheet.create({
   restricted: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: "#FFF7ED" },
   restrictedTitle: { fontSize: 20, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
   restrictedSub: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular" },
+
+  // Dropdown
+  dropdownBtn: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "white", borderWidth: 1.5, borderColor: "#FED7AA", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  dropdownIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  dropdownBtnText: { flex: 1, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", paddingHorizontal: 24 },
+  dropdownList: { backgroundColor: "white", borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  dropdownListHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
+  dropdownListTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
+  dropdownClose: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
+  dropdownItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "#F8FAFC" },
+  dropdownItemActive: { backgroundColor: "#FFF7ED" },
+  dropdownItemIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  dropdownItemText: { flex: 1, fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular" },
 });
