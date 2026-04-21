@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -46,6 +47,23 @@ function getRoleColor(role?: string) {
 function getRoleLabelKey(role?: string) {
   if (role === "nagarsevak") return "nagarsevak";
   return "citizen";
+}
+
+function InlineVideo({ uri, style }: { uri: string; style: any }) {
+  const player = useVideoPlayer(uri, (videoPlayer) => {
+    videoPlayer.loop = false;
+  });
+
+  return (
+    <VideoView
+      style={style}
+      player={player}
+      allowsFullscreen
+      allowsPictureInPicture
+      nativeControls
+      contentFit="cover"
+    />
+  );
 }
 
 export default function HomeScreen() {
@@ -188,10 +206,7 @@ export default function HomeScreen() {
                     {item.media?.type === "image" ? (
                       <Image source={{ uri: item.media.uri }} style={styles.alertCardMedia} />
                     ) : item.media?.type === "video" ? (
-                      <View style={[styles.alertCardVideo, { backgroundColor: cardBg }]}>
-                        <Feather name="play-circle" size={28} color={cardColor} />
-                        <Text style={[styles.alertCardVideoText, { color: cardColor }]}>Video attached</Text>
-                      </View>
+                      <InlineVideo uri={item.media.uri} style={styles.alertCardVideo} />
                     ) : (
                       <View style={[styles.alertCardIcon, { backgroundColor: cardBg }]}>
                         <Feather name="alert-triangle" size={16} color={cardColor} />
@@ -458,10 +473,7 @@ export default function HomeScreen() {
                     {selectedAlert.media?.type === "image" ? (
                       <Image source={{ uri: selectedAlert.media.uri }} style={styles.modalMediaImage} />
                     ) : selectedAlert.media?.type === "video" ? (
-                      <View style={[styles.modalVideoBox, { backgroundColor: cardBg }]}>
-                        <Feather name="play-circle" size={34} color={cardColor} />
-                        <Text style={[styles.modalVideoText, { color: cardColor }]}>Video attached · max 2 minutes</Text>
-                      </View>
+                      <InlineVideo uri={selectedAlert.media.uri} style={styles.modalVideoPlayer} />
                     ) : null}
                     <View style={styles.alertDetailGrid}>
                       {!!selectedAlert.priority && (
@@ -605,7 +617,7 @@ const styles = StyleSheet.create({
   alertCardList: { gap: 10 },
   alertCard: { width: "100%", minHeight: 108, flexDirection: "row", alignItems: "stretch", gap: 12, backgroundColor: "white", borderRadius: 16, padding: 12, overflow: "hidden", shadowColor: "#B45309", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3, borderWidth: 1, borderColor: "#F1F5F9" },
   alertCardMedia: { width: 86, minHeight: 84, borderRadius: 14, backgroundColor: "#F8FAFC" },
-  alertCardVideo: { width: 86, minHeight: 84, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 4 },
+  alertCardVideo: { width: 86, minHeight: 84, borderRadius: 14, backgroundColor: "#0F172A" },
   alertCardVideoText: { fontSize: 9, fontWeight: "800", fontFamily: "Inter_700Bold", textAlign: "center" },
   alertCardIcon: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", alignSelf: "center" },
   alertCardBody: { flex: 1, paddingVertical: 2 },
@@ -648,6 +660,7 @@ const styles = StyleSheet.create({
   modalDivider: { height: 1, backgroundColor: "#F1F5F9", width: "100%", marginBottom: 14 },
   modalMediaImage: { width: "100%", height: 180, borderRadius: 16, marginBottom: 14, backgroundColor: "#F8FAFC" },
   modalVideoBox: { width: "100%", height: 140, borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 },
+  modalVideoPlayer: { width: "100%", height: 220, borderRadius: 16, marginBottom: 14, backgroundColor: "#0F172A" },
   modalVideoText: { fontSize: 12, fontWeight: "800", fontFamily: "Inter_700Bold" },
   alertDetailGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
   alertDetailChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 12, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },

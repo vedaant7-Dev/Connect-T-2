@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useFeed, FeedPost, PostType } from "@/context/FeedContext";
@@ -50,6 +51,23 @@ function Avatar({ name, color, size = 40, photoUri }: { name: string; color: str
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}>
       <Text style={{ fontSize: size * 0.35, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" }}>{initials}</Text>
     </View>
+  );
+}
+
+function InlineVideo({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (videoPlayer) => {
+    videoPlayer.loop = false;
+  });
+
+  return (
+    <VideoView
+      style={styles.postVideo}
+      player={player}
+      allowsFullscreen
+      allowsPictureInPicture
+      nativeControls
+      contentFit="cover"
+    />
   );
 }
 
@@ -123,10 +141,7 @@ function NewsAlertCard({ item }: { item: AppAlert }) {
       {item.media?.type === "image" ? (
         <Image source={{ uri: item.media.uri }} style={styles.postImage} resizeMode="cover" />
       ) : item.media?.type === "video" ? (
-        <View style={styles.newsVideoBox}>
-          <Feather name="play-circle" size={34} color="#EA580C" />
-          <Text style={styles.newsVideoText}>Video attached</Text>
-        </View>
+        <InlineVideo uri={item.media.uri} />
       ) : null}
       <View style={styles.newsInfoRow}>
         {!!item.location && (
@@ -281,6 +296,7 @@ const styles = StyleSheet.create({
   cardContent: { fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular", lineHeight: 21, marginBottom: 8 },
   newsTitle: { fontSize: 16, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 6 },
   postImage: { width: "100%", height: 180, borderRadius: 12, marginBottom: 10, resizeMode: "cover" },
+  postVideo: { width: "100%", height: 190, borderRadius: 12, marginBottom: 10, backgroundColor: "#0F172A" },
   newsVideoBox: { height: 150, borderRadius: 12, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10 },
   newsVideoText: { fontSize: 12, fontWeight: "800", color: "#EA580C", fontFamily: "Inter_700Bold" },
   newsInfoRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
