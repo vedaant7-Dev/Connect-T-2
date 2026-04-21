@@ -218,7 +218,6 @@ export default function SearchScreen() {
             onChangeText={setQuery}
             placeholder="Job title, company, location…"
             placeholderTextColor="#94A3B8"
-            autoFocus
             returnKeyType="search"
           />
           {query.length > 0 && (

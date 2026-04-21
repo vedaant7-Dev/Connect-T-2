@@ -606,7 +606,6 @@ export default function AdminScreen() {
                   onChangeText={setEditName}
                   placeholder="Your name"
                   placeholderTextColor="#CBD5E1"
-                  autoFocus
                 />
                 <Text style={{ fontSize: 10, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.2, fontFamily: "Inter_600SemiBold", marginBottom: 6 }}>WARD</Text>
                 <TextInput

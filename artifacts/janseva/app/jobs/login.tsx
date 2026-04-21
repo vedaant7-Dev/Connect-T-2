@@ -115,7 +115,6 @@ function DropdownPicker({ label, value, options, placeholder, onSelect, required
             onChangeText={setManualText}
             placeholder={`Type ${label.toLowerCase()}…`}
             placeholderTextColor="#CBD5E1"
-            autoFocus
           />
           <TouchableOpacity style={dd.doneBtn} onPress={handleManualDone}>
             <Feather name="check" size={16} color="white" />
