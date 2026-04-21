@@ -241,7 +241,7 @@ export default function ComplaintDetailScreen() {
                   {idx < timelineSteps.length - 1 && (
                     <View style={[
                       styles.trackerLine,
-                      { backgroundColor: done ? "#059669" : "#E2E8F0" },
+                      { backgroundColor: done ? "#FACC15" : "#E2E8F0" },
                     ]} />
                   )}
                 </React.Fragment>
