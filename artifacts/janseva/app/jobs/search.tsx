@@ -374,30 +374,32 @@ export default function SearchScreen() {
           </TouchableOpacity>
         </Modal>
 
-        <View style={styles.divider} />
-
-        <View style={styles.resultsList}>
-          <Text style={styles.resultsHeader}>{results.length} Results</Text>
-          {results.length === 0 ? (
-            <View style={styles.empty}>
-              <Feather name="search" size={44} color="#CBD5E1" />
-              <Text style={styles.emptyText}>No jobs match your filters</Text>
-              <TouchableOpacity onPress={clearAll} style={styles.clearFiltersBtn}>
-                <Text style={styles.clearFiltersBtnText}>Clear Filters</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            results.map((job) => (
-              <ResultCard
-                key={job.id}
-                job={job}
-                applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
-                onApply={() => handleApply(job)}
-              />
-            ))
-          )}
-        </View>
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      <View style={[styles.ctaBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => router.push({
+            pathname: "/jobs/results" as any,
+            params: {
+              q: query,
+              type: jobType,
+              cat: category,
+              custom: customCategory,
+              min: salaryMin,
+              max: salaryMax,
+              areas: selectedAreas.join(","),
+            },
+          })}
+        >
+          <LinearGradient colors={["#C2410C", "#EA580C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGrad}>
+            <Feather name="search" size={18} color="white" />
+            <Text style={styles.ctaText}>Search Jobs · {results.length} match{results.length === 1 ? "" : "es"}</Text>
+            <Feather name="arrow-right" size={18} color="white" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -415,6 +417,9 @@ const styles = StyleSheet.create({
   resultCount: { marginTop: 8 },
   resultCountText: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular" },
 
+  ctaBar: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 14, paddingTop: 10, backgroundColor: "white", borderTopWidth: 1, borderTopColor: "#E2E8F0" },
+  ctaGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 14, borderRadius: 14 },
+  ctaText: { fontSize: 14, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" },
   cleanFilterCard: { backgroundColor: "white", margin: 14, marginBottom: 0, borderRadius: 20, padding: 14, borderWidth: 1, borderColor: "#E2E8F0", shadowColor: "#EA580C", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   resetRow: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 6 },
   dropdownBtn: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F8FAFC", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1.5, borderColor: "#E2E8F0" },
