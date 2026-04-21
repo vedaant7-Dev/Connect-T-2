@@ -222,10 +222,29 @@ export default function AdminScreen() {
   }
 
   const wardComplaints = user?.ward ? complaints.filter((c) => c.ward === user.ward) : complaints;
-  const filtered = filter === "all" ? wardComplaints : wardComplaints.filter((c) => c.status === filter);
+  const filtered = filter === "all"
+    ? wardComplaints
+    : wardComplaints.filter((c) => {
+        if (filter === "in_progress") return c.status === "in_progress" || c.status === "assigned";
+        return c.status === filter;
+      });
   const pending = wardComplaints.filter((c) => c.status === "submitted").length;
   const activeCount = wardComplaints.filter((c) => c.status === "in_progress" || c.status === "assigned").length;
   const resolvedCount = wardComplaints.filter((c) => c.status === "resolved").length;
+  const rejectedCount = wardComplaints.filter((c) => c.status === "rejected").length;
+  const dashboardFilters: {
+    filter: ComplaintStatus | "all";
+    label: string;
+    count: number;
+    icon: string;
+    color: string;
+    bg: string;
+  }[] = [
+    { filter: "all", label: t("complaints"), count: wardComplaints.length, icon: "file-text", color: "#C2410C", bg: "#FFEDD5" },
+    { filter: "in_progress", label: t("inProgress"), count: activeCount, icon: "tool", color: "#7C3AED", bg: "#EDE9FE" },
+    { filter: "resolved", label: t("resolved"), count: resolvedCount, icon: "check-circle", color: "#059669", bg: "#D1FAE5" },
+    { filter: "rejected", label: t("rejected"), count: rejectedCount, icon: "x-circle", color: "#DC2626", bg: "#FEE2E2" },
+  ];
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
@@ -277,15 +296,6 @@ export default function AdminScreen() {
           ))}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 2 }}>
-          {(["all", "submitted", "assigned", "in_progress", "resolved"] as const).map((s) => (
-            <TouchableOpacity key={s} style={[styles.filterChip, filter === s && styles.filterChipActive]} onPress={() => setFilter(s)} activeOpacity={0.8}>
-              <Text style={[styles.filterText, filter === s && { color: "white" }]}>
-                {s === "all" ? t("viewAll") : t(statusLabelKeys[s])}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </LinearGradient>
 
       {pending > 0 && (
@@ -354,6 +364,30 @@ export default function AdminScreen() {
             })}
           </ScrollView>
         )}
+      </View>
+
+      <View style={styles.dashboardGrid}>
+        {dashboardFilters.map((item) => {
+          const isActive = filter === item.filter;
+          return (
+            <TouchableOpacity
+              key={item.filter}
+              style={[
+                styles.dashboardCard,
+                { backgroundColor: item.bg },
+                isActive && { borderColor: item.color, shadowColor: item.color },
+              ]}
+              onPress={() => setFilter(item.filter)}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.dashboardIcon, { backgroundColor: item.color + "15" }]}>
+                <Feather name={item.icon as any} size={20} color={item.color} />
+              </View>
+              <Text style={[styles.dashboardCount, { color: item.color }]}>{item.count}</Text>
+              <Text style={styles.dashboardLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <FlatList
@@ -684,9 +718,6 @@ const styles = StyleSheet.create({
   statPill: { flex: 1, alignItems: "center", gap: 2 },
   statPillNum: { fontSize: 20, fontWeight: "900", fontFamily: "Inter_700Bold" },
   statPillLabel: { fontSize: 9, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular" },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.1)" },
-  filterChipActive: { backgroundColor: "rgba(255,255,255,0.25)" },
-  filterText: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.6)", fontFamily: "Inter_600SemiBold" },
   urgentBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEE2E2", paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#FECACA" },
   alertPanel: { backgroundColor: "white", marginHorizontal: 14, marginTop: 12, marginBottom: 4, borderRadius: 18, padding: 14, shadowColor: "#B45309", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
   alertPanelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
@@ -706,6 +737,37 @@ const styles = StyleSheet.create({
   alertChipDelete: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   alertChipDeleteText: { fontSize: 10, fontWeight: "600", color: "#DC2626", fontFamily: "Inter_600SemiBold" },
   urgentText: { fontSize: 12, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_600SemiBold" },
+  dashboardGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 12,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+  },
+  dashboardCard: {
+    width: "48%",
+    aspectRatio: 1,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  dashboardIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dashboardCount: { fontSize: 24, fontWeight: "900", fontFamily: "Inter_700Bold" },
+  dashboardLabel: { fontSize: 13, fontWeight: "700", color: "#334155", fontFamily: "Inter_700Bold", textAlign: "center" },
   card: { backgroundColor: "white", borderRadius: 16, marginBottom: 10, overflow: "hidden", shadowColor: "#166534", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, paddingBottom: 10 },
   catDot: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
