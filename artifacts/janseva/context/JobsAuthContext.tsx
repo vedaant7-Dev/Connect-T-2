@@ -23,6 +23,8 @@ export interface JobsUser {
   experience?: string;
   previousCompany?: string;
   previousRole?: string;
+  collegeName?: string;
+  fieldOfStudy?: string;
   location?: string;
   languages?: string;
   profilePhoto?: string;
@@ -62,13 +64,33 @@ export const SEEKER_PROFILE_FIELDS: ProfileField[] = [
   { key: "languages",      label: "Languages Known",      weight: 1 },
 ];
 
+export function getSeekerFields(user: JobsUser): ProfileField[] {
+  const base = SEEKER_PROFILE_FIELDS.slice();
+  if (user.currentStatus === "employed") {
+    base.push(
+      { key: "currentCompany", label: "Current Company", weight: 1 },
+      { key: "currentRole",    label: "Current Role",    weight: 1 },
+    );
+  } else if (user.currentStatus === "student") {
+    base.push(
+      { key: "collegeName",  label: "College Name",    weight: 1 },
+      { key: "fieldOfStudy", label: "Field of Study",  weight: 1 },
+    );
+  }
+  if (user.currentStatus === "fresher") {
+    return base.filter((f) => f.key !== "experience");
+  }
+  return base;
+}
+
 export function calcProfileCompletion(user: JobsUser): number {
   if (user.role !== "seeker") return 100;
-  const filled = SEEKER_PROFILE_FIELDS.filter((f) => {
+  const fields = getSeekerFields(user);
+  const filled = fields.filter((f) => {
     const val = user[f.key];
     return val !== undefined && val !== null && String(val).trim() !== "";
   });
-  return Math.round((filled.length / SEEKER_PROFILE_FIELDS.length) * 100);
+  return Math.round((filled.length / fields.length) * 100);
 }
 
 interface JobsAuthContextType {

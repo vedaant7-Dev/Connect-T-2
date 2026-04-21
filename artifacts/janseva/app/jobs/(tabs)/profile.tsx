@@ -8,7 +8,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useJobsAuth, calcProfileCompletion, SEEKER_PROFILE_FIELDS, CurrentStatus } from "@/context/JobsAuthContext";
+import { useJobsAuth, calcProfileCompletion, getSeekerFields, CurrentStatus } from "@/context/JobsAuthContext";
 import { useJobs } from "@/context/JobsContext";
 
 const STATUS_OPTIONS: { id: CurrentStatus; label: string; icon: string; color: string }[] = [
@@ -147,6 +147,8 @@ export default function JobsProfileScreen() {
   const [eExperience, setEExperience] = useState(jobsUser?.experience || "");
   const [ePrevCompany, setEPrevCompany] = useState(jobsUser?.previousCompany || "");
   const [ePrevRole, setEPrevRole] = useState(jobsUser?.previousRole || "");
+  const [eCollegeName, setECollegeName] = useState(jobsUser?.collegeName || "");
+  const [eFieldOfStudy, setEFieldOfStudy] = useState(jobsUser?.fieldOfStudy || "");
   const [eLocation, setELocation] = useState(jobsUser?.location || "");
   const [eLanguages, setELanguages] = useState(jobsUser?.languages || "");
 
@@ -188,9 +190,14 @@ export default function JobsProfileScreen() {
       name: eName.trim(), email: eEmail.trim(), age: eAge.trim(),
       qualification: eQual.trim(), skills: eSkills.trim(), about: eAbout.trim(),
       currentStatus: eStatus as CurrentStatus || undefined,
-      currentCompany: eCurrentCompany.trim(), currentRole: eCurrentRole.trim(),
-      experience: eExperience.trim(), previousCompany: ePrevCompany.trim(),
-      previousRole: ePrevRole.trim(), location: eLocation.trim(), languages: eLanguages.trim(),
+      currentCompany: eStatus === "employed" ? eCurrentCompany.trim() : "",
+      currentRole:    eStatus === "employed" ? eCurrentRole.trim()    : "",
+      experience:     eStatus === "fresher"  ? "Fresher"               : eExperience.trim(),
+      previousCompany: ePrevCompany.trim(),
+      previousRole:    ePrevRole.trim(),
+      collegeName:  eStatus === "student" ? eCollegeName.trim()  : "",
+      fieldOfStudy: eStatus === "student" ? eFieldOfStudy.trim() : "",
+      location: eLocation.trim(), languages: eLanguages.trim(),
       company: eCompany.trim(), gstNo: eGst.trim(),
       companyType: eCompanyType, companySize: eCompanySize, industry: eIndustry,
       website: eWebsite.trim(), companyDescription: eCompanyDesc.trim(),
@@ -208,6 +215,7 @@ export default function JobsProfileScreen() {
     setEStatus(jobsUser.currentStatus || ""); setECurrentCompany(jobsUser.currentCompany || "");
     setECurrentRole(jobsUser.currentRole || ""); setEExperience(jobsUser.experience || "");
     setEPrevCompany(jobsUser.previousCompany || ""); setEPrevRole(jobsUser.previousRole || "");
+    setECollegeName(jobsUser.collegeName || ""); setEFieldOfStudy(jobsUser.fieldOfStudy || "");
     setELocation(jobsUser.location || ""); setELanguages(jobsUser.languages || "");
     setECompany(jobsUser.company || ""); setEGst(jobsUser.gstNo || "");
     setECompanyType(jobsUser.companyType || ""); setECompanySize(jobsUser.companySize || "");
@@ -218,7 +226,7 @@ export default function JobsProfileScreen() {
     setEditing(true);
   };
 
-  const missingFields = SEEKER_PROFILE_FIELDS.filter((f) => { const val = jobsUser[f.key]; return !val || String(val).trim() === ""; });
+  const missingFields = getSeekerFields(jobsUser).filter((f) => { const val = jobsUser[f.key]; return !val || String(val).trim() === ""; });
 
   return (
     <View style={cs.root}>
@@ -465,14 +473,23 @@ export default function JobsProfileScreen() {
                 <>
                   <InfoRow icon="briefcase" label="Company" value={jobsUser.currentCompany} />
                   <InfoRow icon="tag" label="Role" value={jobsUser.currentRole} />
+                  <InfoRow icon="clock" label="Experience" value={jobsUser.experience} />
+                </>
+              )}
+              {jobsUser.currentStatus === "student" && (
+                <>
+                  <InfoRow icon="book" label="College" value={jobsUser.collegeName} />
+                  <InfoRow icon="bookmark" label="Field of Study" value={jobsUser.fieldOfStudy} />
                 </>
               )}
             </SectionCard>
-            <SectionCard title="Work Experience" icon="clock">
-              <InfoRow icon="clock" label="Total Exp." value={jobsUser.experience} />
-              <InfoRow icon="briefcase" label="Prev. Company" value={jobsUser.previousCompany} />
-              <InfoRow icon="tag" label="Prev. Role" value={jobsUser.previousRole} />
-            </SectionCard>
+            {jobsUser.currentStatus === "unemployed" && (jobsUser.experience || jobsUser.previousCompany || jobsUser.previousRole) ? (
+              <SectionCard title="Work Experience" icon="clock">
+                <InfoRow icon="clock" label="Total Exp." value={jobsUser.experience} />
+                <InfoRow icon="briefcase" label="Prev. Company" value={jobsUser.previousCompany} />
+                <InfoRow icon="tag" label="Prev. Role" value={jobsUser.previousRole} />
+              </SectionCard>
+            ) : null}
             {jobsUser.skills && (
               <SectionCard title="Skills" icon="zap">
                 <View style={cs.skillsWrap}>
@@ -529,7 +546,6 @@ export default function JobsProfileScreen() {
           <ScrollView contentContainerStyle={cs.editScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={cs.editSection}>Basic Information</Text>
             <EditField label="Full Name *" value={eName} onChange={setEName} placeholder="Your full name" />
-            <EditField label="Mobile Number" value={jobsUser.phone} onChange={() => {}} placeholder="Cannot change" />
             <EditField label="Email Address" value={eEmail} onChange={setEEmail} placeholder="you@email.com" keyboardType="email-address" />
 
             {isEmployer ? (
@@ -562,35 +578,78 @@ export default function JobsProfileScreen() {
                 <Text style={cs.editSection}>Education</Text>
                 <EditField label="Highest Qualification" value={eQual} onChange={setEQual} placeholder="e.g. 12th Pass, B.Com, ITI" />
 
-                <Text style={cs.editSection}>Current Status</Text>
-                <View style={cs.statusOptions}>
-                  {STATUS_OPTIONS.map((s) => (
-                    <TouchableOpacity key={s.id} style={[cs.statusOption, eStatus === s.id && { borderColor: s.color, backgroundColor: s.color + "15" }]} onPress={() => setEStatus(s.id)} activeOpacity={0.8}>
-                      <Feather name={s.icon as any} size={14} color={eStatus === s.id ? s.color : "#64748B"} />
-                      <Text style={[cs.statusOptionText, eStatus === s.id && { color: s.color, fontFamily: "Inter_700Bold" }]}>{s.label}</Text>
-                    </TouchableOpacity>
-                  ))}
+                <View style={cs.statusBanner}>
+                  <LinearGradient colors={["#FFEDD5", "#FED7AA"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={cs.statusBannerGrad}>
+                    <View style={cs.statusBannerIcon}><Feather name="activity" size={16} color="#EA580C" /></View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={cs.statusBannerTitle}>Tell us where you stand</Text>
+                      <Text style={cs.statusBannerSub}>Your status decides which fields you fill next.</Text>
+                    </View>
+                  </LinearGradient>
                 </View>
+
+                <SelectField
+                  label="Current Status"
+                  value={STATUS_OPTIONS.find((s) => s.id === eStatus)?.label || ""}
+                  options={STATUS_OPTIONS.map((s) => s.label)}
+                  onChange={(label) => {
+                    const found = STATUS_OPTIONS.find((s) => s.label === label);
+                    if (found) setEStatus(found.id);
+                  }}
+                />
+
                 {eStatus === "employed" && (
-                  <>
-                    <EditField label="Current Company" value={eCurrentCompany} onChange={setECurrentCompany} placeholder="Company name" />
+                  <View style={cs.condBlock}>
+                    <View style={[cs.condHeader, { backgroundColor: "#D1FAE5" }]}>
+                      <Feather name="briefcase" size={14} color="#059669" />
+                      <Text style={[cs.condHeaderText, { color: "#059669" }]}>Your current job</Text>
+                    </View>
+                    <EditField label="Current Company" value={eCurrentCompany} onChange={setECurrentCompany} placeholder="e.g. ABC Pvt Ltd" />
                     <EditField label="Current Role / Designation" value={eCurrentRole} onChange={setECurrentRole} placeholder="e.g. Sales Executive" />
-                  </>
+                    <EditField label="Total Experience" value={eExperience} onChange={setEExperience} placeholder="e.g. 2 years" />
+                  </View>
                 )}
 
-                <Text style={cs.editSection}>Work Experience</Text>
-                <EditField label="Total Experience" value={eExperience} onChange={setEExperience} placeholder="e.g. 2 years, Fresher" />
-                <EditField label="Previous Company" value={ePrevCompany} onChange={setEPrevCompany} placeholder="e.g. ABC Pvt Ltd" />
-                <EditField label="Previous Role" value={ePrevRole} onChange={setEPrevRole} placeholder="e.g. Factory Operator" />
+                {eStatus === "unemployed" && (
+                  <View style={cs.condBlock}>
+                    <View style={[cs.condHeader, { backgroundColor: "#FFEDD5" }]}>
+                      <Feather name="search" size={14} color="#EA580C" />
+                      <Text style={[cs.condHeaderText, { color: "#EA580C" }]}>Your last job (optional)</Text>
+                    </View>
+                    <EditField label="Total Experience" value={eExperience} onChange={setEExperience} placeholder="e.g. 2 years" />
+                    <EditField label="Previous Company" value={ePrevCompany} onChange={setEPrevCompany} placeholder="e.g. ABC Pvt Ltd" />
+                    <EditField label="Previous Role" value={ePrevRole} onChange={setEPrevRole} placeholder="e.g. Factory Operator" />
+                  </View>
+                )}
 
-                <Text style={cs.editSection}>Skills & About</Text>
+                {eStatus === "student" && (
+                  <View style={cs.condBlock}>
+                    <View style={[cs.condHeader, { backgroundColor: "#EDE9FE" }]}>
+                      <Feather name="book-open" size={14} color="#7C3AED" />
+                      <Text style={[cs.condHeaderText, { color: "#7C3AED" }]}>Your studies</Text>
+                    </View>
+                    <EditField label="College / Institute Name" value={eCollegeName} onChange={setECollegeName} placeholder="e.g. K.M. Agrawal College" />
+                    <EditField label="Currently Studying (Field)" value={eFieldOfStudy} onChange={setEFieldOfStudy} placeholder="e.g. B.Sc Computer Science" />
+                  </View>
+                )}
+
+                {eStatus === "fresher" && (
+                  <View style={cs.condBlock}>
+                    <View style={[cs.condHeader, { backgroundColor: "#DBEAFE" }]}>
+                      <Feather name="star" size={14} color="#0369A1" />
+                      <Text style={[cs.condHeaderText, { color: "#0369A1" }]}>Just starting out — no experience needed</Text>
+                    </View>
+                  </View>
+                )}
+
+                <Text style={cs.editSection}>Skills & Career Objective</Text>
                 <EditField label="Skills" value={eSkills} onChange={setESkills} placeholder="e.g. Welding, MS Office, Driving" />
                 <EditField label="About / Career Objective" value={eAbout} onChange={setEAbout} placeholder="Write a short objective statement…" multiline />
               </>
             )}
 
             <TouchableOpacity onPress={handleSave} style={cs.saveBtnFull} activeOpacity={0.85}>
-              <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cs.saveBtnGrad}>
+              <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cs.saveBtnGrad}>
                 <Feather name="check" size={18} color="white" />
                 <Text style={cs.saveBtnText}>Save Profile</Text>
               </LinearGradient>
@@ -735,6 +794,14 @@ const cs = StyleSheet.create({
   statusOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   statusOption: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "white" },
   statusOptionText: { fontSize: 12, fontFamily: "Inter_500Medium", color: "#64748B" },
+  statusBanner: { borderRadius: 14, overflow: "hidden", marginTop: 6, marginBottom: 12 },
+  statusBannerGrad: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12 },
+  statusBannerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: "white", alignItems: "center", justifyContent: "center" },
+  statusBannerTitle: { fontSize: 13, fontWeight: "700", color: "#9A3412", fontFamily: "Inter_700Bold" },
+  statusBannerSub: { fontSize: 11, color: "#9A3412", opacity: 0.8, fontFamily: "Inter_400Regular", marginTop: 2 },
+  condBlock: { backgroundColor: "white", borderRadius: 14, padding: 12, marginTop: 4, marginBottom: 8, borderWidth: 1, borderColor: "#F1F5F9" },
+  condHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, alignSelf: "flex-start", marginBottom: 10 },
+  condHeaderText: { fontSize: 12, fontWeight: "700", fontFamily: "Inter_700Bold" },
   saveBtnFull: { borderRadius: 14, overflow: "hidden", marginTop: 16 },
   saveBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 15, gap: 10 },
   saveBtnText: { fontSize: 16, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
