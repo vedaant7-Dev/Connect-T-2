@@ -67,7 +67,7 @@ export function AppSplash({ onFinish }: AppSplashProps) {
               <View style={styles.continueBtnGrad}>
                 <Text style={styles.continueBtnText}>Continue</Text>
                 <View style={styles.continueBtnIcon}>
-                  <Feather name="arrow-right" size={18} color="#EA580C" />
+                  <Feather name="arrow-right" size={18} color="#059669" />
                 </View>
               </View>
             </TouchableOpacity>
