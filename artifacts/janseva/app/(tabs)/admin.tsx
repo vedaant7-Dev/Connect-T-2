@@ -374,8 +374,12 @@ export default function AdminScreen() {
               key={item.filter}
               style={[
                 styles.dashboardCard,
-                { backgroundColor: item.bg },
-                isActive && { borderColor: item.color, shadowColor: item.color },
+                {
+                  backgroundColor: isActive ? item.bg : "white",
+                  borderColor: item.color,
+                  shadowColor: item.color,
+                },
+                isActive && styles.dashboardCardActive,
               ]}
               onPress={() => setFilter(item.filter)}
               activeOpacity={0.85}
@@ -749,15 +753,18 @@ const styles = StyleSheet.create({
     width: "48%",
     aspectRatio: 1,
     borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: "transparent",
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  dashboardCardActive: {
+    shadowOpacity: 0.22,
+    elevation: 6,
   },
   dashboardIcon: {
     width: 42,
@@ -767,7 +774,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dashboardCount: { fontSize: 24, fontWeight: "900", fontFamily: "Inter_700Bold" },
-  dashboardLabel: { fontSize: 13, fontWeight: "700", color: "#334155", fontFamily: "Inter_700Bold", textAlign: "center" },
+  dashboardLabel: { width: "100%", fontSize: 13, fontWeight: "800", color: "#334155", fontFamily: "Inter_700Bold", textAlign: "center", lineHeight: 18 },
   card: { backgroundColor: "white", borderRadius: 16, marginBottom: 10, overflow: "hidden", shadowColor: "#166534", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, paddingBottom: 10 },
   catDot: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
