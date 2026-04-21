@@ -57,11 +57,6 @@ export function AppSplash({ onFinish }: AppSplashProps) {
           </View>
 
           <View style={styles.footer}>
-            <View style={styles.flagRow}>
-              <View style={[styles.stripe, { backgroundColor: "#F97316" }]} />
-              <View style={[styles.stripe, { backgroundColor: "rgba(255,255,255,0.85)" }]} />
-              <View style={[styles.stripe, { backgroundColor: "#22C55E" }]} />
-            </View>
             <Text style={styles.footerText}>Bharatiya Janata Party  ·  Connect T 2025</Text>
             <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.82}>
               <View style={styles.continueBtnGrad}>
