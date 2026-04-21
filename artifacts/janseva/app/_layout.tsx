@@ -103,6 +103,10 @@ function RootLayoutNav() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="complaint/list"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name="alert/new"
         options={{ headerShown: false, presentation: "modal" }}
       />

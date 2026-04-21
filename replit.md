@@ -65,6 +65,7 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - 5 tabs: Home | Complaints (edit icon) | **SOS** (red circle, centred, floating) | Feed | Profile
 - Admin & Services are hidden screens (`href: null`) accessed via Profile card
 - SOS is tab 3 of 5 (true centre)
+- Nagarsevak dashboard status cards open `/complaint/list?status=...` for status-specific complaint rows
 
 ### Dual Portal System (v2)
 - **Splash → Portal Select**: After "Continue", users choose between two portals:

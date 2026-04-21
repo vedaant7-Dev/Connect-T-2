@@ -230,24 +230,21 @@ export default function AdminScreen() {
   const resolvedCount = wardComplaints.filter((c) => c.status === "resolved").length;
   const rejectedCount = wardComplaints.filter((c) => c.status === "rejected").length;
   const dashboardFilters: {
-    filter: ComplaintStatus | "all";
+    filter: ComplaintStatus;
     label: string;
     count: number;
     icon: string;
     color: string;
     bg: string;
   }[] = [
-    { filter: "all", label: t("complaints"), count: wardComplaints.length, icon: "file-text", color: "#C2410C", bg: "#FFEDD5" },
+    { filter: "submitted", label: t("complaints"), count: pending, icon: "file-text", color: "#C2410C", bg: "#FFEDD5" },
     { filter: "in_progress", label: t("inProgress"), count: activeCount, icon: "tool", color: "#7C3AED", bg: "#EDE9FE" },
     { filter: "resolved", label: t("resolved"), count: resolvedCount, icon: "check-circle", color: "#059669", bg: "#D1FAE5" },
     { filter: "rejected", label: t("rejected"), count: rejectedCount, icon: "x-circle", color: "#DC2626", bg: "#FEE2E2" },
   ];
-  const openComplaintTab = (nextFilter: ComplaintStatus | "all") => {
+  const openComplaintTab = (nextFilter: ComplaintStatus) => {
     if (Platform.OS !== "web") Haptics.selectionAsync();
-    setFilter(nextFilter);
-    requestAnimationFrame(() => {
-      complaintListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    });
+    router.push({ pathname: "/complaint/list", params: { status: nextFilter } } as any);
   };
 
   const handleLogout = async () => {
