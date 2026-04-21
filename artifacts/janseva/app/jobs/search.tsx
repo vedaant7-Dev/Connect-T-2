@@ -19,14 +19,6 @@ const SALARY_RANGES = [
   { id: "a40",   label: "Above ₹40K",      min: 40000, max: Infinity },
 ];
 
-const SHIFTS = [
-  { id: "any",        label: "Any Shift",    icon: "clock" },
-  { id: "day",        label: "Day Shift",    icon: "sun" },
-  { id: "night",      label: "Night Shift",  icon: "moon" },
-  { id: "rotational", label: "Rotational",   icon: "refresh-cw" },
-  { id: "flexible",   label: "Flexible",     icon: "zap" },
-];
-
 const AREAS = [
   "MIDC Ambernath", "Ambernath East", "Ambernath West", "Shivaji Chowk",
   "Station Area East", "Station Area West", "Old Ambernath", "New Ambernath",
@@ -147,10 +139,11 @@ export default function SearchScreen() {
 
   const [query, setQuery] = useState("");
   const [salary, setSalary] = useState("all");
-  const [shift, setShift] = useState("any");
   const [jobType, setJobType] = useState<JobType | "all">("all");
   const [category, setCategory] = useState<JobCategory | "all">("all");
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [showAllAreas, setShowAllAreas] = useState(false);
 
   const toggleArea = (area: string) => {
     setSelectedAreas((prev) =>
@@ -174,7 +167,7 @@ export default function SearchScreen() {
       if (salMin < salaryRange.min || salMin > salaryRange.max) return false;
       return true;
     });
-  }, [jobs, query, salary, shift, jobType, category, selectedAreas]);
+  }, [jobs, query, salary, jobType, category, selectedAreas]);
 
   const handleApply = (job: Job) => {
     if (!jobsUser || jobsUser.role !== "seeker") return;
@@ -186,10 +179,11 @@ export default function SearchScreen() {
   };
 
   const clearAll = () => {
-    setSalary("all"); setShift("any"); setJobType("all"); setCategory("all"); setSelectedAreas([]);
+    setSalary("all"); setJobType("all"); setCategory("all"); setSelectedAreas([]);
   };
 
-  const hasFilters = salary !== "all" || shift !== "any" || jobType !== "all" || category !== "all" || selectedAreas.length > 0;
+  const hasFilters = salary !== "all" || jobType !== "all" || category !== "all" || selectedAreas.length > 0;
+  const visibleAreas = showAllAreas ? AREAS : AREAS.slice(0, 6);
 
   return (
     <View style={styles.root}>
@@ -233,58 +227,79 @@ export default function SearchScreen() {
       </LinearGradient>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Salary Range</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {SALARY_RANGES.map((r) => (
-              <FilterChip key={r.id} label={r.label} active={salary === r.id} onPress={() => setSalary(r.id)} />
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Shift Timing</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {SHIFTS.map((s) => (
-              <TouchableOpacity
-                key={s.id}
-                style={[styles.shiftChip, shift === s.id && styles.shiftChipActive]}
-                onPress={() => setShift(s.id)}
-                activeOpacity={0.75}
-              >
-                <Feather name={s.icon as any} size={13} color={shift === s.id ? "white" : "#64748B"} />
-                <Text style={[styles.shiftChipText, shift === s.id && { color: "white" }]}>{s.label}</Text>
+        <View style={styles.cleanFilterCard}>
+          <View style={styles.cleanFilterHeader}>
+            <View>
+              <Text style={styles.cleanFilterTitle}>Top filters</Text>
+              <Text style={styles.cleanFilterSub}>Choose only what matters</Text>
+            </View>
+            {hasFilters && (
+              <TouchableOpacity onPress={clearAll} style={styles.smallClearBtn} activeOpacity={0.8}>
+                <Text style={styles.smallClearText}>Reset</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Job Type</Text>
-          <View style={styles.filterWrap}>
-            {JOB_TYPES.map((t) => (
-              <FilterChip key={t.id} label={t.label} active={jobType === t.id} onPress={() => setJobType(t.id)} />
-            ))}
+            )}
           </View>
-        </View>
 
-        <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {CATEGORIES.map((c) => (
-              <FilterChip key={c.id} label={c.label} active={category === c.id} onPress={() => setCategory(c.id as any)} />
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Area / Location</Text>
-          <Text style={styles.filterHint}>Tap to select one or more areas</Text>
-          <View style={styles.filterWrap}>
-            {AREAS.map((a) => (
-              <FilterChip key={a} label={a} active={selectedAreas.includes(a)} onPress={() => toggleArea(a)} />
-            ))}
+          <View style={styles.filterBlock}>
+            <Text style={styles.filterTitle}>Job Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+              {JOB_TYPES.slice(0, 4).map((t) => (
+                <FilterChip key={t.id} label={t.label} active={jobType === t.id} onPress={() => setJobType(t.id)} />
+              ))}
+            </ScrollView>
           </View>
+
+          <View style={styles.filterBlock}>
+            <Text style={styles.filterTitle}>Category</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+              {CATEGORIES.slice(0, 7).map((c) => (
+                <FilterChip key={c.id} label={c.label} active={category === c.id} onPress={() => setCategory(c.id as any)} />
+              ))}
+            </ScrollView>
+          </View>
+
+          <TouchableOpacity
+            style={styles.moreFilterBtn}
+            onPress={() => setShowMoreFilters((prev) => !prev)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.moreFilterLeft}>
+              <Feather name="sliders" size={15} color="#EA580C" />
+              <Text style={styles.moreFilterText}>More filters</Text>
+            </View>
+            <View style={styles.moreFilterBadge}>
+              <Text style={styles.moreFilterBadgeText}>
+                {[salary !== "all", selectedAreas.length > 0].filter(Boolean).length || "Optional"}
+              </Text>
+            </View>
+            <Feather name={showMoreFilters ? "chevron-up" : "chevron-down"} size={17} color="#94A3B8" />
+          </TouchableOpacity>
+
+          {showMoreFilters && (
+            <View style={styles.morePanel}>
+              <View style={styles.filterBlock}>
+                <Text style={styles.filterTitle}>Salary</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                  {SALARY_RANGES.map((r) => (
+                    <FilterChip key={r.id} label={r.label} active={salary === r.id} onPress={() => setSalary(r.id)} />
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.filterBlock}>
+                <Text style={styles.filterTitle}>Area / Location</Text>
+                <Text style={styles.filterHint}>Select nearby areas if needed</Text>
+                <View style={styles.filterWrap}>
+                  {visibleAreas.map((a) => (
+                    <FilterChip key={a} label={a} active={selectedAreas.includes(a)} onPress={() => toggleArea(a)} />
+                  ))}
+                </View>
+                <TouchableOpacity onPress={() => setShowAllAreas((prev) => !prev)} style={styles.showAreaBtn} activeOpacity={0.8}>
+                  <Text style={styles.showAreaText}>{showAllAreas ? "Show fewer areas" : "Show all areas"}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={styles.divider} />
@@ -328,6 +343,13 @@ const styles = StyleSheet.create({
   resultCount: { marginTop: 8 },
   resultCountText: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular" },
 
+  cleanFilterCard: { backgroundColor: "white", margin: 14, marginBottom: 0, borderRadius: 20, padding: 14, borderWidth: 1, borderColor: "#E2E8F0", shadowColor: "#EA580C", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  cleanFilterHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  cleanFilterTitle: { fontSize: 15, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold" },
+  cleanFilterSub: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 1 },
+  smallClearBtn: { backgroundColor: "#FFF7ED", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#FED7AA" },
+  smallClearText: { fontSize: 11, fontWeight: "800", color: "#EA580C", fontFamily: "Inter_700Bold" },
+  filterBlock: { marginTop: 6, marginBottom: 10 },
   filterSection: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
   filterTitle: { fontSize: 13, fontWeight: "700", color: "#334155", fontFamily: "Inter_700Bold", marginBottom: 8 },
   filterHint: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular", marginBottom: 8 },
@@ -337,6 +359,14 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: "#EA580C", borderColor: "#EA580C" },
   chipText: { fontSize: 12, color: "#64748B", fontFamily: "Inter_500Medium" },
   chipTextActive: { color: "white", fontFamily: "Inter_700Bold" },
+  moreFilterBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F8FAFC", borderRadius: 16, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1, borderColor: "#E2E8F0", marginTop: 2 },
+  moreFilterLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  moreFilterText: { fontSize: 13, fontWeight: "800", color: "#334155", fontFamily: "Inter_700Bold" },
+  moreFilterBadge: { backgroundColor: "#FFF7ED", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
+  moreFilterBadgeText: { fontSize: 10, fontWeight: "800", color: "#EA580C", fontFamily: "Inter_700Bold" },
+  morePanel: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F1F5F9" },
+  showAreaBtn: { alignSelf: "flex-start", marginTop: 10, backgroundColor: "#F8FAFC", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7 },
+  showAreaText: { fontSize: 12, fontWeight: "700", color: "#EA580C", fontFamily: "Inter_700Bold" },
   shiftChip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: "white", borderWidth: 1.5, borderColor: "#E2E8F0" },
   shiftChipActive: { backgroundColor: "#EA580C", borderColor: "#EA580C" },
   shiftChipText: { fontSize: 12, color: "#64748B", fontFamily: "Inter_500Medium" },
