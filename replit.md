@@ -57,6 +57,7 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - Splash → Login screen with Register/Login tabs
 - **Register**: name(req), age, email(opt), address, phone, ward → mock OTP → notification prefs → success → home
 - **Login**: phone + optional Nagarsevak ID → mock OTP → routes to home (BJP Member) or admin panel (nagarsevak)
+- Registered/logged-in users are remembered with the saved session and are routed directly to their correct home/admin screen on app reopen
 - Valid Nagarsevak IDs (demo): NS001–NS005
 - Methods: `checkPhone(mobile)`, `register(userData)`, `loginWithPhone(mobile)`, `loginWithNagarsevakId(mobile, id)`
 

@@ -48,6 +48,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
     if (!user && !inLogin) {
       router.replace("/login");
+    } else if (user && inLogin) {
+      router.replace(user.role === "nagarsevak" ? "/(tabs)/admin" as any : "/(tabs)/");
     } else if (user && user.role === "nagarsevak" && inTabs && currentTab !== "admin") {
       router.replace("/(tabs)/admin" as any);
     }
@@ -58,13 +60,19 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const [splashDone, setSplashDone] = useState(false);
-  const { logout } = useAuth();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      setSplashDone(true);
+      staticRouter.replace(user.role === "nagarsevak" ? "/(tabs)/admin" as any : "/(tabs)/");
+    }
+  }, [user, loading]);
 
   const handleFinish = async (portal: "civic" | "jobs") => {
     if (portal === "civic") {
-      await logout();
       setSplashDone(true);
-      staticRouter.replace("/login");
+      staticRouter.replace(user ? (user.role === "nagarsevak" ? "/(tabs)/admin" as any : "/(tabs)/") : "/login");
     } else {
       setSplashDone(true);
       staticRouter.replace("/jobs/login" as any);
