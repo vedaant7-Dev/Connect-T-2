@@ -393,7 +393,7 @@ export default function SearchScreen() {
             },
           })}
         >
-          <LinearGradient colors={["#C2410C", "#EA580C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGrad}>
+          <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGrad}>
             <Feather name="search" size={18} color="white" />
             <Text style={styles.ctaText}>Search Jobs · {results.length} match{results.length === 1 ? "" : "es"}</Text>
             <Feather name="arrow-right" size={18} color="white" />
