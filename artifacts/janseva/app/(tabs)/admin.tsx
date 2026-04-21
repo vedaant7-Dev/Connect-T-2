@@ -310,7 +310,7 @@ export default function AdminScreen() {
       )}
 
       {/* ALERTS PANEL */}
-      <View style={styles.alertPanel}>
+      <TouchableOpacity style={styles.alertPanel} activeOpacity={0.9} onPress={() => router.push("/alert/list" as any)}>
         <View style={styles.alertPanelHeader}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Feather name="bell" size={14} color="#C2410C" />
@@ -323,7 +323,10 @@ export default function AdminScreen() {
           </View>
           <TouchableOpacity
             style={styles.postAlertBtn}
-            onPress={() => router.push("/alert/new" as any)}
+            onPress={(event) => {
+              event.stopPropagation?.();
+              router.push("/alert/new" as any);
+            }}
             activeOpacity={0.85}
           >
             <Feather name="plus" size={13} color="white" />
@@ -354,7 +357,8 @@ export default function AdminScreen() {
                   <Text style={styles.alertChipBody} numberOfLines={2}>{a.body}</Text>
                   <TouchableOpacity
                     style={styles.alertChipDelete}
-                    onPress={() => {
+                    onPress={(event) => {
+                      event.stopPropagation?.();
                       if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                       removeAlert(a.id);
                     }}
@@ -368,7 +372,7 @@ export default function AdminScreen() {
             })}
           </ScrollView>
         )}
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.dashboardGrid}>
         {dashboardFilters.map((item) => {

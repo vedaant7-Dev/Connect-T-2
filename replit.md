@@ -122,6 +122,7 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 ### Alerts Detail
 - Home screen alerts are clickable → opens modal with full details, metadata, and media preview
 - Nagarsevak admin uses `/alert/new` for a full-screen Post Alert / News workflow
+- Nagarsevak admin Alerts & News panel opens `/alert/list`, showing all posted alerts/news in vertical rows with counts and remove actions
 - Alerts support: type, priority, category, area/ward, validity, target audience, optional contact, and one photo or video attachment
 - Video attachment picker enforces a maximum of 2 minutes when duration metadata is available
 
