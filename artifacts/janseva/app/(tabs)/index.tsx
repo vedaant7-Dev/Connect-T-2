@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Platform, Modal, Image,
 } from "react-native";
@@ -7,6 +7,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { UtilityCard } from "@/components/UtilityCard";
 import DecorativeCircles from "@/components/DecorativeCircles";
@@ -58,10 +59,37 @@ export default function HomeScreen() {
   const [selectedAlert, setSelectedAlert] = useState<AppAlert | null>(null);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [selectedUtility, setSelectedUtility] = useState<string | null>(null);
+  const [readAlertIds, setReadAlertIds] = useState<string[]>([]);
 
   const roleColor = getRoleColor(user?.role);
+  const readAlertsKey = `connectt_read_alerts_${user?.id || "guest"}`;
 
-  const notifCount = alerts.filter((i) => i.type === "alert").length;
+  useEffect(() => {
+    AsyncStorage.getItem(readAlertsKey)
+      .then((stored) => {
+        if (stored) setReadAlertIds(JSON.parse(stored));
+      })
+      .catch(() => {});
+  }, [readAlertsKey]);
+
+  const markAlertsRead = (ids: string[]) => {
+    if (ids.length === 0) return;
+    const merged = Array.from(new Set([...readAlertIds, ...ids]));
+    setReadAlertIds(merged);
+    AsyncStorage.setItem(readAlertsKey, JSON.stringify(merged)).catch(() => {});
+  };
+
+  const openNotifications = () => {
+    setShowNotifPanel(true);
+    markAlertsRead(alerts.map((item) => item.id));
+  };
+
+  const openAlertDetail = (item: AppAlert) => {
+    markAlertsRead([item.id]);
+    setSelectedAlert(item);
+  };
+
+  const notifCount = alerts.filter((i) => i.type === "alert" && !readAlertIds.includes(i.id)).length;
 
   const handleCall = (number: string) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -101,7 +129,7 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.notifBtn} activeOpacity={0.82} onPress={() => setShowNotifPanel(true)}>
+            <TouchableOpacity style={styles.notifBtn} activeOpacity={0.82} onPress={openNotifications}>
               <Feather name="bell" size={18} color="white" />
               {notifCount > 0 && (
                 <View style={styles.notifBadge}>
@@ -156,7 +184,7 @@ export default function HomeScreen() {
                   return "just now";
                 })();
                 return (
-                  <TouchableOpacity key={item.id} style={styles.alertCard} activeOpacity={0.88} onPress={() => setSelectedAlert(item)}>
+                  <TouchableOpacity key={item.id} style={styles.alertCard} activeOpacity={0.88} onPress={() => openAlertDetail(item)}>
                     {item.media?.type === "image" ? (
                       <Image source={{ uri: item.media.uri }} style={styles.alertCardMedia} />
                     ) : item.media?.type === "video" ? (
@@ -296,7 +324,11 @@ export default function HomeScreen() {
                     key={item.id}
                     style={styles.notifItem}
                     activeOpacity={0.8}
-                    onPress={() => { setShowNotifPanel(false); setTimeout(() => setSelectedAlert(item), 200); }}
+                    onPress={() => {
+                      markAlertsRead([item.id]);
+                      setShowNotifPanel(false);
+                      setTimeout(() => setSelectedAlert(item), 200);
+                    }}
                   >
                     <View style={[styles.notifItemIcon, { backgroundColor: cardBg }]}>
                       <Feather name={isAlert ? "alert-triangle" : "radio"} size={16} color={cardColor} />
