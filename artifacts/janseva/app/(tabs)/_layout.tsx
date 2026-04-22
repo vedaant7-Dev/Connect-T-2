@@ -95,10 +95,10 @@ function AnimatedTabBar(props: any) {
               )}
               <Text
                 style={{
-                  fontSize: 10,
-                  fontWeight: "600",
-                  fontFamily: "Inter_600SemiBold",
-                  marginTop: 2,
+                  fontSize: 12,
+                  fontWeight: "700",
+                  fontFamily: "Inter_700Bold",
+                  marginTop: 3,
                   color: tintColor,
                 }}
               >
