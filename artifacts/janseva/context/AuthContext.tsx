@@ -20,6 +20,7 @@ export interface User {
   notifyEmail?: boolean;
   notifyWhatsapp?: boolean;
   profilePhoto?: string;
+  wardChanged?: boolean;
 }
 
 interface AuthContextType {

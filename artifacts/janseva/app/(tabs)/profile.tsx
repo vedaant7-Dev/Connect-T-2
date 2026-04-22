@@ -148,7 +148,13 @@ export default function ProfileScreen() {
 
   const saveProfile = async () => {
     if (!editName.trim()) return;
-    await updateUser({ name: editName.trim(), ward: editWard || user.ward });
+    const newWard = editWard || user.ward;
+    const wardWasChanged = !!user.ward && newWard !== user.ward;
+    await updateUser({
+      name: editName.trim(),
+      ward: newWard,
+      wardChanged: user.wardChanged || wardWasChanged,
+    });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowEditModal(false);
   };
@@ -412,14 +418,21 @@ export default function ProfileScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>WARD</Text>
               <TouchableOpacity
-                style={[styles.fieldInput, { justifyContent: "center" }]}
-                onPress={() => setShowWardPicker(true)}
-                activeOpacity={0.8}
+                style={[styles.fieldInput, { justifyContent: "center", flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, user.wardChanged && { backgroundColor: "#F1F5F9", borderColor: "#E2E8F0" }]}
+                onPress={() => { if (!user.wardChanged) setShowWardPicker(true); }}
+                activeOpacity={user.wardChanged ? 1 : 0.8}
+                disabled={!!user.wardChanged}
               >
-                <Text style={{ color: editWard ? "#0F172A" : "#94A3B8", fontSize: 14, fontFamily: "Inter_400Regular" }}>
+                <Text style={{ color: editWard ? (user.wardChanged ? "#64748B" : "#0F172A") : "#94A3B8", fontSize: 14, fontFamily: "Inter_400Regular" }}>
                   {editWard || "Select your ward"}
                 </Text>
+                {user.wardChanged && <Feather name="lock" size={14} color="#94A3B8" />}
               </TouchableOpacity>
+              <Text style={{ fontSize: 11, color: user.wardChanged ? "#94A3B8" : "#64748B", fontFamily: "Inter_400Regular", marginTop: 6, lineHeight: 15 }}>
+                {user.wardChanged
+                  ? "Ward has already been updated. It can only be changed once."
+                  : "You can update your ward only once."}
+              </Text>
             </View>
 
             <View style={styles.editBtnRow}>
