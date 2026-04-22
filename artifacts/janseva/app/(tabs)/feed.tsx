@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useFeed, FeedPost, PostType } from "@/context/FeedContext";
 import { AppAlert, useAlerts, wardKey } from "@/context/AlertContext";
+import { ambernathWards } from "@/data/mumbaiServices";
 import { useAuth } from "@/context/AuthContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import DecorativeCircles from "@/components/DecorativeCircles";
@@ -197,25 +198,50 @@ export default function FeedScreen() {
 
   const userId = user?.id || "guest";
   const [searchQuery, setSearchQuery] = useState("");
-  const query = searchQuery.trim().toLowerCase();
-  const isSearching = query.length > 0;
+  const [selectedWard, setSelectedWard] = useState<string | null>(null);
+  const rawQuery = searchQuery.trim();
+  const query = rawQuery.toLowerCase();
+  const isNumericQuery = rawQuery.length > 0 && /^\d+$/.test(rawQuery);
+  const isTitleSearch = rawQuery.length > 0 && !isNumericQuery;
+  const isSearching = rawQuery.length > 0 || !!selectedWard;
 
   const wardScopedAlerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
   const allNews = allAlerts.filter((item) => item.type === "news");
   const wardNews = wardScopedAlerts.filter((item) => item.type === "news");
 
-  const matchesQuery = (item: AppAlert) => {
-    const haystack = [item.title, item.body, item.location, item.postedBy, item.ward].filter(Boolean).join(" ").toLowerCase();
-    return haystack.includes(query);
-  };
+  const wardSuggestions = isNumericQuery
+    ? ambernathWards.filter((w) => wardKey(w).startsWith(rawQuery))
+    : [];
 
   const [activeTab] = useState<FeedTab>("community");
-  const newsItems = isSearching
-    ? allNews.filter(matchesQuery).map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item })).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    : [
-        ...wardNews.map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item })),
-        ...posts.map((item) => ({ kind: "post" as const, createdAt: item.createdAt, item })),
-      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  let newsItems: Array<{ kind: "news"; createdAt: string; item: AppAlert } | { kind: "post"; createdAt: string; item: any }> = [];
+  if (selectedWard) {
+    newsItems = allNews
+      .filter((n) => !!n.ward && wardKey(n.ward) === wardKey(selectedWard))
+      .map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } else if (isTitleSearch) {
+    newsItems = allNews
+      .filter((n) => n.title.toLowerCase().includes(query))
+      .map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } else if (!isNumericQuery) {
+    newsItems = [
+      ...wardNews.map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item })),
+      ...posts.map((item) => ({ kind: "post" as const, createdAt: item.createdAt, item })),
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSelectedWard(null);
+  };
+
+  const pickWard = (w: string) => {
+    setSelectedWard(w);
+    setSearchQuery("");
+  };
 
   return (
     <View style={styles.root}>
@@ -230,23 +256,49 @@ export default function FeedScreen() {
         </View>
         <View style={styles.searchBar}>
           <Feather name="search" size={16} color="#94A3B8" />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search news across all wards..."
-            placeholderTextColor="#94A3B8"
-            style={styles.searchInput}
-            returnKeyType="search"
-          />
-          {isSearching && (
-            <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={10}>
+          {selectedWard ? (
+            <View style={styles.activeWardChip}>
+              <Feather name="map-pin" size={12} color="#EA580C" />
+              <Text style={styles.activeWardChipText}>{selectedWard}</Text>
+              <TouchableOpacity onPress={clearSearch} hitSlop={10}>
+                <Feather name="x" size={13} color="#EA580C" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search title or type ward number..."
+              placeholderTextColor="#94A3B8"
+              style={styles.searchInput}
+              returnKeyType="search"
+            />
+          )}
+          {!selectedWard && rawQuery.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} hitSlop={10}>
               <Feather name="x-circle" size={16} color="#94A3B8" />
             </TouchableOpacity>
           )}
         </View>
-        {isSearching && (
+        {isNumericQuery && (
+          <View style={styles.wardSuggestRow}>
+            {wardSuggestions.length === 0 ? (
+              <Text style={styles.searchHint}>No matching ward</Text>
+            ) : (
+              wardSuggestions.slice(0, 8).map((w) => (
+                <TouchableOpacity key={w} style={styles.wardSuggestChip} onPress={() => pickWard(w)} activeOpacity={0.85}>
+                  <Feather name="map-pin" size={11} color="#C2410C" />
+                  <Text style={styles.wardSuggestText}>{w}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
+        {(isTitleSearch || selectedWard) && (
           <Text style={styles.searchHint}>
-            Showing {newsItems.length} {newsItems.length === 1 ? "result" : "results"} across all wards
+            {selectedWard
+              ? `News from ${selectedWard} · ${newsItems.length} ${newsItems.length === 1 ? "post" : "posts"}`
+              : `${newsItems.length} ${newsItems.length === 1 ? "match" : "matches"} for "${rawQuery}"`}
           </Text>
         )}
       </LinearGradient>
@@ -299,7 +351,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", padding: 0, outlineWidth: 0 } as any,
-  searchHint: { fontSize: 11, color: "rgba(255,255,255,0.85)", fontFamily: "Inter_600SemiBold", marginBottom: 8, marginLeft: 2 },
+  searchHint: { fontSize: 11, color: "rgba(255,255,255,0.9)", fontFamily: "Inter_600SemiBold", marginBottom: 8, marginLeft: 2 },
+  wardSuggestRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 },
+  wardSuggestChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "white", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  wardSuggestText: { fontSize: 12, fontWeight: "700", color: "#C2410C", fontFamily: "Inter_700Bold" },
+  activeWardChip: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFEDD5", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  activeWardChipText: { flex: 1, fontSize: 13, fontWeight: "700", color: "#C2410C", fontFamily: "Inter_700Bold" },
   newPostBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   newPostBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
