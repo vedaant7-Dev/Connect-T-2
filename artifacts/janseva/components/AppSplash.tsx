@@ -57,7 +57,6 @@ export function AppSplash({ onFinish }: AppSplashProps) {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Bharatiya Janata Party  ·  Connect T 2025</Text>
             <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.82}>
               <View style={styles.continueBtnGrad}>
                 <Text style={styles.continueBtnText}>Continue</Text>
@@ -114,7 +113,6 @@ export function AppSplash({ onFinish }: AppSplashProps) {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.chooseFooter}>Bharatiya Janata Party  ·  Connect T 2025</Text>
         </Animated.View>
       )}
     </View>

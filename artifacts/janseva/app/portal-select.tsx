@@ -64,7 +64,6 @@ export default function PortalSelectScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.footer}>Bharatiya Janata Party  ·  Connect T 2025</Text>
       </View>
     </View>
   );

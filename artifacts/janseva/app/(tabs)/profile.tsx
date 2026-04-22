@@ -360,7 +360,7 @@ export default function ProfileScreen() {
         <View style={styles.appInfoCard}>
           <Text style={styles.appInfoBrand}>Connect T</Text>
           <Text style={styles.appInfoTagline}>BJP Member Services · सबका साथ, सबका विकास</Text>
-          <Text style={styles.appInfoVersion}>v1.0 · Bharatiya Janata Party · 2025</Text>
+          <Text style={styles.appInfoVersion}>v1.0</Text>
         </View>
 
         {/* Logout */}
