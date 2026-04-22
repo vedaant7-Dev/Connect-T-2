@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAlerts, AppAlert, wardKey } from "@/context/AlertContext";
+import { useComplaints, Complaint } from "@/context/ComplaintContext";
 
 const quickServices = [
   { id: "hospital", label: "Hospitals", icon: "activity", color: "#DC2626", bg: "#FEE2E2" },
@@ -74,6 +75,7 @@ export default function HomeScreen() {
   const { t } = useLanguage();
   const { handleScroll } = useTabBarVisibility();
   const { alerts: allAlerts } = useAlerts();
+  const { complaints } = useComplaints();
   const [selectedAlert, setSelectedAlert] = useState<AppAlert | null>(null);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [selectedUtility, setSelectedUtility] = useState<string | null>(null);
@@ -83,6 +85,21 @@ export default function HomeScreen() {
   const readAlertsKey = `connectt_read_alerts_${user?.id || "guest"}`;
   const alerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
   const alertItems = alerts.filter((item) => item.type === "alert");
+  const newsItems = alerts.filter((item) => item.type === "news");
+  const myComplaints = complaints.filter((c) =>
+    (user?.mobile && c.userMobile === user.mobile) ||
+    (user?.name && c.userName === user.name)
+  );
+  const complaintNotifs = myComplaints.filter((c) => c.status === "assigned" || c.status === "in_progress" || c.status === "resolved");
+
+  type NotifItem =
+    | { kind: "complaint"; id: string; createdAt: string; complaint: Complaint }
+    | { kind: "news"; id: string; createdAt: string; alert: AppAlert };
+
+  const notifItems: NotifItem[] = [
+    ...complaintNotifs.map((c) => ({ kind: "complaint" as const, id: `c-${c.id}`, createdAt: c.updatedAt || c.createdAt, complaint: c })),
+    ...newsItems.map((a) => ({ kind: "news" as const, id: `n-${a.id}`, createdAt: a.createdAt, alert: a })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   useEffect(() => {
     AsyncStorage.getItem(readAlertsKey)
@@ -101,7 +118,8 @@ export default function HomeScreen() {
 
   const openNotifications = () => {
     setShowNotifPanel(true);
-    markAlertsRead(alertItems.map((item) => item.id));
+    const ids = notifItems.map((i) => (i.kind === "news" ? i.alert.id : i.complaint.id));
+    markAlertsRead(ids);
   };
 
   const openAlertDetail = (item: AppAlert) => {
@@ -109,7 +127,10 @@ export default function HomeScreen() {
     setSelectedAlert(item);
   };
 
-  const notifCount = alertItems.filter((i) => !readAlertIds.includes(i.id)).length;
+  const notifCount = notifItems.filter((i) => {
+    const aid = i.kind === "news" ? i.alert.id : i.complaint.id;
+    return !readAlertIds.includes(aid);
+  }).length;
 
   const handleCall = (number: string) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -313,17 +334,15 @@ export default function HomeScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.notifHeader}>
               <Feather name="bell" size={20} color="#EA580C" />
-              <Text style={styles.modalTitle}>{t("alerts")}</Text>
+              <Text style={styles.modalTitle}>Notifications</Text>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420, width: "100%" }}>
-              {alertItems.length === 0 ? (
+              {notifItems.length === 0 ? (
                 <View style={{ padding: 24, alignItems: "center", gap: 8 }}>
                   <Feather name="bell-off" size={32} color="#CBD5E1" />
-                  <Text style={{ fontSize: 13, color: "#94A3B8", fontFamily: "Inter_400Regular" }}>No alerts right now</Text>
+                  <Text style={{ fontSize: 13, color: "#94A3B8", fontFamily: "Inter_400Regular" }}>No notifications right now</Text>
                 </View>
-              ) : alertItems.map((item) => {
-                const cardColor = "#DC2626";
-                const cardBg = "#FEE2E2";
+              ) : notifItems.map((item) => {
                 const timeStr = (() => {
                   const diff = Date.now() - new Date(item.createdAt).getTime();
                   const mins = Math.floor(diff / 60000);
@@ -334,26 +353,66 @@ export default function HomeScreen() {
                   if (mins > 0) return `${mins}m ago`;
                   return "just now";
                 })();
+
+                if (item.kind === "complaint") {
+                  const c = item.complaint;
+                  const statusMap: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+                    assigned: { label: "Assigned", color: "#7C3AED", bg: "#EDE9FE", icon: "user-check" },
+                    in_progress: { label: "In Progress", color: "#2563EB", bg: "#DBEAFE", icon: "loader" },
+                    resolved: { label: "Resolved", color: "#059669", bg: "#D1FAE5", icon: "check-circle" },
+                  };
+                  const s = statusMap[c.status] || statusMap.assigned;
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.notifItem}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        markAlertsRead([c.id]);
+                        setShowNotifPanel(false);
+                        setTimeout(() => router.push(`/complaint/${c.id}`), 200);
+                      }}
+                    >
+                      <View style={[styles.notifItemIcon, { backgroundColor: s.bg }]}>
+                        <Feather name={s.icon} size={16} color={s.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                          <Text style={styles.notifItemTitle} numberOfLines={1}>{c.title}</Text>
+                          <Text style={styles.notifItemTime}>{timeStr}</Text>
+                        </View>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: s.bg }}>
+                            <Text style={{ fontSize: 9, fontWeight: "800", color: s.color, fontFamily: "Inter_700Bold" }}>{s.label.toUpperCase()}</Text>
+                          </View>
+                          <Text style={styles.notifItemBody} numberOfLines={1}>{c.id}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }
+
+                const a = item.alert;
                 return (
                   <TouchableOpacity
                     key={item.id}
                     style={styles.notifItem}
                     activeOpacity={0.8}
                     onPress={() => {
-                      markAlertsRead([item.id]);
+                      markAlertsRead([a.id]);
                       setShowNotifPanel(false);
-                      setTimeout(() => setSelectedAlert(item), 200);
+                      setTimeout(() => setSelectedAlert(a), 200);
                     }}
                   >
-                    <View style={[styles.notifItemIcon, { backgroundColor: cardBg }]}>
-                      <Feather name="alert-triangle" size={16} color={cardColor} />
+                    <View style={[styles.notifItemIcon, { backgroundColor: "#DBEAFE" }]}>
+                      <Feather name="file-text" size={16} color="#2563EB" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
-                        <Text style={styles.notifItemTitle} numberOfLines={1}>{item.title}</Text>
+                        <Text style={styles.notifItemTitle} numberOfLines={1}>{a.title}</Text>
                         <Text style={styles.notifItemTime}>{timeStr}</Text>
                       </View>
-                      <Text style={styles.notifItemBody} numberOfLines={2}>{item.body}</Text>
+                      <Text style={styles.notifItemBody} numberOfLines={2}>{a.body}</Text>
                     </View>
                   </TouchableOpacity>
                 );
