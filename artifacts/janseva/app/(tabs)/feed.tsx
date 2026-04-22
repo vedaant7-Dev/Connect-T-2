@@ -201,7 +201,9 @@ export default function FeedScreen() {
   const [selectedWard, setSelectedWard] = useState<string | null>(null);
   const rawQuery = searchQuery.trim();
   const query = rawQuery.toLowerCase();
-  const isNumericQuery = rawQuery.length > 0 && /^\d+$/.test(rawQuery);
+  const wardMatch = rawQuery.match(/^(?:ward\s*|w\.?\s*)?(\d{1,3})$/i);
+  const isNumericQuery = !!wardMatch;
+  const wardDigits = wardMatch ? wardMatch[1] : "";
   const isTitleSearch = rawQuery.length > 0 && !isNumericQuery;
   const isSearching = rawQuery.length > 0 || !!selectedWard;
 
@@ -210,7 +212,7 @@ export default function FeedScreen() {
   const wardNews = wardScopedAlerts.filter((item) => item.type === "news");
 
   const wardSuggestions = isNumericQuery
-    ? ambernathWards.filter((w) => wardKey(w).startsWith(rawQuery))
+    ? ambernathWards.filter((w) => wardKey(w).startsWith(wardDigits))
     : [];
 
   const [activeTab] = useState<FeedTab>("community");
