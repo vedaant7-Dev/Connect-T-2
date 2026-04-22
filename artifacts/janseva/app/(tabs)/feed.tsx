@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Platform, Image, Share,
+  Platform, Image, Share, TextInput,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -196,13 +196,26 @@ export default function FeedScreen() {
   const { handleScroll } = useTabBarVisibility();
 
   const userId = user?.id || "guest";
-  const alerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
+  const [searchQuery, setSearchQuery] = useState("");
+  const query = searchQuery.trim().toLowerCase();
+  const isSearching = query.length > 0;
+
+  const wardScopedAlerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
+  const allNews = allAlerts.filter((item) => item.type === "news");
+  const wardNews = wardScopedAlerts.filter((item) => item.type === "news");
+
+  const matchesQuery = (item: AppAlert) => {
+    const haystack = [item.title, item.body, item.location, item.postedBy, item.ward].filter(Boolean).join(" ").toLowerCase();
+    return haystack.includes(query);
+  };
 
   const [activeTab] = useState<FeedTab>("community");
-  const newsItems = [
-    ...alerts.filter((item) => item.type === "news").map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item })),
-    ...posts.map((item) => ({ kind: "post" as const, createdAt: item.createdAt, item })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const newsItems = isSearching
+    ? allNews.filter(matchesQuery).map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item })).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : [
+        ...wardNews.map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item })),
+        ...posts.map((item) => ({ kind: "post" as const, createdAt: item.createdAt, item })),
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <View style={styles.root}>
@@ -215,6 +228,27 @@ export default function FeedScreen() {
             <Text style={styles.headerSub}>Ambernath · BJP Ward Network</Text>
           </View>
         </View>
+        <View style={styles.searchBar}>
+          <Feather name="search" size={16} color="#94A3B8" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search news across all wards..."
+            placeholderTextColor="#94A3B8"
+            style={styles.searchInput}
+            returnKeyType="search"
+          />
+          {isSearching && (
+            <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={10}>
+              <Feather name="x-circle" size={16} color="#94A3B8" />
+            </TouchableOpacity>
+          )}
+        </View>
+        {isSearching && (
+          <Text style={styles.searchHint}>
+            Showing {newsItems.length} {newsItems.length === 1 ? "result" : "results"} across all wards
+          </Text>
+        )}
       </LinearGradient>
 
       {activeTab === "community" && (
@@ -247,6 +281,19 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 2 },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 10 : 6,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular", padding: 0, outlineWidth: 0 } as any,
+  searchHint: { fontSize: 11, color: "rgba(255,255,255,0.85)", fontFamily: "Inter_600SemiBold", marginBottom: 8, marginLeft: 2 },
   newPostBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   newPostBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
