@@ -1,12 +1,9 @@
 {
-<<<<<<< HEAD
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
@@ -14,20 +11,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-=======
-  "extends": "./tsconfig.base.json",
-  "compileOnSave": false,
-  "files": [],
-  "references": [
-    {
-      "path": "./lib/db"
-    },
-    {
-      "path": "./lib/api-client-react"
-    },
-    {
-      "path": "./lib/api-zod"
-    }
->>>>>>> 5a4f6c037f1a0931f5f3fa809ab12b10c469e1fc
   ]
 }

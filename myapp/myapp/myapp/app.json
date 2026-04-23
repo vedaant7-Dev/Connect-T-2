@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Connect T",
+    "slug": "connect-t",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "connectt",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+
+    "plugins": [
+      "expo-router"
+    ],
+
+    "experiments": {
+      "typedRoutes": true
+    },
+
+    "ios": {
+      "supportsTablet": true
+    },
+
+    "android": {
+      "edgeToEdgeEnabled": true
+    },
+
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    }
+  }
+}
