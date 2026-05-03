@@ -8,6 +8,8 @@ export interface Job {
   id: string;
   employerId: string;
   employerName: string;
+  employerPhone?: string;
+  employerWhatsApp?: string;
   company: string;
   title: string;
   category: JobCategory;

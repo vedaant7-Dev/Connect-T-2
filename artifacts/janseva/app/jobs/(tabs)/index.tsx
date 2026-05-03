@@ -34,7 +34,7 @@ function statusLabel(status: string) {
 }
 
 // ─── Seeker job card ─────────────────────────────────────────────────────────
-function JobCard({ job, onApply, applied, near }: { job: Job; applied: boolean; onApply: () => void; near?: boolean }) {
+function JobCard({ job, onApply, applied, near, onOpen }: { job: Job; applied: boolean; onApply: () => void; onOpen: () => void; near?: boolean }) {
   const cat = categoryConfig[job.category];
   const type = typeConfig[job.type];
   const [expanded, setExpanded] = useState(false);
@@ -47,7 +47,7 @@ function JobCard({ job, onApply, applied, near }: { job: Job; applied: boolean; 
           <Text style={s.nearBadgeText}>Near You</Text>
         </View>
       )}
-      <TouchableOpacity activeOpacity={0.75} onPress={() => setExpanded(!expanded)} style={s.cardTappable}>
+      <TouchableOpacity activeOpacity={0.75} onPress={onOpen} style={s.cardTappable}>
         <View style={s.cardHeader}>
           <View style={[s.catIcon, { backgroundColor: cat.bg }]}>
             <Feather name={cat.icon as any} size={18} color={cat.color} />
@@ -56,7 +56,7 @@ function JobCard({ job, onApply, applied, near }: { job: Job; applied: boolean; 
             <Text style={s.cardTitle} numberOfLines={1}>{job.title}</Text>
             <Text style={s.cardCompany} numberOfLines={1}>{job.company}</Text>
           </View>
-          <Feather name={expanded ? "chevron-up" : "chevron-down"} size={16} color="#94A3B8" />
+          <Feather name="chevron-right" size={16} color="#94A3B8" />
         </View>
         <View style={s.cardMeta}>
           <View style={s.metaChip}>
@@ -75,14 +75,6 @@ function JobCard({ job, onApply, applied, near }: { job: Job; applied: boolean; 
           <Text style={s.salary}>{job.salary}</Text>
         </View>
       </TouchableOpacity>
-      {expanded && (
-        <View style={s.expandedSection}>
-          <Text style={s.expandLabel}>About the Job</Text>
-          <Text style={s.expandText}>{job.description}</Text>
-          <Text style={s.expandLabel}>Requirements</Text>
-          <Text style={s.expandText}>{job.requirements}</Text>
-        </View>
-      )}
       <View style={s.cardFooter}>
         <Text style={s.applicantsText}>{job.applicants.length} applied</Text>
         {applied ? (
@@ -601,7 +593,14 @@ export default function JobsHomeScreen() {
                     </View>
                   </View>
                   {nearbyJobs.map((job) => (
-                    <JobCard key={job.id} job={job} near applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false} onApply={() => handleApply(job)} />
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      near
+                      applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
+                      onApply={() => handleApply(job)}
+                      onOpen={() => router.push(`/jobs/detail/${job.id}` as any)}
+                    />
                   ))}
                 </View>
               )}
@@ -620,7 +619,13 @@ export default function JobsHomeScreen() {
                   </View>
                 ) : (
                   activeJobs.map((job) => (
-                    <JobCard key={job.id} job={job} applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false} onApply={() => handleApply(job)} />
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      applied={jobsUser ? hasApplied(job.id, jobsUser.id) : false}
+                      onApply={() => handleApply(job)}
+                      onOpen={() => router.push(`/jobs/detail/${job.id}` as any)}
+                    />
                   ))
                 )}
               </View>
