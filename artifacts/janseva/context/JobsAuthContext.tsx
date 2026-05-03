@@ -45,6 +45,7 @@ export interface JobsUser {
 }
 
 type JobsUserStore = Record<string, JobsUser>;
+type CurrentUserState = { currentKey?: string; users?: JobsUserStore };
 
 export interface CompanyProfile {
   id: string;
@@ -125,6 +126,7 @@ interface JobsAuthContextType {
 
 const JobsAuthContext = createContext<JobsAuthContextType | null>(null);
 const STORAGE_KEY = "janseva_jobs_users_v1";
+const SESSION_KEY = "janseva_jobs_current_v1";
 const COLORS = ["#C2410C", "#EA580C", "#D97706", "#92400E", "#7C3AED", "#059669", "#0369A1"];
 
 export function randomColor() {
@@ -144,32 +146,39 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw) as JobsUserStore;
-          const values = Object.values(parsed);
-          if (values[0]) setJobsUser(values[0]);
-        } catch {}
-      }
-      setLoading(false);
-    });
+    Promise.all([AsyncStorage.getItem(STORAGE_KEY), AsyncStorage.getItem(SESSION_KEY)]).then(([usersRaw, sessionRaw]) => {
+      try {
+        const users = usersRaw ? (JSON.parse(usersRaw) as JobsUserStore) : {};
+        const session = sessionRaw ? (JSON.parse(sessionRaw) as CurrentUserState) : {};
+        const current = session.currentKey ? users[session.currentKey] : null;
+        if (current) setJobsUser(current);
+      } catch {}
+    }).finally(() => setLoading(false));
   }, []);
 
   const save = async (user: JobsUser | null) => {
     setJobsUser(user);
     if (!user) {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.removeItem(SESSION_KEY);
       return;
     }
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     const existing = raw ? (JSON.parse(raw) as JobsUserStore) : {};
-    existing[`${user.phone}:${user.role}`] = user;
+    const key = `${user.phone}:${user.role}`;
+    existing[key] = user;
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ currentKey: key }));
   };
 
   const registerJobs = async (data: Omit<JobsUser, "id" | "createdAt">) => {
-    await save({ ...data, id: generateId(), createdAt: new Date().toISOString(), companies: data.companies?.map((c) => ({ ...c, id: c.id || generateCompanyId() })) });
+    const user = { ...data, id: generateId(), createdAt: new Date().toISOString(), companies: data.companies?.map((c) => ({ ...c, id: c.id || generateCompanyId() })) };
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const existing = raw ? (JSON.parse(raw) as JobsUserStore) : {};
+    const key = `${user.phone}:${user.role}`;
+    existing[key] = user;
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ currentKey: key }));
+    setJobsUser(user);
   };
 
   const loginJobs = async (phone: string, role: JobsUserRole): Promise<boolean> => {
@@ -178,7 +187,11 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
       try {
         const existing = JSON.parse(raw) as JobsUserStore;
         const user = existing[`${phone}:${role}`];
-        if (user) { setJobsUser(user); return true; }
+        if (user) {
+          setJobsUser(user);
+          await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ currentKey: `${phone}:${role}` }));
+          return true;
+        }
       } catch {}
     }
     return false;
