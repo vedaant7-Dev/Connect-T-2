@@ -19,7 +19,7 @@ import TopShade from "@/components/TopShade";
 
 const roleConfig = {
   citizen: {
-    label: "BJP Member", subLabel: "भाजपा सदस्य", icon: "user" as const,
+    label: "Citizen", subLabel: "नागरिक", icon: "user" as const,
     color: "#EA580C", bg: "#FFF7ED",
     grad: ["#C2410C", "#EA580C", "#FB923C"] as [string, string, string],
   },
@@ -367,7 +367,7 @@ export default function ProfileScreen() {
         {/* App Info */}
         <View style={styles.appInfoCard}>
           <Text style={styles.appInfoBrand}>Connect T</Text>
-          <Text style={styles.appInfoTagline}>BJP Member Services · सबका साथ, सबका विकास</Text>
+          <Text style={styles.appInfoTagline}>Civic Services · सबका साथ, सबका विकास</Text>
           <Text style={styles.appInfoVersion}>v1.0</Text>
         </View>
 
