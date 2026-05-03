@@ -31,7 +31,7 @@ type LoginStep = "form" | "otp";
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 44 : insets.top;
-  const { register, loginWithPhone, loginWithNagarsevakId } = useAuth();
+  const { register, loginWithPhone } = useAuth();
   const { language, setLanguage, t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<AuthTab>("register");
@@ -52,7 +52,6 @@ export default function LoginScreen() {
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
 
   const [loginPhone, setLoginPhone] = useState("");
-  const [loginId, setLoginId] = useState("");
 
   const otpRef1 = useRef<TextInput>(null);
   const otpRef2 = useRef<TextInput>(null);
@@ -173,23 +172,9 @@ export default function LoginScreen() {
     setError("");
     try {
       const phone = loginPhone.trim().replace(/\D/g, "");
-      const id = loginId.trim().toUpperCase();
-
-      if (id) {
-        const nagarsevak = await loginWithNagarsevakId(phone, id);
-        if (nagarsevak) {
-          router.replace("/(tabs)/admin" as any);
-          return;
-        } else {
-          setError(t("invalidNagarsevakId"));
-          setOtpDigits(["", "", "", ""]);
-          return;
-        }
-      }
-
       const user = await loginWithPhone(phone);
       if (user) {
-        router.replace("/portal-select" as any);
+        router.replace(user.role === "nagarsevak" ? "/(tabs)/admin" as any : "/portal-select" as any);
       } else {
         setError(t("accountNotFound"));
         setLoginStep("form");
@@ -439,21 +424,6 @@ export default function LoginScreen() {
         }}
         />
       </View>
-
-      <Text style={s.fieldLabel}>
-        {t("nagarsevakIdLabel")} <Text style={s.optional}>({t("optional")})</Text>
-      </Text>
-      <TextInput
-        style={s.input}
-        placeholder={t("nagarsevakIdPlaceholder")}
-        placeholderTextColor="#94A3B8"
-        autoCapitalize="characters"
-        value={loginId}
-        onChangeText={(v) => {
-          setLoginId(v);
-        }}
-      />
-      <Text style={s.helperText}>{t("nagarsevakIdHelp")}</Text>
 
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
