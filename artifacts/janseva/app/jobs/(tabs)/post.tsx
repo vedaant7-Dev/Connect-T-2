@@ -124,13 +124,13 @@ function CompanyDropdown({
 
   return (
     <View>
-      <TouchableOpacity style={styles.companyDropdownBtn} activeOpacity={0.85} onPress={() => setOpen(true)}>
-        <View style={styles.companyDropdownLeft}>
+      <TouchableOpacity style={styles.dropdownBtn} activeOpacity={0.85} onPress={() => setOpen(true)}>
+        <View style={[styles.dropdownIcon, { backgroundColor: "#FFF7ED" }]}>
           <Feather name="briefcase" size={14} color="#C2410C" />
-          <Text style={styles.companyDropdownText} numberOfLines={1}>
-            {selected?.name || "Select Company"}
-          </Text>
         </View>
+        <Text style={styles.dropdownBtnText} numberOfLines={1}>
+          {selected?.name || "Select Company"}
+        </Text>
         <Feather name="chevron-down" size={16} color="#94A3B8" />
       </TouchableOpacity>
 
@@ -288,9 +288,13 @@ export default function PostJobScreen() {
       </LinearGradient>
 
       {showCompanyPicker && (
-        <View style={styles.companyPickerWrap}>
+        <View style={styles.field}>
           <Text style={styles.label}>Select Company *</Text>
-          <CompanyDropdown companies={companies} selectedCompanyId={selectedCompanyId || companies[0]?.id} onSelect={setSelectedCompanyId} />
+          <CompanyDropdown
+            companies={companies}
+            selectedCompanyId={selectedCompanyId || companies[0]?.id}
+            onSelect={setSelectedCompanyId}
+          />
         </View>
       )}
 
