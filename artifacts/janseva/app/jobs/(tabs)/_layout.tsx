@@ -23,7 +23,10 @@ function JobsTabBar() {
   return (
     <View style={[styles.tabBar, { height: TAB_H, paddingBottom: Math.max(insets.bottom, 8) }]}>
       {TABS.map((tab) => {
-        const active = pathname === tab.path || (tab.name === "index" && pathname === "/jobs/(tabs)/index");
+        const active =
+          pathname === tab.path ||
+          pathname.startsWith(`${tab.path}/`) ||
+          (tab.name === "index" && (pathname === "/jobs/(tabs)/index" || pathname === "/jobs/(tabs)"));
         return (
           <TouchableOpacity
             key={tab.name}
