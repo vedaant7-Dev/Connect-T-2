@@ -20,6 +20,7 @@ export interface Job {
   requirements: string;
   openings: number;
   applicants: string[];
+  messages: { from: string; text: string; createdAt: string }[];
   hired: string[];
   shortlisted: string[];
   rejected: string[];
@@ -30,7 +31,8 @@ export interface Job {
 interface JobsContextType {
   jobs: Job[];
   loading: boolean;
-  addJob: (data: Omit<Job, "id" | "createdAt" | "applicants" | "hired" | "shortlisted" | "rejected" | "active">) => void;
+  addJob: (data: Omit<Job, "id" | "createdAt" | "applicants" | "messages" | "hired" | "shortlisted" | "rejected" | "active">) => void;
+  addJobMessage: (jobId: string, message: { from: string; text: string; createdAt: string }) => void;
   applyJob: (jobId: string, seekerId: string) => void;
   hasApplied: (jobId: string, seekerId: string) => boolean;
   getJobsByEmployer: (employerId: string) => Job[];
@@ -78,11 +80,12 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  const addJob = (data: Omit<Job, "id" | "createdAt" | "applicants" | "hired" | "shortlisted" | "rejected" | "active">) => {
+  const addJob = (data: Omit<Job, "id" | "createdAt" | "applicants" | "messages" | "hired" | "shortlisted" | "rejected" | "active">) => {
     const job: Job = {
       ...data,
       id: generateId(),
       applicants: [],
+      messages: [],
       hired: [],
       shortlisted: [],
       rejected: [],
@@ -90,6 +93,10 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     save([job, ...jobs]);
+  };
+
+  const addJobMessage = (jobId: string, message: { from: string; text: string; createdAt: string }) => {
+    save(jobs.map((j) => (j.id === jobId ? { ...j, messages: [...(j.messages || []), message] } : j)));
   };
 
   const applyJob = (jobId: string, seekerId: string) => {
@@ -137,7 +144,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <JobsContext.Provider value={{ jobs, loading, addJob, applyJob, hasApplied, getJobsByEmployer, toggleJobActive, shortlistApplicant, rejectApplicant, deleteJob }}>
+    <JobsContext.Provider value={{ jobs, loading, addJob, addJobMessage, applyJob, hasApplied, getJobsByEmployer, toggleJobActive, shortlistApplicant, rejectApplicant, deleteJob }}>
       {children}
     </JobsContext.Provider>
   );

@@ -285,6 +285,7 @@ function EmployerDashboard({
   const totalRejected = myJobs.reduce((n, j) => n + j.rejected.length, 0);
   const activeCount = myJobs.filter((j) => j.active).length;
   const totalOpenings = myJobs.reduce((n, j) => n + j.openings, 0);
+  const notificationCount = myJobs.filter((j) => j.applicants.length > 0).length;
   const conversionRate = totalApplicants > 0
     ? Math.round((totalShortlisted / totalApplicants) * 100) : 0;
 
@@ -295,6 +296,17 @@ function EmployerDashboard({
 
   return (
     <View>
+      <View style={s.dashboardTopRow}>
+        <Text style={s.sectionTitle}>Dashboard</Text>
+        <TouchableOpacity style={s.notifyIconBtn} activeOpacity={0.8}>
+          <Feather name="bell" size={18} color="#C2410C" />
+          {notificationCount > 0 && (
+            <View style={s.notifyDot}>
+              <Text style={s.notifyDotText}>{notificationCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
       {/* KPI grid */}
       <View style={s.kpiGrid}>
         <LinearGradient colors={["#C2410C", "#EA580C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.kpiCard, s.kpiBig]}>
@@ -643,11 +655,15 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: { paddingHorizontal: 16, paddingBottom: 14, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 },
+  dashboardTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   headerTitle: { fontSize: 20, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", marginTop: 2 },
   headerBadge: { position: "relative", width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
   notifBubble: { position: "absolute", top: 5, right: 5, width: 16, height: 16, borderRadius: 8, backgroundColor: "#FCD34D", alignItems: "center", justifyContent: "center" },
   notifBubbleText: { fontSize: 8, fontWeight: "800", color: "#92400E", fontFamily: "Inter_700Bold" },
+  notifyIconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "white", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FED7AA" },
+  notifyDot: { position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: "#DC2626", alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  notifyDotText: { fontSize: 8, color: "white", fontFamily: "Inter_700Bold" },
   searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
   searchPlaceholder: { flex: 1, fontSize: 13, color: "#94A3B8", fontFamily: "Inter_400Regular" },
   filterIconBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center" },

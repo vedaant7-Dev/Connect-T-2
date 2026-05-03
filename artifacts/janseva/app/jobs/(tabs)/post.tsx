@@ -186,6 +186,7 @@ export default function PostJobScreen() {
   const [openings, setOpenings] = useState("1");
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState("");
+  const [contactNo, setContactNo] = useState(jobsUser.whatsapp || jobsUser.phone || "");
   const [submitting, setSubmitting] = useState(false);
   const [posted, setPosted] = useState(false);
   const [postedTitle, setPostedTitle] = useState("");
@@ -288,7 +289,7 @@ export default function PostJobScreen() {
         employerName: jobsUser.name,
         company: selectedCompany.name,
         employerPhone: jobsUser.phone,
-        employerWhatsApp: jobsUser.whatsapp || jobsUser.phone,
+        employerWhatsApp: contactNo.trim() || jobsUser.whatsapp || jobsUser.phone,
         title: title.trim(),
         category,
         type,
@@ -390,6 +391,11 @@ export default function PostJobScreen() {
               maxLength={2}
             />
           </View>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>WhatsApp Contact No *</Text>
+          <TextInput style={styles.input} value={contactNo} onChangeText={setContactNo} placeholder="Enter WhatsApp number" placeholderTextColor="#CBD5E1" keyboardType="phone-pad" />
         </View>
 
         <View style={styles.field}>

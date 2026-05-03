@@ -1,12 +1,42 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Linking } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useJobs } from "@/context/JobsContext";
+import { useJobsAuth } from "@/context/JobsAuthContext";
 
 export default function JobChatScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ employerId?: string }>();
+  const { jobs, addJobMessage } = useJobs() as any;
+  const { jobsUser } = useJobsAuth();
+  const [text, setText] = useState("");
+  const employerJobs = useMemo(() => jobs.filter((job: any) => job.employerId === params.employerId), [jobs, params.employerId]);
+  const job = employerJobs[0];
+  const messages = job?.messages ?? [];
+  const employerContact = job?.employerWhatsApp || job?.employerPhone || "";
+
+  const sendMessage = async () => {
+    const message = text.trim();
+    if (!message) return;
+    if (!job) {
+      Alert.alert("No chat found");
+      return;
+    }
+    addJobMessage(job.id, { from: jobsUser?.id || "visitor", text: message, createdAt: new Date().toISOString() });
+    setText("");
+    Alert.alert("Sent", "Message sent to employer.");
+  };
+
+  const openWhatsApp = async () => {
+    const phone = String(employerContact).replace(/[^\d+]/g, "");
+    if (!phone) return;
+    const url = `https://wa.me/${phone.replace("+", "")}?text=${encodeURIComponent(`Hi, I’m interested in ${job?.title ?? "your job post"}.`)}`;
+    const can = await Linking.canOpenURL(url);
+    if (!can) return Alert.alert("WhatsApp not available");
+    await Linking.openURL(url);
+  };
 
   return (
     <View style={s.root}>
@@ -19,18 +49,19 @@ export default function JobChatScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={s.content}>
-        <View style={s.empty}>
-          <Feather name="message-circle" size={42} color="#CBD5E1" />
-          <Text style={s.emptyText}>Chat will open here.</Text>
-        </View>
+        {messages.length === 0 ? <View style={s.empty}><Feather name="message-circle" size={42} color="#CBD5E1" /><Text style={s.emptyText}>Chat will open here.</Text></View> : messages.map((m: any, idx: number) => <View key={idx} style={[s.message, m.from === jobsUser?.id ? s.myMessage : s.otherMessage]}><Text style={s.messageText}>{m.text}</Text></View>)}
       </ScrollView>
 
       <View style={s.inputBar}>
-        <TextInput style={s.input} placeholder="Type message..." placeholderTextColor="#94A3B8" />
-        <TouchableOpacity style={s.sendBtn} activeOpacity={0.85}>
+        <TextInput style={s.input} placeholder="Type message..." placeholderTextColor="#94A3B8" value={text} onChangeText={setText} />
+        <TouchableOpacity style={s.sendBtn} activeOpacity={0.85} onPress={sendMessage}>
           <Feather name="send" size={16} color="white" />
         </TouchableOpacity>
       </View>
+      <TouchableOpacity style={s.whatsappBtn} activeOpacity={0.85} onPress={openWhatsApp}>
+        <Feather name="message-circle" size={16} color="white" />
+        <Text style={s.whatsappText}>Open WhatsApp</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -47,4 +78,10 @@ const s = StyleSheet.create({
   inputBar: { flexDirection: "row", gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: "#E2E8F0", backgroundColor: "white" },
   input: { flex: 1, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#0F172A" },
   sendBtn: { width: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#EA580C" },
+  message: { maxWidth: "80%", marginBottom: 10, padding: 12, borderRadius: 16 },
+  myMessage: { alignSelf: "flex-end", backgroundColor: "#FED7AA" },
+  otherMessage: { alignSelf: "flex-start", backgroundColor: "white", borderWidth: 1, borderColor: "#E2E8F0" },
+  messageText: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_400Regular" },
+  whatsappBtn: { margin: 16, marginTop: 0, borderRadius: 14, paddingVertical: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#16A34A", flexDirection: "row", gap: 8 },
+  whatsappText: { color: "white", fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
 });
