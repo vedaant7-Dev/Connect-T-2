@@ -32,7 +32,7 @@ function JobsTabBar() {
             activeOpacity={0.7}
           >
             <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
-              <Feather name={tab.icon} size={20} color={active ? "white" : "#EA580C"} />
+              <Feather name={tab.icon} size={20} color={active ? "#EA580C" : "#94A3B8"} />
             </View>
             <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
           </TouchableOpacity>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   },
   tabItem: { flex: 1, alignItems: "center", justifyContent: "center", gap: 3, paddingTop: 8 },
   tabIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  tabIconWrapActive: { backgroundColor: "#EA580C" },
-  tabLabel: { fontSize: 10, fontWeight: "600", color: "#EA580C", fontFamily: "Inter_600SemiBold" },
-  tabLabelActive: { color: "#C2410C", fontFamily: "Inter_700Bold" },
+  tabIconWrapActive: { backgroundColor: "#FFF7ED" },
+  tabLabel: { fontSize: 10, fontWeight: "600", color: "#94A3B8", fontFamily: "Inter_600SemiBold" },
+  tabLabelActive: { color: "#EA580C", fontFamily: "Inter_700Bold" },
 });
