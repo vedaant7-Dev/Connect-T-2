@@ -638,8 +638,7 @@ export default function JobsProfileScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
               </>
-            ) : (
-            {descriptionOnlyEdit ? (
+            ) : descriptionOnlyEdit ? (
               <>
                 <Text style={cs.editSection}>Company Description</Text>
                 <EditField
@@ -649,113 +648,6 @@ export default function JobsProfileScreen() {
                   placeholder="Describe your company, culture, products/services…"
                   multiline
                 />
-              </>
-            ) : (
-              <>
-                <Text style={cs.editSection}>Basic Information</Text>
-                <EditField label="Full Name *" value={eName} onChange={setEName} placeholder="Your full name" />
-                <EditField label="Email Address" value={eEmail} onChange={setEEmail} placeholder="you@email.com" keyboardType="email-address" />
-
-                {isEmployer ? (
-                  <>
-                    <Text style={cs.editSection}>Company Information</Text>
-                    <EditField label="Company Name *" value={eCompany} onChange={setECompany} placeholder="e.g. XYZ Pvt Ltd" />
-                    <EditField label="Contact Person Name" value={eContactPerson} onChange={setEContactPerson} placeholder="e.g. Ramesh Sharma (HR Manager)" />
-                    <SelectField label="Company Type" value={eCompanyType} options={COMPANY_TYPES} onChange={setECompanyType} />
-                    <SelectField label="Company Size" value={eCompanySize} options={COMPANY_SIZES} onChange={setECompanySize} />
-                    <SelectField label="Industry" value={eIndustry} options={INDUSTRIES} onChange={setEIndustry} />
-                    <EditField label="Year Established" value={eYearEst} onChange={setEYearEst} placeholder="e.g. 2010" keyboardType="number-pad" />
-                    <EditField label="Website" value={eWebsite} onChange={setEWebsite} placeholder="e.g. www.yourcompany.com" keyboardType="url" />
-                    <EditField label="About Company" value={eCompanyDesc} onChange={setECompanyDesc} placeholder="Describe your company, culture, products/services…" multiline />
-
-                    <Text style={cs.editSection}>Contact & Address</Text>
-                    <EditField label="WhatsApp Number" value={eWhatsapp} onChange={setEWhatsapp} placeholder="10-digit WhatsApp number" keyboardType="phone-pad" />
-                    <EditField label="Area / Location" value={eLocation} onChange={setELocation} placeholder="e.g. MIDC Ambernath" />
-                    <EditField label="Full Address" value={eAddress} onChange={setEAddress} placeholder="Plot no, street, area…" multiline />
-                    <EditField label="PIN Code" value={ePincode} onChange={setEPincode} placeholder="e.g. 421501" keyboardType="number-pad" />
-
-                    <Text style={cs.editSection}>Business Verification</Text>
-                    <EditField label="GST Number" value={eGst} onChange={setEGst} placeholder="e.g. 27AABCU9603R1ZX" />
-                  </>
-                ) : (
-                  <>
-                    <EditField label="Age" value={eAge} onChange={setEAge} placeholder="e.g. 25" keyboardType="number-pad" />
-                    <EditField label="Location / Area" value={eLocation} onChange={setELocation} placeholder="e.g. Ambernath East" />
-                    <EditField label="Languages Known" value={eLanguages} onChange={setELanguages} placeholder="e.g. Hindi, Marathi, English" />
-
-                    <Text style={cs.editSection}>Education</Text>
-                    <EditField label="Highest Qualification" value={eQual} onChange={setEQual} placeholder="e.g. 12th Pass, B.Com, ITI" />
-
-                    <View style={cs.statusBanner}>
-                      <LinearGradient colors={["#FFEDD5", "#FED7AA"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={cs.statusBannerGrad}>
-                        <View style={cs.statusBannerIcon}><Feather name="activity" size={16} color="#EA580C" /></View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={cs.statusBannerTitle}>Tell us where you stand</Text>
-                          <Text style={cs.statusBannerSub}>Your status decides which fields you fill next.</Text>
-                        </View>
-                      </LinearGradient>
-                    </View>
-
-                    <SelectField
-                      label="Current Status"
-                      value={STATUS_OPTIONS.find((s) => s.id === eStatus)?.label || ""}
-                      options={STATUS_OPTIONS.map((s) => s.label)}
-                      onChange={(label) => {
-                        const found = STATUS_OPTIONS.find((s) => s.label === label);
-                        if (found) setEStatus(found.id);
-                      }}
-                    />
-
-                    {eStatus === "employed" && (
-                      <View style={cs.condBlock}>
-                        <View style={[cs.condHeader, { backgroundColor: "#D1FAE5" }]}>
-                          <Feather name="briefcase" size={14} color="#059669" />
-                          <Text style={[cs.condHeaderText, { color: "#059669" }]}>Your current job</Text>
-                        </View>
-                        <EditField label="Current Company" value={eCurrentCompany} onChange={setECurrentCompany} placeholder="e.g. ABC Pvt Ltd" />
-                        <EditField label="Current Role / Designation" value={eCurrentRole} onChange={setECurrentRole} placeholder="e.g. Sales Executive" />
-                        <EditField label="Total Experience" value={eExperience} onChange={setEExperience} placeholder="e.g. 2 years" />
-                      </View>
-                    )}
-
-                    {eStatus === "unemployed" && (
-                      <View style={cs.condBlock}>
-                        <View style={[cs.condHeader, { backgroundColor: "#FFEDD5" }]}>
-                          <Feather name="search" size={14} color="#EA580C" />
-                          <Text style={[cs.condHeaderText, { color: "#EA580C" }]}>Your last job (optional)</Text>
-                        </View>
-                        <EditField label="Total Experience" value={eExperience} onChange={setEExperience} placeholder="e.g. 2 years" />
-                        <EditField label="Previous Company" value={ePrevCompany} onChange={setEPrevCompany} placeholder="e.g. ABC Pvt Ltd" />
-                        <EditField label="Previous Role" value={ePrevRole} onChange={setEPrevRole} placeholder="e.g. Factory Operator" />
-                      </View>
-                    )}
-
-                    {eStatus === "student" && (
-                      <View style={cs.condBlock}>
-                        <View style={[cs.condHeader, { backgroundColor: "#EDE9FE" }]}>
-                          <Feather name="book-open" size={14} color="#7C3AED" />
-                          <Text style={[cs.condHeaderText, { color: "#7C3AED" }]}>Your studies</Text>
-                        </View>
-                        <EditField label="College / Institute Name" value={eCollegeName} onChange={setECollegeName} placeholder="e.g. K.M. Agrawal College" />
-                        <EditField label="Currently Studying (Field)" value={eFieldOfStudy} onChange={setEFieldOfStudy} placeholder="e.g. B.Sc Computer Science" />
-                      </View>
-                    )}
-
-                    {eStatus === "fresher" && (
-                      <View style={cs.condBlock}>
-                        <View style={[cs.condHeader, { backgroundColor: "#DBEAFE" }]}>
-                          <Feather name="star" size={14} color="#0369A1" />
-                          <Text style={[cs.condHeaderText, { color: "#0369A1" }]}>Just starting out — no experience needed</Text>
-                        </View>
-                      </View>
-                    )}
-
-                    <Text style={cs.editSection}>Skills & Career Objective</Text>
-                    <EditField label="Skills" value={eSkills} onChange={setESkills} placeholder="e.g. Welding, MS Office, Driving" />
-                    <EditField label="About / Career Objective" value={eAbout} onChange={setEAbout} placeholder="Write a short objective statement…" multiline />
-                  </>
-                )}
-
                 <TouchableOpacity onPress={handleSave} style={cs.saveBtnFull} activeOpacity={0.85}>
                   <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cs.saveBtnGrad}>
                     <Feather name="check" size={18} color="white" />
@@ -763,7 +655,18 @@ export default function JobsProfileScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
               </>
-            )}
+            ) : (
+              <>
+                <Text style={cs.editSection}>Basic Information</Text>
+                <EditField label="Full Name *" value={eName} onChange={setEName} placeholder="Your full name" />
+                <EditField label="Email Address" value={eEmail} onChange={setEEmail} placeholder="you@email.com" keyboardType="email-address" />
+                <TouchableOpacity onPress={handleSave} style={cs.saveBtnFull} activeOpacity={0.85}>
+                  <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cs.saveBtnGrad}>
+                    <Feather name="check" size={18} color="white" />
+                    <Text style={cs.saveBtnText}>Save Profile</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
             )}
           </ScrollView>
         </View>

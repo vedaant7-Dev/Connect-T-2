@@ -6,7 +6,6 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useJobsAuth } from "@/context/JobsAuthContext";
 import { useJobs, categoryConfig, typeConfig, JobCategory, JobType } from "@/context/JobsContext";
 import { useJobsAuth } from "@/context/JobsAuthContext";
 import { useRouter } from "expo-router";

@@ -55,9 +55,9 @@ export function JobsProvider({ children }: { children: ReactNode }) {
           const parsed: Job[] = JSON.parse(raw);
           // migrate old jobs that lack shortlisted/rejected
           const migrated = parsed.map((j) => ({
-            shortlisted: [],
-            rejected: [],
             ...j,
+            shortlisted: j.shortlisted || [],
+            rejected: j.rejected || [],
           }));
           setJobs(migrated);
           return;
