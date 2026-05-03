@@ -110,6 +110,65 @@ function CategoryDropdown({
   );
 }
 
+function CompanyDropdown({
+  companies,
+  selectedCompanyId,
+  onSelect,
+}: {
+  companies: { id: string; name: string }[];
+  selectedCompanyId: string;
+  onSelect: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = companies.find((c) => c.id === selectedCompanyId) ?? companies[0];
+
+  return (
+    <View>
+      <TouchableOpacity style={styles.companyDropdownBtn} activeOpacity={0.85} onPress={() => setOpen(true)}>
+        <View style={styles.companyDropdownLeft}>
+          <Feather name="briefcase" size={14} color="#C2410C" />
+          <Text style={styles.companyDropdownText} numberOfLines={1}>
+            {selected?.name || "Select Company"}
+          </Text>
+        </View>
+        <Feather name="chevron-down" size={16} color="#94A3B8" />
+      </TouchableOpacity>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
+          <View style={styles.dropdownList}>
+            <View style={styles.dropdownListHeader}>
+              <Text style={styles.dropdownListTitle}>Choose Company</Text>
+              <TouchableOpacity onPress={() => setOpen(false)} style={styles.dropdownClose}>
+                <Feather name="x" size={16} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 280 }}>
+              {companies.map((company) => (
+                <TouchableOpacity
+                  key={company.id}
+                  style={[styles.dropdownItem, selectedCompanyId === company.id && styles.dropdownItemActive]}
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    onSelect(company.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Feather name="home" size={16} color={selectedCompanyId === company.id ? "#EA580C" : "#94A3B8"} />
+                  <Text style={[styles.dropdownItemText, selectedCompanyId === company.id && { color: "#EA580C", fontFamily: "Inter_600SemiBold" }]}>
+                    {company.name}
+                  </Text>
+                  {selectedCompanyId === company.id && <Feather name="check" size={14} color="#EA580C" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function PostJobScreen() {
   const insets = useSafeAreaInsets();
@@ -131,6 +190,8 @@ export default function PostJobScreen() {
   const [posted, setPosted] = useState(false);
   const [postedTitle, setPostedTitle] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const companies = jobsUser.companies || [];
+  const showCompanyPicker = companies.length > 1;
 
   if (!jobsUser || jobsUser.role !== "employer") {
     return (
@@ -195,7 +256,7 @@ export default function PostJobScreen() {
 
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 800));
-    const selectedCompany = jobsUser.companies?.find((c) => c.id === selectedCompanyId) || jobsUser.companies?.[0];
+    const selectedCompany = companies.find((c) => c.id === selectedCompanyId) || companies[0];
     if (!selectedCompany) { Alert.alert("Add a company first"); return; }
     addJob({
       employerId: jobsUser.id,
@@ -226,27 +287,16 @@ export default function PostJobScreen() {
         <Text style={styles.headerSub}>Fill in the details to attract candidates</Text>
       </LinearGradient>
 
-      <View style={styles.companyPickerWrap}>
-        <Text style={styles.label}>Select Company *</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.companySelectRow}>
-          {(jobsUser.companies || []).map((company) => (
-            <TouchableOpacity
-              key={company.id}
-              onPress={() => setSelectedCompanyId(company.id)}
-              style={[styles.companySelectChip, selectedCompanyId === company.id && styles.companySelectChipActive]}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.companySelectText, selectedCompanyId === company.id && styles.companySelectTextActive]} numberOfLines={1}>
-                {company.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {showCompanyPicker && (
+        <View style={styles.companyPickerWrap}>
+          <Text style={styles.label}>Select Company *</Text>
+          <CompanyDropdown companies={companies} selectedCompanyId={selectedCompanyId || companies[0]?.id} onSelect={setSelectedCompanyId} />
+        </View>
+      )}
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.form, { paddingTop: 4, paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
+        contentContainerStyle={[styles.form, { paddingTop: showCompanyPicker ? 4 : 12, paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.field}>
