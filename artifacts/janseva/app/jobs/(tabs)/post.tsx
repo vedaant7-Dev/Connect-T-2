@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Platform, Alert, ActivityIndicator, Modal,
@@ -190,9 +190,28 @@ export default function PostJobScreen() {
   const [posted, setPosted] = useState(false);
   const [postedTitle, setPostedTitle] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
-  const companies = jobsUser.companies || [];
+  const companies = jobsUser.companies?.length
+    ? jobsUser.companies
+    : jobsUser.company
+      ? [{
+          id: "primary",
+          name: jobsUser.company,
+          type: jobsUser.companyType,
+          size: jobsUser.companySize,
+          industry: jobsUser.industry,
+          website: jobsUser.website,
+          description: jobsUser.companyDescription,
+          address: jobsUser.address,
+          pincode: jobsUser.pincode,
+          whatsapp: jobsUser.whatsapp,
+          yearEstablished: jobsUser.yearEstablished,
+          contactPerson: jobsUser.contactPerson,
+          gstNo: jobsUser.gstNo,
+        }]
+      : [];
   const showCompanyPicker = companies.length > 1;
   const defaultCompanyId = companies[0]?.id || "";
+  const activeCompanyId = useMemo(() => selectedCompanyId || defaultCompanyId, [selectedCompanyId, defaultCompanyId]);
 
   if (!jobsUser || jobsUser.role !== "employer") {
     return (
@@ -258,8 +277,8 @@ export default function PostJobScreen() {
 
     setSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 300));
-      const selectedCompany = companies.find((c) => c.id === selectedCompanyId) || companies[0];
+      await new Promise((r) => setTimeout(r, 100));
+      const selectedCompany = companies.find((c) => c.id === activeCompanyId) || companies[0];
       if (!selectedCompany) {
         Alert.alert("Add a company first");
         return;
@@ -281,14 +300,12 @@ export default function PostJobScreen() {
       });
       setPostedTitle(title.trim());
       setPosted(true);
+    } catch {
+      Alert.alert("Unable to post job. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
-
-  if (!selectedCompanyId && defaultCompanyId) {
-    setSelectedCompanyId(defaultCompanyId);
-  }
 
   return (
     <View style={styles.root}>
@@ -304,7 +321,7 @@ export default function PostJobScreen() {
       {showCompanyPicker && (
         <View style={styles.field}>
           <Text style={styles.label}>Select Company *</Text>
-          <CompanyDropdown companies={companies} selectedCompanyId={selectedCompanyId || defaultCompanyId} onSelect={setSelectedCompanyId} />
+          <CompanyDropdown companies={companies} selectedCompanyId={activeCompanyId} onSelect={setSelectedCompanyId} />
         </View>
       )}
 
