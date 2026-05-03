@@ -126,7 +126,7 @@ function SelectField({ label, value, options, onChange }: { label: string; value
 export default function JobsProfileScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { jobsUser, logoutJobs, updateJobsUser } = useJobsAuth();
+  const { jobsUser, logoutJobs, updateJobsUser, addCompany, updateCompany } = useJobsAuth();
   const { getJobsByEmployer, jobs } = useJobs();
   const router = useRouter();
 
@@ -165,6 +165,8 @@ export default function JobsProfileScreen() {
   const [eYearEst, setEYearEst] = useState(jobsUser?.yearEstablished || "");
   const [eContactPerson, setEContactPerson] = useState(jobsUser?.contactPerson || "");
   const [descriptionOnlyEdit, setDescriptionOnlyEdit] = useState(false);
+  const [companyEditId, setCompanyEditId] = useState<string | null>(null);
+  const [showCompanyEdit, setShowCompanyEdit] = useState(false);
 
   if (!jobsUser) return null;
 
@@ -233,6 +235,66 @@ export default function JobsProfileScreen() {
     setEditing(true);
   };
 
+  const openCompanyEditor = (companyId?: string) => {
+    if (companyId) {
+      const company = jobsUser.companies?.find((c) => c.id === companyId);
+      if (!company) return;
+      setCompanyEditId(companyId);
+      setECompany(company.name || "");
+      setECompanyType(company.type || "");
+      setECompanySize(company.size || "");
+      setEIndustry(company.industry || "");
+      setEWebsite(company.website || "");
+      setECompanyDesc(company.description || "");
+      setEAddress(company.address || "");
+      setEPincode(company.pincode || "");
+      setEWhatsapp(company.whatsapp || "");
+      setEYearEst(company.yearEstablished || "");
+      setEContactPerson(company.contactPerson || "");
+      setEGst(company.gstNo || "");
+    } else {
+      setCompanyEditId(null);
+      setECompany("");
+      setECompanyType("");
+      setECompanySize("");
+      setEIndustry("");
+      setEWebsite("");
+      setECompanyDesc("");
+      setEAddress("");
+      setEPincode("");
+      setEWhatsapp("");
+      setEYearEst("");
+      setEContactPerson("");
+      setEGst("");
+    }
+    setDescriptionOnlyEdit(false);
+    setShowCompanyEdit(true);
+    setEditing(true);
+  };
+
+  const saveCompany = async () => {
+    if (!eCompany.trim()) { Alert.alert("Company name is required"); return; }
+    const payload = {
+      name: eCompany.trim(),
+      type: eCompanyType,
+      size: eCompanySize,
+      industry: eIndustry,
+      website: eWebsite.trim(),
+      description: eCompanyDesc.trim(),
+      address: eAddress.trim(),
+      pincode: ePincode.trim(),
+      whatsapp: eWhatsapp.trim(),
+      yearEstablished: eYearEst.trim(),
+      contactPerson: eContactPerson.trim(),
+      gstNo: eGst.trim(),
+    };
+    if (companyEditId) await updateCompany(companyEditId, payload);
+    else await addCompany(payload);
+    setEditing(false);
+    setShowCompanyEdit(false);
+    Alert.alert("Saved", companyEditId ? "Company updated." : "Company added.");
+  };
+
   const missingFields = getSeekerFields(jobsUser).filter((f) => { const val = jobsUser[f.key]; return !val || String(val).trim() === ""; });
   const switchPortal = () => router.replace("/portal-select" as any);
 
@@ -270,7 +332,11 @@ export default function JobsProfileScreen() {
             )}
             {!isEmployer && <Text style={cs.headerSub}>+91 {jobsUser.phone}</Text>}
           </View>
-          <TouchableOpacity onPress={openEdit} style={cs.editBtn}>
+          <TouchableOpacity onPress={() => {
+            setShowCompanyEdit(false);
+            setDescriptionOnlyEdit(false);
+            openEdit();
+          }} style={cs.editBtn}>
             <Feather name="edit-2" size={16} color="white" />
           </TouchableOpacity>
         </View>
@@ -325,7 +391,7 @@ export default function JobsProfileScreen() {
         {isEmployer && (
           <>
             {/* About company */}
-            {jobsUser.companyDescription ? (
+            {(jobsUser.companyDescription || (jobsUser.companies && jobsUser.companies.length > 0)) ? (
               <SectionCard title="About Company" icon="info">
                 <Text style={cs.aboutText}>{jobsUser.companyDescription}</Text>
               </SectionCard>
@@ -340,37 +406,30 @@ export default function JobsProfileScreen() {
 
             {/* Company overview */}
             <SectionCard title="Company Overview" icon="briefcase">
-              <View style={cs.overviewGrid}>
-                {jobsUser.companyType && (
-                  <View style={cs.overviewChip}>
-                    <Feather name="tag" size={12} color="#EA580C" />
-                    <Text style={cs.overviewChipText}>{jobsUser.companyType}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={cs.companyRow}>
+                {(jobsUser.companies || []).map((company) => (
+                  <View key={company.id} style={cs.companyCard}>
+                    <View style={cs.companyTop}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={cs.companyName}>{company.name}</Text>
+                        {!!company.industry && <Text style={cs.companyMeta}>{company.industry}</Text>}
+                      </View>
+                      <TouchableOpacity onPress={() => openCompanyEditor(company.id)} style={cs.companyEditBtn}>
+                        <Feather name="edit-2" size={14} color="#EA580C" />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={cs.overviewGrid}>
+                      {company.type && <View style={cs.overviewChip}><Text style={cs.overviewChipText}>{company.type}</Text></View>}
+                      {company.size && <View style={cs.overviewChip}><Text style={cs.overviewChipText}>{company.size}</Text></View>}
+                      {company.yearEstablished && <View style={cs.overviewChip}><Text style={cs.overviewChipText}>Est. {company.yearEstablished}</Text></View>}
+                    </View>
                   </View>
-                )}
-                {jobsUser.companySize && (
-                  <View style={cs.overviewChip}>
-                    <Feather name="users" size={12} color="#1D4ED8" />
-                    <Text style={[cs.overviewChipText, { color: "#1D4ED8" }]}>{jobsUser.companySize}</Text>
-                  </View>
-                )}
-                {jobsUser.industry && (
-                  <View style={cs.overviewChip}>
-                    <Feather name="layers" size={12} color="#7C3AED" />
-                    <Text style={[cs.overviewChipText, { color: "#7C3AED" }]}>{jobsUser.industry}</Text>
-                  </View>
-                )}
-                {jobsUser.yearEstablished && (
-                  <View style={cs.overviewChip}>
-                    <Feather name="calendar" size={12} color="#059669" />
-                    <Text style={[cs.overviewChipText, { color: "#059669" }]}>Est. {jobsUser.yearEstablished}</Text>
-                  </View>
-                )}
-              </View>
-              {(!jobsUser.companyType && !jobsUser.companySize && !jobsUser.industry) && (
-                <TouchableOpacity onPress={openEdit} style={cs.addInfoBtn}>
-                  <Text style={cs.addInfoText}>+ Add company details</Text>
+                ))}
+                <TouchableOpacity onPress={() => openCompanyEditor()} style={cs.addCompanyCard} activeOpacity={0.85}>
+                  <Feather name="plus" size={18} color="#EA580C" />
+                  <Text style={cs.addInfoText}>Add company</Text>
                 </TouchableOpacity>
-              )}
+              </ScrollView>
               <InfoRow icon="globe" label="Website" value={jobsUser.website} accent />
             </SectionCard>
 
@@ -549,13 +608,37 @@ export default function JobsProfileScreen() {
             <TouchableOpacity onPress={() => setEditing(false)} style={cs.editClose}>
               <Feather name="x" size={20} color="white" />
             </TouchableOpacity>
-            <Text style={cs.editHeaderTitle}>Edit Profile</Text>
+            <Text style={cs.editHeaderTitle}>{showCompanyEdit ? (companyEditId ? "Edit Company" : "Add Company") : "Edit Profile"}</Text>
             <TouchableOpacity onPress={handleSave} style={cs.editSaveBtn}>
               <Text style={cs.editSaveBtnText}>Save</Text>
             </TouchableOpacity>
           </LinearGradient>
 
           <ScrollView contentContainerStyle={cs.editScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {showCompanyEdit ? (
+              <>
+                <Text style={cs.editSection}>Company Details</Text>
+                <EditField label="Company Name *" value={eCompany} onChange={setECompany} placeholder="e.g. XYZ Pvt Ltd" />
+                <EditField label="Contact Person Name" value={eContactPerson} onChange={setEContactPerson} placeholder="e.g. Ramesh Sharma (HR Manager)" />
+                <SelectField label="Company Type" value={eCompanyType} options={COMPANY_TYPES} onChange={setECompanyType} />
+                <SelectField label="Company Size" value={eCompanySize} options={COMPANY_SIZES} onChange={setECompanySize} />
+                <SelectField label="Industry" value={eIndustry} options={INDUSTRIES} onChange={setEIndustry} />
+                <EditField label="Year Established" value={eYearEst} onChange={setEYearEst} placeholder="e.g. 2010" keyboardType="number-pad" />
+                <EditField label="Website" value={eWebsite} onChange={setEWebsite} placeholder="e.g. www.yourcompany.com" keyboardType="url" />
+                <EditField label="Company Description" value={eCompanyDesc} onChange={setECompanyDesc} placeholder="Describe your company, culture, products/services…" multiline />
+                <EditField label="WhatsApp Number" value={eWhatsapp} onChange={setEWhatsapp} placeholder="10-digit WhatsApp number" keyboardType="phone-pad" />
+                <EditField label="Area / Location" value={eLocation} onChange={setELocation} placeholder="e.g. MIDC Ambernath" />
+                <EditField label="Full Address" value={eAddress} onChange={setEAddress} placeholder="Plot no, street, area…" multiline />
+                <EditField label="PIN Code" value={ePincode} onChange={setEPincode} placeholder="e.g. 421501" keyboardType="number-pad" />
+                <EditField label="GST Number" value={eGst} onChange={setEGst} placeholder="e.g. 27AABCU9603R1ZX" />
+                <TouchableOpacity onPress={saveCompany} style={cs.saveBtnFull} activeOpacity={0.85}>
+                  <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cs.saveBtnGrad}>
+                    <Feather name="check" size={18} color="white" />
+                    <Text style={cs.saveBtnText}>{companyEditId ? "Save Company" : "Add Company"}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            ) : (
             {descriptionOnlyEdit ? (
               <>
                 <Text style={cs.editSection}>Company Description</Text>
@@ -681,6 +764,7 @@ export default function JobsProfileScreen() {
                 </TouchableOpacity>
               </>
             )}
+            )}
           </ScrollView>
         </View>
       </Modal>
@@ -755,6 +839,13 @@ const cs = StyleSheet.create({
   overviewGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   overviewChip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFEDD5", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   overviewChipText: { fontSize: 12, fontWeight: "600", color: "#EA580C", fontFamily: "Inter_600SemiBold" },
+  companyRow: { gap: 10, paddingRight: 8 },
+  companyCard: { width: 210, backgroundColor: "#FFF7ED", borderRadius: 16, padding: 12, borderWidth: 1, borderColor: "#FED7AA" },
+  companyTop: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
+  companyName: { fontSize: 14, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
+  companyMeta: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 2 },
+  companyEditBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: "white", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FED7AA" },
+  addCompanyCard: { width: 140, minHeight: 92, backgroundColor: "white", borderRadius: 16, padding: 12, borderWidth: 1.5, borderColor: "#FED7AA", borderStyle: "dashed", alignItems: "center", justifyContent: "center", gap: 6 },
   emptyCard: { flexDirection: "row", alignItems: "center", gap: 10, justifyContent: "center", paddingVertical: 20, borderWidth: 1.5, borderColor: "#FED7AA", borderStyle: "dashed" },
   emptyCardText: { fontSize: 13, color: "#EA580C", fontFamily: "Inter_500Medium" },
   addInfoBtn: { paddingVertical: 8 },

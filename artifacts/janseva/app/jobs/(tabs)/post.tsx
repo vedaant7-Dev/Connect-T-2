@@ -8,6 +8,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobsAuth } from "@/context/JobsAuthContext";
 import { useJobs, categoryConfig, typeConfig, JobCategory, JobType } from "@/context/JobsContext";
+import { useJobsAuth } from "@/context/JobsAuthContext";
 import { useRouter } from "expo-router";
 
 const categories = Object.entries(categoryConfig).map(([id, cfg]) => ({ id: id as JobCategory, ...cfg }));
@@ -130,6 +131,7 @@ export default function PostJobScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [posted, setPosted] = useState(false);
   const [postedTitle, setPostedTitle] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
 
   if (!jobsUser || jobsUser.role !== "employer") {
     return (
@@ -194,10 +196,12 @@ export default function PostJobScreen() {
 
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 800));
+    const selectedCompany = jobsUser.companies?.find((c) => c.id === selectedCompanyId) || jobsUser.companies?.[0];
+    if (!selectedCompany) { Alert.alert("Add a company first"); return; }
     addJob({
       employerId: jobsUser.id,
       employerName: jobsUser.name,
-      company: jobsUser.company || jobsUser.name,
+      company: selectedCompany.name,
       title: title.trim(),
       category,
       type,
@@ -222,6 +226,16 @@ export default function PostJobScreen() {
         <Text style={styles.headerTitle}>Post a Job</Text>
         <Text style={styles.headerSub}>Fill in the details to attract candidates</Text>
       </LinearGradient>
+        <View style={styles.field}>
+          <Text style={styles.label}>Select Company *</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.companySelectRow}>
+            {(jobsUser.companies || []).map((company) => (
+              <TouchableOpacity key={company.id} onPress={() => setSelectedCompanyId(company.id)} style={[styles.companySelectChip, selectedCompanyId === company.id && styles.companySelectChipActive]}>
+                <Text style={[styles.companySelectText, selectedCompanyId === company.id && styles.companySelectTextActive]}>{company.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
       <ScrollView
         style={{ flex: 1 }}
@@ -353,6 +367,11 @@ const styles = StyleSheet.create({
   form: { padding: 16, gap: 4 },
   field: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: "600", color: "#475569", fontFamily: "Inter_600SemiBold", marginBottom: 8 },
+  companySelectRow: { gap: 8, paddingRight: 8 },
+  companySelectChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1.5, borderColor: "#FED7AA", backgroundColor: "white" },
+  companySelectChipActive: { backgroundColor: "#EA580C", borderColor: "#EA580C" },
+  companySelectText: { fontSize: 13, color: "#92400E", fontFamily: "Inter_500Medium" },
+  companySelectTextActive: { color: "white" },
   input: { backgroundColor: "white", borderWidth: 1.5, borderColor: "#FED7AA", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular" },
   textarea: { minHeight: 90, paddingTop: 12 },
   row: { flexDirection: "row", gap: 10 },

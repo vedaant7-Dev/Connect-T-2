@@ -41,6 +41,23 @@ export interface JobsUser {
   whatsapp?: string;
   yearEstablished?: string;
   contactPerson?: string;
+  companies?: CompanyProfile[];
+}
+
+export interface CompanyProfile {
+  id: string;
+  name: string;
+  type?: string;
+  size?: string;
+  industry?: string;
+  website?: string;
+  description?: string;
+  address?: string;
+  pincode?: string;
+  whatsapp?: string;
+  yearEstablished?: string;
+  contactPerson?: string;
+  gstNo?: string;
 }
 
 export interface ProfileField {
@@ -100,6 +117,8 @@ interface JobsAuthContextType {
   loginJobs: (phone: string, role: JobsUserRole) => Promise<boolean>;
   logoutJobs: () => Promise<void>;
   updateJobsUser: (data: Partial<JobsUser>) => Promise<void>;
+  addCompany: (company: Omit<CompanyProfile, "id">) => Promise<string | undefined>;
+  updateCompany: (companyId: string, company: Partial<CompanyProfile>) => Promise<void>;
 }
 
 const JobsAuthContext = createContext<JobsAuthContextType | null>(null);
@@ -112,6 +131,10 @@ export function randomColor() {
 
 function generateId() {
   return "JU" + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase();
+}
+
+function generateCompanyId() {
+  return "CO" + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase();
 }
 
 export function JobsAuthProvider({ children }: { children: ReactNode }) {
@@ -132,7 +155,7 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const registerJobs = async (data: Omit<JobsUser, "id" | "createdAt">) => {
-    await save({ ...data, id: generateId(), createdAt: new Date().toISOString() });
+    await save({ ...data, id: generateId(), createdAt: new Date().toISOString(), companies: data.companies?.map((c) => ({ ...c, id: c.id || generateCompanyId() })) });
   };
 
   const loginJobs = async (phone: string, role: JobsUserRole): Promise<boolean> => {
@@ -153,8 +176,23 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
     await save({ ...jobsUser, ...data });
   };
 
+  const addCompany = async (company: Omit<CompanyProfile, "id">) => {
+    if (!jobsUser) return;
+    const next = { ...company, id: generateCompanyId() };
+    await save({ ...jobsUser, companies: [...(jobsUser.companies || []), next] });
+    return next.id;
+  };
+
+  const updateCompany = async (companyId: string, company: Partial<CompanyProfile>) => {
+    if (!jobsUser) return;
+    await save({
+      ...jobsUser,
+      companies: (jobsUser.companies || []).map((c) => (c.id === companyId ? { ...c, ...company } : c)),
+    });
+  };
+
   return (
-    <JobsAuthContext.Provider value={{ jobsUser, loading, registerJobs, loginJobs, logoutJobs, updateJobsUser }}>
+    <JobsAuthContext.Provider value={{ jobsUser, loading, registerJobs, loginJobs, logoutJobs, updateJobsUser, addCompany, updateCompany }}>
       {children}
     </JobsAuthContext.Provider>
   );
