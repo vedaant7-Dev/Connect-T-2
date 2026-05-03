@@ -12,6 +12,7 @@ import {
   Modal,
   Animated,
   Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -60,6 +61,7 @@ export default function LoginScreen() {
   const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
 
   const successAnim = useRef(new Animated.Value(0)).current;
+  const { height: windowHeight } = useWindowDimensions();
 
   const switchTab = (tab: AuthTab) => {
     setActiveTab(tab);
@@ -483,10 +485,13 @@ export default function LoginScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={topPad + 20}
       >
         <ScrollView
-          contentContainerStyle={s.scroll}
+          contentContainerStyle={[s.scroll, { minHeight: windowHeight, paddingBottom: Math.max(insets.bottom, 24) + 40 }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
           <Text style={s.connectTitle}>Connect T</Text>
@@ -590,7 +595,7 @@ export default function LoginScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 40, alignItems: "center" },
+  scroll: { padding: 20, alignItems: "center", flexGrow: 1 },
   langRow: { flexDirection: "row", gap: 8, marginBottom: 20, alignSelf: "center" },
   langPill: {
     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
