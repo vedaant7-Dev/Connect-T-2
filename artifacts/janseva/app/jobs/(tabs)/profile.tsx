@@ -229,6 +229,12 @@ export default function JobsProfileScreen() {
     setEditing(true);
   };
 
+  const openFullSeekerEdit = () => {
+    setShowCompanyEdit(false);
+    setDescriptionOnlyEdit(false);
+    openEdit();
+  };
+
   const openDescriptionEdit = () => {
     setECompanyDesc(jobsUser.companyDescription || "");
     setDescriptionOnlyEdit(true);
@@ -332,11 +338,7 @@ export default function JobsProfileScreen() {
             )}
             {!isEmployer && <Text style={cs.headerSub}>+91 {jobsUser.phone}</Text>}
           </View>
-          <TouchableOpacity onPress={() => {
-            setShowCompanyEdit(false);
-            setDescriptionOnlyEdit(false);
-            openEdit();
-          }} style={cs.editBtn}>
+          <TouchableOpacity onPress={openFullSeekerEdit} style={cs.editBtn}>
             <Feather name="edit-2" size={16} color="white" />
           </TouchableOpacity>
         </View>
@@ -660,6 +662,33 @@ export default function JobsProfileScreen() {
                 <Text style={cs.editSection}>Basic Information</Text>
                 <EditField label="Full Name *" value={eName} onChange={setEName} placeholder="Your full name" />
                 <EditField label="Email Address" value={eEmail} onChange={setEEmail} placeholder="you@email.com" keyboardType="email-address" />
+                <Text style={cs.editSection}>Profile Details</Text>
+                <EditField label="Age" value={eAge} onChange={setEAge} placeholder="Age" keyboardType="number-pad" />
+                <EditField label="Qualification" value={eQual} onChange={setEQual} placeholder="Highest qualification" />
+                <EditField label="Skills" value={eSkills} onChange={setESkills} placeholder="Comma separated skills" />
+                <EditField label="About / Objective" value={eAbout} onChange={setEAbout} placeholder="Write a short intro" multiline />
+                <SelectField label="Current Status" value={eStatus} options={STATUS_OPTIONS.map((s) => s.id)} onChange={(v) => setEStatus(v as CurrentStatus)} />
+                {eStatus === "employed" && (
+                  <>
+                    <EditField label="Current Company" value={eCurrentCompany} onChange={setECurrentCompany} placeholder="Current company" />
+                    <EditField label="Current Role" value={eCurrentRole} onChange={setECurrentRole} placeholder="Current role" />
+                  </>
+                )}
+                {eStatus === "unemployed" && (
+                  <>
+                    <EditField label="Previous Company" value={ePrevCompany} onChange={setEPrevCompany} placeholder="Previous company" />
+                    <EditField label="Previous Role" value={ePrevRole} onChange={setEPrevRole} placeholder="Previous role" />
+                    <EditField label="Experience" value={eExperience} onChange={setEExperience} placeholder="Total experience" />
+                  </>
+                )}
+                {eStatus === "student" && (
+                  <>
+                    <EditField label="College Name" value={eCollegeName} onChange={setECollegeName} placeholder="College name" />
+                    <EditField label="Field of Study" value={eFieldOfStudy} onChange={setEFieldOfStudy} placeholder="Field of study" />
+                  </>
+                )}
+                <EditField label="Location" value={eLocation} onChange={setELocation} placeholder="Current location" />
+                <EditField label="Languages" value={eLanguages} onChange={setELanguages} placeholder="Languages known" />
                 <TouchableOpacity onPress={handleSave} style={cs.saveBtnFull} activeOpacity={0.85}>
                   <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cs.saveBtnGrad}>
                     <Feather name="check" size={18} color="white" />
