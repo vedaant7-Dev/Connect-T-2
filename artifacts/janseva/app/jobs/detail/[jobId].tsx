@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -33,7 +33,7 @@ export default function JobDetailScreen() {
 
   const openWhatsApp = async () => {
     if (!contactPhone) return;
-    const url = `https://wa.me/${contactPhone.replace(/\D/g, "")}`;
+    const url = `https://wa.me/${contactPhone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi, I’m interested in ${job.title}.`)}`;
     await Linking.openURL(url);
   };
 
@@ -78,6 +78,23 @@ export default function JobDetailScreen() {
             {contactPhone ? (
               <TouchableOpacity style={s.whatsappBtn} onPress={openWhatsApp} activeOpacity={0.85}>
                 <Feather name="phone" size={16} color="white" />
+                <Text style={s.actionText}>WhatsApp</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={s.card}>
+          <Text style={s.sectionTitle}>Job Contact</Text>
+          <Text style={s.body}>Tap chat to open a detailed chat screen or WhatsApp to contact the employer directly.</Text>
+          <View style={s.actionRow}>
+            <TouchableOpacity style={s.actionBtn} onPress={openChat} activeOpacity={0.85}>
+              <Feather name="send" size={16} color="white" />
+              <Text style={s.actionText}>Open Chat</Text>
+            </TouchableOpacity>
+            {contactPhone ? (
+              <TouchableOpacity style={s.whatsappBtn} onPress={openWhatsApp} activeOpacity={0.85}>
+                <Feather name="message-circle" size={16} color="white" />
                 <Text style={s.actionText}>WhatsApp</Text>
               </TouchableOpacity>
             ) : null}

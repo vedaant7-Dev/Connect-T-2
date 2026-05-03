@@ -604,7 +604,7 @@ export default function JobsHomeScreen() {
                       <Text style={s.sectionBadgeText}>{nearbyJobs.length}</Text>
                     </View>
                   </View>
-                  {nearbyJobs.map((job) => (
+              {nearbyJobs.map((job) => (
                     <JobCard
                       key={job.id}
                       job={job}
