@@ -23,7 +23,7 @@ export default function JobStatusScreen() {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} style={s.header}>
+      <LinearGradient colors={["#059669", "#10B981", "#34D399"]} style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.8}>
           <Feather name="arrow-left" size={18} color="white" />
         </TouchableOpacity>

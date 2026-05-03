@@ -43,7 +43,7 @@ function JobCard({ job, onApply, applied, near }: { job: Job; applied: boolean; 
     <View style={s.card}>
       {near && (
         <View style={s.nearBadge}>
-          <Feather name="map-pin" size={10} color="#EA580C" />
+          <Feather name="map-pin" size={10} color="#059669" />
           <Text style={s.nearBadgeText}>Near You</Text>
         </View>
       )}
@@ -87,8 +87,8 @@ function JobCard({ job, onApply, applied, near }: { job: Job; applied: boolean; 
         <Text style={s.applicantsText}>{job.applicants.length} applied</Text>
         {applied ? (
           <View style={s.applyBtnDone}>
-            <Feather name="check" size={14} color="#EA580C" />
-            <Text style={[s.applyBtnText, { color: "#EA580C" }]}>Applied</Text>
+            <Feather name="check" size={14} color="#059669" />
+            <Text style={[s.applyBtnText, { color: "#059669" }]}>Applied</Text>
           </View>
         ) : (
           <TouchableOpacity onPress={onApply} activeOpacity={0.85} style={s.applyBtn}>
@@ -181,7 +181,7 @@ function ApplicantsModal({
       {status === "pending" && (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity onPress={() => onShortlist(job.id, id)} style={s.appActionBtn}>
-            <LinearGradient colors={["#C2410C", "#EA580C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.appActionGrad}>
+            <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.appActionGrad}>
               <Feather name="check" size={12} color="white" />
               <Text style={s.appActionText}>Shortlist</Text>
             </LinearGradient>
@@ -196,7 +196,7 @@ function ApplicantsModal({
       )}
       {status === "shortlisted" && (
         <View style={[s.statusPill, { backgroundColor: "#D1FAE5" }]}>
-          <Text style={[s.statusPillText, { color: "#EA580C" }]}>Shortlisted</Text>
+          <Text style={[s.statusPillText, { color: "#059669" }]}>Shortlisted</Text>
         </View>
       )}
       {status === "rejected" && (
@@ -230,7 +230,7 @@ function ApplicantsModal({
             </View>
             <Feather name="arrow-right" size={14} color="#CBD5E1" />
             <View style={[s.pipePill, { backgroundColor: "#D1FAE5", borderColor: "#A7F3D0" }]}>
-              <Text style={[s.pipeNum, { color: "#EA580C" }]}>{shortlisted.length}</Text>
+              <Text style={[s.pipeNum, { color: "#059669" }]}>{shortlisted.length}</Text>
               <Text style={s.pipeLabel}>Shortlisted</Text>
             </View>
             <Feather name="arrow-right" size={14} color="#CBD5E1" />
@@ -249,7 +249,7 @@ function ApplicantsModal({
             )}
             {shortlisted.length > 0 && (
               <>
-                <Text style={[s.appSectionLabel, { color: "#EA580C" }]}>Shortlisted ({shortlisted.length})</Text>
+                <Text style={[s.appSectionLabel, { color: "#059669" }]}>Shortlisted ({shortlisted.length})</Text>
                 {shortlisted.map((id) => <ApplicantRow key={id} id={id} status="shortlisted" />)}
               </>
             )}
@@ -325,8 +325,8 @@ function EmployerDashboard({
 
       <View style={s.kpiRow}>
         <TouchableOpacity style={[s.kpiSmall, { backgroundColor: "#D1FAE5", borderColor: "#A7F3D0" }]} onPress={() => router.push("/jobs/status?status=shortlisted" as any)} activeOpacity={0.85}>
-          <Feather name="user-check" size={16} color="#EA580C" />
-          <Text style={[s.kpiSmallNum, { color: "#EA580C" }]}>{totalShortlisted}</Text>
+          <Feather name="user-check" size={16} color="#059669" />
+          <Text style={[s.kpiSmallNum, { color: "#059669" }]}>{totalShortlisted}</Text>
           <Text style={s.kpiSmallLabel}>Shortlisted</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.kpiSmall, { backgroundColor: "#FEE2E2", borderColor: "#FECACA" }]} onPress={() => router.push("/jobs/status?status=rejected" as any)} activeOpacity={0.85}>
@@ -366,7 +366,7 @@ function EmployerDashboard({
 
       {/* Post job CTA */}
       <TouchableOpacity onPress={onPostJob} activeOpacity={0.85} style={s.postCtaWrap}>
-        <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.postCta}>
+        <LinearGradient colors={["#059669", "#10B981", "#34D399"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.postCta}>
           <Feather name="plus-circle" size={20} color="white" />
           <Text style={s.postCtaText}>Post a New Job</Text>
           <Feather name="arrow-right" size={16} color="rgba(255,255,255,0.7)" />
@@ -419,7 +419,7 @@ function EmployerDashboard({
                 </View>
                 <View style={s.perfDivider} />
                 <View style={s.perfStat}>
-                  <Text style={[s.perfStatNum, { color: "#EA580C" }]}>{job.shortlisted.length}</Text>
+                  <Text style={[s.perfStatNum, { color: "#059669" }]}>{job.shortlisted.length}</Text>
                   <Text style={s.perfStatLabel}>Shortlisted</Text>
                 </View>
                 <View style={s.perfDivider} />
@@ -605,7 +605,7 @@ export default function JobsHomeScreen() {
               {nearbyJobs.length > 0 && (
                 <View style={s.section}>
                   <View style={s.sectionHeader}>
-                    <Feather name="map-pin" size={15} color="#EA580C" />
+                    <Feather name="map-pin" size={15} color="#059669" />
                     <Text style={s.sectionTitle}>Jobs Near You</Text>
                     <View style={s.sectionBadge}>
                       <Text style={s.sectionBadgeText}>{nearbyJobs.length}</Text>
