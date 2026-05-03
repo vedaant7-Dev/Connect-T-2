@@ -44,6 +44,8 @@ export interface JobsUser {
   companies?: CompanyProfile[];
 }
 
+type JobsUserStore = Record<string, JobsUser>;
+
 export interface CompanyProfile {
   id: string;
   name: string;
@@ -122,7 +124,7 @@ interface JobsAuthContextType {
 }
 
 const JobsAuthContext = createContext<JobsAuthContextType | null>(null);
-const STORAGE_KEY = "connectt_jobs_user";
+const STORAGE_KEY = "janseva_jobs_users_v1";
 const COLORS = ["#C2410C", "#EA580C", "#D97706", "#92400E", "#7C3AED", "#059669", "#0369A1"];
 
 export function randomColor() {
@@ -143,15 +145,27 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) { try { setJobsUser(JSON.parse(raw)); } catch {} }
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as JobsUserStore;
+          const values = Object.values(parsed);
+          if (values[0]) setJobsUser(values[0]);
+        } catch {}
+      }
       setLoading(false);
     });
   }, []);
 
   const save = async (user: JobsUser | null) => {
     setJobsUser(user);
-    if (user) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    else await AsyncStorage.removeItem(STORAGE_KEY);
+    if (!user) {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const existing = raw ? (JSON.parse(raw) as JobsUserStore) : {};
+    existing[`${user.phone}:${user.role}`] = user;
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
   };
 
   const registerJobs = async (data: Omit<JobsUser, "id" | "createdAt">) => {
@@ -162,8 +176,9 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
-        const existing = JSON.parse(raw) as JobsUser;
-        if (existing.phone === phone && existing.role === role) { setJobsUser(existing); return true; }
+        const existing = JSON.parse(raw) as JobsUserStore;
+        const user = existing[`${phone}:${role}`];
+        if (user) { setJobsUser(user); return true; }
       } catch {}
     }
     return false;
