@@ -52,6 +52,7 @@ export default function LoginScreen() {
 
   const [loginPhone, setLoginPhone] = useState("");
   const [loginId, setLoginId] = useState("");
+  const [previewText, setPreviewText] = useState("");
 
   const otpRef1 = useRef<TextInput>(null);
   const otpRef2 = useRef<TextInput>(null);
@@ -202,6 +203,11 @@ export default function LoginScreen() {
 
   const renderOtpInput = () => (
     <View style={s.otpSection}>
+      <View style={s.previewCard}>
+        <Text style={s.previewLabel}>Preview</Text>
+        <Text style={s.previewValue}>{previewText || otpDigits.join("") || "—"}</Text>
+        <Text style={s.previewHint}>You can see what you typed here.</Text>
+      </View>
       <View style={s.otpIconWrap}>
         <Feather name="smartphone" size={28} color="#EA580C" />
       </View>
@@ -214,7 +220,11 @@ export default function LoginScreen() {
             ref={otpRefs[i]}
             style={[s.otpBox, digit ? s.otpBoxFilled : null]}
             value={digit}
-            onChangeText={(v) => setOtpDigit(i, v.slice(-1), otpRefs)}
+            onChangeText={(v) => {
+              const next = v.slice(-1);
+              setPreviewText((activeTab === "register" ? regPhone : loginPhone) + next);
+              setOtpDigit(i, next, otpRefs);
+            }}
             keyboardType="number-pad"
             maxLength={1}
             textAlign="center"
@@ -256,7 +266,10 @@ export default function LoginScreen() {
         placeholder={t("enterFullName")}
         placeholderTextColor="#94A3B8"
         value={regName}
-        onChangeText={setRegName}
+        onChangeText={(v) => {
+          setRegName(v);
+          setPreviewText(v);
+        }}
         autoCapitalize="words"
       />
 
@@ -268,7 +281,10 @@ export default function LoginScreen() {
         keyboardType="number-pad"
         maxLength={3}
         value={regAge}
-        onChangeText={setRegAge}
+        onChangeText={(v) => {
+          setRegAge(v);
+          setPreviewText(v);
+        }}
       />
 
       <Text style={s.fieldLabel}>
@@ -281,7 +297,10 @@ export default function LoginScreen() {
         keyboardType="email-address"
         autoCapitalize="none"
         value={regEmail}
-        onChangeText={setRegEmail}
+        onChangeText={(v) => {
+          setRegEmail(v);
+          setPreviewText(v);
+        }}
       />
 
       <Text style={s.fieldLabel}>
@@ -294,7 +313,10 @@ export default function LoginScreen() {
         multiline
         numberOfLines={2}
         value={regAddress}
-        onChangeText={setRegAddress}
+        onChangeText={(v) => {
+          setRegAddress(v);
+          setPreviewText(v);
+        }}
       />
 
       <Text style={s.fieldLabel}>
@@ -311,7 +333,10 @@ export default function LoginScreen() {
           keyboardType="phone-pad"
           maxLength={10}
           value={regPhone}
-          onChangeText={setRegPhone}
+          onChangeText={(v) => {
+            setRegPhone(v);
+            setPreviewText(v);
+          }}
         />
       </View>
 
@@ -419,7 +444,10 @@ export default function LoginScreen() {
           keyboardType="phone-pad"
           maxLength={10}
           value={loginPhone}
-          onChangeText={setLoginPhone}
+        onChangeText={(v) => {
+          setLoginPhone(v);
+          setPreviewText(v);
+        }}
         />
       </View>
 
@@ -432,7 +460,10 @@ export default function LoginScreen() {
         placeholderTextColor="#94A3B8"
         autoCapitalize="characters"
         value={loginId}
-        onChangeText={setLoginId}
+        onChangeText={(v) => {
+          setLoginId(v);
+          setPreviewText(v);
+        }}
       />
       <Text style={s.helperText}>{t("nagarsevakIdHelp")}</Text>
 
