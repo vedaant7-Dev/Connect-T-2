@@ -249,6 +249,7 @@ export default function PostJobScreen() {
   }
 
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!title.trim()) { Alert.alert("Enter job title"); return; }
     if (category === "other" && !customCategory.trim()) { Alert.alert("Enter your custom job category"); return; }
     if (!salary.trim()) { Alert.alert("Enter salary range"); return; }
@@ -256,31 +257,33 @@ export default function PostJobScreen() {
     if (!requirements.trim()) { Alert.alert("Enter requirements"); return; }
 
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 800));
-    const selectedCompany = companies.find((c) => c.id === selectedCompanyId) || companies[0];
-    if (!selectedCompany) {
+    try {
+      await new Promise((r) => setTimeout(r, 300));
+      const selectedCompany = companies.find((c) => c.id === selectedCompanyId) || companies[0];
+      if (!selectedCompany) {
+        Alert.alert("Add a company first");
+        return;
+      }
+      addJob({
+        employerId: jobsUser.id,
+        employerName: jobsUser.name,
+        company: selectedCompany.name,
+        employerPhone: jobsUser.phone,
+        employerWhatsApp: jobsUser.whatsapp || jobsUser.phone,
+        title: title.trim(),
+        category,
+        type,
+        salary: salary.trim(),
+        location: location.trim(),
+        openings: parseInt(openings) || 1,
+        description: description.trim(),
+        requirements: requirements.trim(),
+      });
+      setPostedTitle(title.trim());
+      setPosted(true);
+    } finally {
       setSubmitting(false);
-      Alert.alert("Add a company first");
-      return;
     }
-    addJob({
-      employerId: jobsUser.id,
-      employerName: jobsUser.name,
-      company: selectedCompany.name,
-      employerPhone: jobsUser.phone,
-      employerWhatsApp: jobsUser.whatsapp || jobsUser.phone,
-      title: title.trim(),
-      category,
-      type,
-      salary: salary.trim(),
-      location: location.trim(),
-      openings: parseInt(openings) || 1,
-      description: description.trim(),
-      requirements: requirements.trim(),
-    });
-    setPostedTitle(title.trim());
-    setSubmitting(false);
-    setPosted(true);
   };
 
   if (!selectedCompanyId && defaultCompanyId) {
