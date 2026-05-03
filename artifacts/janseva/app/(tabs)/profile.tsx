@@ -197,7 +197,7 @@ export default function ProfileScreen() {
             </View>
             <TouchableOpacity style={styles.switchPortalBtn} onPress={switchPortal} activeOpacity={0.85}>
               <Feather name="refresh-cw" size={12} color="#EA580C" />
-              <Text style={styles.switchPortalText}>Switch to Job Portal</Text>
+              <Text style={styles.switchPortalText}>Switch to portal</Text>
             </TouchableOpacity>
             <View style={styles.infoRow}>
               <View style={styles.infoChipRow}>

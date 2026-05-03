@@ -268,7 +268,7 @@ export default function JobsProfileScreen() {
         </View>
         <TouchableOpacity style={cs.switchBtn} onPress={switchPortal} activeOpacity={0.85}>
           <Feather name="refresh-cw" size={13} color="#EA580C" />
-          <Text style={cs.switchBtnText}>Switch to Civic Services</Text>
+          <Text style={cs.switchBtnText}>Switch to civic service</Text>
         </TouchableOpacity>
 
         {!isEmployer && (
