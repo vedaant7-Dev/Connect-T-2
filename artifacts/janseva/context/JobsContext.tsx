@@ -41,7 +41,7 @@ interface JobsContextType {
 }
 
 const JobsContext = createContext<JobsContextType | null>(null);
-const STORAGE_KEY = "connectt_jobs_listings_v3";
+const STORAGE_KEY = "janseva_jobs_listings_v4";
 
 function generateId() {
   return "JOB" + Date.now().toString().slice(-6) + Math.random().toString(36).substr(2, 3).toUpperCase();
@@ -56,13 +56,14 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       if (raw) {
         try {
           const parsed: Job[] = JSON.parse(raw);
-          // migrate old jobs that lack shortlisted/rejected
-          const migrated = parsed.map((j) => ({
-            ...j,
-            hired: j.hired || [],
-            shortlisted: j.shortlisted || [],
-            rejected: j.rejected || [],
-          }));
+          const migrated = parsed
+            .map((j) => ({
+              ...j,
+              hired: j.hired || [],
+              shortlisted: j.shortlisted || [],
+              rejected: j.rejected || [],
+            }))
+            .filter((j) => typeof j.employerId === "string" && j.employerId.trim() !== "");
           setJobs(migrated);
           return;
         } catch {}
