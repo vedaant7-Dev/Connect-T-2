@@ -679,7 +679,9 @@ export default function JobsProfileScreen() {
                     <Text style={cs.saveBtnText}>Save Profile</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-              </ScrollView>
+              </>
+            )}
+          </ScrollView>
         </View>
       </Modal>
 
