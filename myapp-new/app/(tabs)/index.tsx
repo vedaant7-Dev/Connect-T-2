@@ -1,12 +1,28 @@
-import { WebView } from "react-native-webview";
+import { StyleSheet, Text, View } from "react-native";
 
-export default function HomeScreen() {
+export default function TabOneScreen() {
   return (
-    <WebView
-      source={{
-        uri: "https://17fa4b5d-9197-419c-be2e-9f6187a017ed-00-3sf2btqku6kyu.pike.replit.dev:3000",
-      }}
-      style={{ flex: 1 }}
-    />
+    <View style={styles.container}>
+      <Text style={styles.title}>Replit Agent is building...</Text>
+      <Text style={styles.text}>Your app will appear here once it's ready.</Text>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  text: {
+    fontSize: 16,
+    textAlign: "center",
+    paddingHorizontal: 20,
+  },
+});
