@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Connect-T",
-    "slug": "Connect-T",
+    "slug": "myapp-new",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
