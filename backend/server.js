@@ -46,12 +46,6 @@ app.get("/api/health", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Connect-T backend running on port ${PORT}`);
-});
-app.get("/", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Connect-T Railway backend running",
-  });
 });
