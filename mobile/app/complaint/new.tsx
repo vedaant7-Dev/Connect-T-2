@@ -146,7 +146,7 @@ export default function NewComplaintScreen() {
           photo_url: photoUri || null,
           location,
           ward: user?.ward || "Ward 6A",
-          ward_code: (user as any)?.wardCode || "6A",
+          ward_code: (user as any)?.wardCode || null,
           assigned_officer_id: (user as any)?.nagarsevakId || null,
           user_id: user?.id || null,
           user_name: user?.name || null,

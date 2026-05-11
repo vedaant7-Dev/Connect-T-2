@@ -21,7 +21,7 @@ import { router } from "expo-router";
 
 import { useAuth } from "@/context/AuthContext";
 import TopShade from "@/components/TopShade";
-import { ambernathWards } from "@/data/mumbaiServices";
+import { WARDS } from "@/data/wards";
 import { useLanguage, languageOptions } from "@/context/LanguageContext";
 
 type AuthTab = "register" | "login";
@@ -48,6 +48,7 @@ export default function LoginScreen() {
   const [regAddress, setRegAddress] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regWard, setRegWard] = useState("");
+  const [regWardCode, setRegWardCode] = useState("");
   const [notifyEmail, setNotifyEmail] = useState(false);
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
 
@@ -70,7 +71,11 @@ export default function LoginScreen() {
     setOtpDigits(["", "", "", ""]);
   };
 
-  const setOtpDigit = (index: number, value: string, refs: React.RefObject<TextInput | null>[]) => {
+  const setOtpDigit = (
+    index: number,
+    value: string,
+    refs: React.RefObject<TextInput | null>[],
+  ) => {
     const newDigits = [...otpDigits];
     newDigits[index] = value;
     setOtpDigits(newDigits);
@@ -90,7 +95,10 @@ export default function LoginScreen() {
       setError(t("enterValidAge"));
       return;
     }
-    if (regEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail.trim())) {
+    if (
+      regEmail.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail.trim())
+    ) {
       setError(t("enterValidEmail"));
       return;
     }
@@ -129,6 +137,7 @@ export default function LoginScreen() {
         mobile: regPhone.trim().replace(/\D/g, ""),
         role: "citizen",
         ward: regWard,
+        wardCode: regWardCode,
         age: parseInt(regAge, 10),
         email: regEmail.trim() || undefined,
         address: regAddress.trim(),
@@ -174,7 +183,11 @@ export default function LoginScreen() {
       const phone = loginPhone.trim().replace(/\D/g, "");
       const user = await loginWithPhone(phone);
       if (user) {
-        router.replace(user.role === "nagarsevak" ? "/(tabs)/admin" as any : "/portal-select" as any);
+        router.replace(
+          user.role === "nagarsevak"
+            ? ("/(tabs)/admin" as any)
+            : ("/portal-select" as any),
+        );
       } else {
         setError(t("accountNotFound"));
         setLoginStep("form");
@@ -193,7 +206,9 @@ export default function LoginScreen() {
         <Feather name="smartphone" size={28} color="#EA580C" />
       </View>
       <Text style={s.otpTitle}>{t("otpVerification")}</Text>
-      <Text style={s.otpSub}>{t("otpSent")} +91 {activeTab === "register" ? regPhone : loginPhone}</Text>
+      <Text style={s.otpSub}>
+        {t("otpSent")} +91 {activeTab === "register" ? regPhone : loginPhone}
+      </Text>
       <View style={s.otpRow}>
         {otpDigits.map((digit, i) => (
           <TextInput
@@ -227,7 +242,12 @@ export default function LoginScreen() {
         {loading ? (
           <ActivityIndicator color="white" />
         ) : (
-          <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtnGrad}>
+          <LinearGradient
+            colors={["#059669", "#10B981"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={s.primaryBtnGrad}
+          >
             <Text style={s.primaryBtnText}>{t("verifyOtp")}</Text>
             <Feather name="check" size={18} color="white" />
           </LinearGradient>
@@ -323,7 +343,11 @@ export default function LoginScreen() {
         onPress={() => setWardModal(true)}
         activeOpacity={0.8}
       >
-        <Feather name="map-pin" size={14} color={regWard ? "#EA580C" : "#94A3B8"} />
+        <Feather
+          name="map-pin"
+          size={14}
+          color={regWard ? "#EA580C" : "#94A3B8"}
+        />
         <Text style={[s.pickerText, !regWard && { color: "#94A3B8" }]}>
           {regWard || t("selectWard")}
         </Text>
@@ -337,7 +361,12 @@ export default function LoginScreen() {
         onPress={handleRegisterSubmit}
         activeOpacity={0.85}
       >
-        <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtnGrad}>
+        <LinearGradient
+          colors={["#059669", "#10B981"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={s.primaryBtnGrad}
+        >
           <Text style={s.primaryBtnText}>{t("continue")}</Text>
           <Feather name="arrow-right" size={18} color="white" />
         </LinearGradient>
@@ -354,7 +383,11 @@ export default function LoginScreen() {
       <Text style={s.otpSub}>{t("allowNotifications")}</Text>
 
       <View style={s.notifSection}>
-        <TouchableOpacity style={s.checkRow} onPress={() => setNotifyEmail(!notifyEmail)} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={s.checkRow}
+          onPress={() => setNotifyEmail(!notifyEmail)}
+          activeOpacity={0.8}
+        >
           <View style={[s.checkbox, notifyEmail && s.checkboxActive]}>
             {notifyEmail && <Feather name="check" size={14} color="white" />}
           </View>
@@ -363,7 +396,11 @@ export default function LoginScreen() {
             <Text style={s.checkSub}>{t("emailNotifDesc")}</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={s.checkRow} onPress={() => setNotifyWhatsapp(!notifyWhatsapp)} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={s.checkRow}
+          onPress={() => setNotifyWhatsapp(!notifyWhatsapp)}
+          activeOpacity={0.8}
+        >
           <View style={[s.checkbox, notifyWhatsapp && s.checkboxActive]}>
             {notifyWhatsapp && <Feather name="check" size={14} color="white" />}
           </View>
@@ -385,7 +422,12 @@ export default function LoginScreen() {
         {loading ? (
           <ActivityIndicator color="white" />
         ) : (
-          <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtnGrad}>
+          <LinearGradient
+            colors={["#059669", "#10B981"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={s.primaryBtnGrad}
+          >
             <Text style={s.primaryBtnText}>{t("registerBtn")}</Text>
             <Feather name="user-plus" size={18} color="white" />
           </LinearGradient>
@@ -395,7 +437,12 @@ export default function LoginScreen() {
   );
 
   const renderSuccess = () => (
-    <Animated.View style={[s.successCard, { opacity: successAnim, transform: [{ scale: successAnim }] }]}>
+    <Animated.View
+      style={[
+        s.successCard,
+        { opacity: successAnim, transform: [{ scale: successAnim }] },
+      ]}
+    >
       <View style={s.successIconWrap}>
         <Feather name="check-circle" size={48} color="#059669" />
       </View>
@@ -419,9 +466,9 @@ export default function LoginScreen() {
           keyboardType="phone-pad"
           maxLength={10}
           value={loginPhone}
-        onChangeText={(v) => {
-          setLoginPhone(v);
-        }}
+          onChangeText={(v) => {
+            setLoginPhone(v);
+          }}
         />
       </View>
 
@@ -432,7 +479,12 @@ export default function LoginScreen() {
         onPress={handleLoginSubmit}
         activeOpacity={0.85}
       >
-        <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtnGrad}>
+        <LinearGradient
+          colors={["#059669", "#10B981"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={s.primaryBtnGrad}
+        >
           <Text style={s.primaryBtnText}>{t("continue")}</Text>
           <Feather name="arrow-right" size={18} color="white" />
         </LinearGradient>
@@ -458,7 +510,13 @@ export default function LoginScreen() {
         keyboardVerticalOffset={topPad + 20}
       >
         <ScrollView
-          contentContainerStyle={[s.scroll, { minHeight: windowHeight, paddingBottom: Math.max(insets.bottom, 24) + 40 }]}
+          contentContainerStyle={[
+            s.scroll,
+            {
+              minHeight: windowHeight,
+              paddingBottom: Math.max(insets.bottom, 24) + 40,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
@@ -473,13 +531,17 @@ export default function LoginScreen() {
                 onPress={() => setLanguage(opt.code)}
                 activeOpacity={0.8}
               >
-                <Text style={[s.langPillText, language === opt.code && s.langPillTextActive]}>
+                <Text
+                  style={[
+                    s.langPillText,
+                    language === opt.code && s.langPillTextActive,
+                  ]}
+                >
                   {opt.nativeLabel}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-
 
           <View style={s.tabBar}>
             <TouchableOpacity
@@ -487,22 +549,42 @@ export default function LoginScreen() {
               onPress={() => switchTab("register")}
               activeOpacity={0.8}
             >
-              <Feather name="user-plus" size={14} color={activeTab === "register" ? "#EA580C" : "#94A3B8"} />
-              <Text style={[s.tabText, activeTab === "register" && s.tabTextActive]}>{t("registerBtn")}</Text>
+              <Feather
+                name="user-plus"
+                size={14}
+                color={activeTab === "register" ? "#EA580C" : "#94A3B8"}
+              />
+              <Text
+                style={[s.tabText, activeTab === "register" && s.tabTextActive]}
+              >
+                {t("registerBtn")}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[s.tab, activeTab === "login" && s.tabActive]}
               onPress={() => switchTab("login")}
               activeOpacity={0.8}
             >
-              <Feather name="log-in" size={14} color={activeTab === "login" ? "#EA580C" : "#94A3B8"} />
-              <Text style={[s.tabText, activeTab === "login" && s.tabTextActive]}>{t("loginBtn")}</Text>
+              <Feather
+                name="log-in"
+                size={14}
+                color={activeTab === "login" ? "#EA580C" : "#94A3B8"}
+              />
+              <Text
+                style={[s.tabText, activeTab === "login" && s.tabTextActive]}
+              >
+                {t("loginBtn")}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {activeTab === "register" && regStep === "form" && renderRegisterForm()}
+          {activeTab === "register" &&
+            regStep === "form" &&
+            renderRegisterForm()}
           {activeTab === "register" && regStep === "otp" && renderOtpInput()}
-          {activeTab === "register" && regStep === "notifications" && renderNotifications()}
+          {activeTab === "register" &&
+            regStep === "notifications" &&
+            renderNotifications()}
           {activeTab === "register" && regStep === "success" && renderSuccess()}
 
           {activeTab === "login" && loginStep === "form" && renderLoginForm()}
@@ -534,12 +616,13 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {ambernathWards.map((ward) => (
+              {WARDS.map((ward) => (
                 <TouchableOpacity
-                  key={ward}
+                  key={ward.label}
                   style={[s.wardRow, regWard === ward && s.wardRowActive]}
                   onPress={() => {
-                    setRegWard(ward);
+                    setRegWard(ward.label);
+                    setRegWardCode(ward.code);
                     setWardModal(false);
                   }}
                   activeOpacity={0.8}
@@ -549,10 +632,20 @@ export default function LoginScreen() {
                     size={14}
                     color={regWard === ward ? "#EA580C" : "#94A3B8"}
                   />
-                  <Text style={[s.wardRowText, regWard === ward && { color: "#EA580C", fontWeight: "700" }]}>
-                    {ward}
+                  <Text
+                    style={[
+                      s.wardRowText,
+                      regWard === ward && {
+                        color: "#EA580C",
+                        fontWeight: "700",
+                      },
+                    ]}
+                  >
+                    {ward.label}
                   </Text>
-                  {regWard === ward && <Feather name="check" size={14} color="#EA580C" />}
+                  {regWard === ward && (
+                    <Feather name="check" size={14} color="#EA580C" />
+                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -566,98 +659,230 @@ export default function LoginScreen() {
 const s = StyleSheet.create({
   root: { flex: 1 },
   scroll: { padding: 20, alignItems: "center", flexGrow: 1 },
-  langRow: { flexDirection: "row", gap: 8, marginBottom: 20, alignSelf: "center" },
+  langRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 20,
+    alignSelf: "center",
+  },
   langPill: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
-  langPillActive: { backgroundColor: "rgba(255,255,255,0.25)", borderColor: "rgba(255,255,255,0.5)" },
-  langPillText: { fontSize: 12, color: "rgba(255,255,255,0.55)", fontFamily: "Inter_600SemiBold", fontWeight: "700" },
+  langPillActive: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  langPillText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.55)",
+    fontFamily: "Inter_600SemiBold",
+    fontWeight: "700",
+  },
   langPillTextActive: { color: "white" },
-  connectTitle: { fontSize: 28, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.5, textAlign: "center", marginBottom: 16 },
-  backPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "white", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, borderColor: "#FED7AA", alignSelf: "center", marginTop: 20, marginBottom: 8 },
-  backPillText: { fontSize: 13, color: "#EA580C", fontFamily: "Inter_600SemiBold", fontWeight: "600" },
+  connectTitle: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  backPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "white",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#FED7AA",
+    alignSelf: "center",
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  backPillText: {
+    fontSize: 13,
+    color: "#EA580C",
+    fontFamily: "Inter_600SemiBold",
+    fontWeight: "600",
+  },
   tabBar: {
-    flexDirection: "row", backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 16, padding: 4, marginBottom: 16, width: "100%",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.15)",
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 16,
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
   },
   tab: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    paddingVertical: 12, borderRadius: 12, gap: 6,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
   },
   tabActive: { backgroundColor: "white" },
-  tabText: { fontSize: 14, fontWeight: "700", color: "rgba(255,255,255,0.6)", fontFamily: "Inter_700Bold" },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.6)",
+    fontFamily: "Inter_700Bold",
+  },
   tabTextActive: { color: "#EA580C" },
 
   formCard: {
-    width: "100%", backgroundColor: "white", borderRadius: 20,
-    padding: 20, gap: 4,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15, shadowRadius: 24, elevation: 8,
+    width: "100%",
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    gap: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
   fieldLabel: {
-    fontSize: 12, fontWeight: "700", color: "#475569",
-    fontFamily: "Inter_600SemiBold", marginTop: 10, marginBottom: 4, paddingLeft: 2,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#475569",
+    fontFamily: "Inter_600SemiBold",
+    marginTop: 10,
+    marginBottom: 4,
+    paddingLeft: 2,
   },
   required: { color: "#DC2626" },
   optional: { color: "#94A3B8", fontWeight: "400" },
   input: {
-    backgroundColor: "#F8FAFC", borderRadius: 12, paddingHorizontal: 14,
-    paddingVertical: 12, fontSize: 14, color: "#0F172A",
-    fontFamily: "Inter_400Regular", borderWidth: 1.5, borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: "#0F172A",
+    fontFamily: "Inter_400Regular",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
     outlineWidth: 0,
   } as any,
   phoneRow: { flexDirection: "row", gap: 8 },
   countryCode: {
-    backgroundColor: "#F1F5F9", borderRadius: 12, paddingHorizontal: 12,
-    justifyContent: "center", borderWidth: 1.5, borderColor: "#E2E8F0",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
   },
-  countryCodeText: { fontSize: 13, fontWeight: "600", color: "#475569", fontFamily: "Inter_600SemiBold" },
+  countryCodeText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#475569",
+    fontFamily: "Inter_600SemiBold",
+  },
   phoneInput: { flex: 1 },
   pickerInput: {
-    flexDirection: "row", alignItems: "center", gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  pickerText: { flex: 1, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular" },
+  pickerText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#0F172A",
+    fontFamily: "Inter_400Regular",
+  },
   helperText: {
-    fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular",
-    paddingLeft: 2, marginTop: 2,
+    fontSize: 11,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+    paddingLeft: 2,
+    marginTop: 2,
   },
   errorText: {
-    fontSize: 12, color: "#DC2626", fontFamily: "Inter_400Regular",
-    textAlign: "center", marginTop: 8,
+    fontSize: 12,
+    color: "#DC2626",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginTop: 8,
   },
-  primaryBtn: { marginTop: 16, borderRadius: 14, overflow: "hidden", width: "100%" },
+  primaryBtn: {
+    marginTop: 16,
+    borderRadius: 14,
+    overflow: "hidden",
+    width: "100%",
+  },
   primaryBtnGrad: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    paddingVertical: 14, gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    gap: 8,
   },
-  primaryBtnText: { fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  primaryBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "white",
+    fontFamily: "Inter_700Bold",
+  },
 
   otpSection: {
-    width: "100%", backgroundColor: "white", borderRadius: 20,
-    padding: 24, alignItems: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15, shadowRadius: 24, elevation: 8,
+    width: "100%",
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
   otpIconWrap: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: "#FFF7ED",
-    alignItems: "center", justifyContent: "center", marginBottom: 12,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FFF7ED",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
   otpTitle: {
-    fontSize: 18, fontWeight: "800", color: "#0F172A",
-    fontFamily: "Inter_700Bold", marginBottom: 6,
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+    marginBottom: 6,
   },
   otpSub: {
-    fontSize: 13, color: "#64748B", fontFamily: "Inter_400Regular",
-    textAlign: "center", marginBottom: 20,
+    fontSize: 13,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginBottom: 20,
   },
   otpRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
   otpBox: {
-    width: 52, height: 56, borderRadius: 14, borderWidth: 2,
-    borderColor: "#E2E8F0", backgroundColor: "#F8FAFC",
-    fontSize: 22, fontWeight: "800", color: "#0F172A",
+    width: 52,
+    height: 56,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0F172A",
     fontFamily: "Inter_700Bold",
     textAlign: "center",
     textAlignVertical: "center",
@@ -665,77 +890,155 @@ const s = StyleSheet.create({
   } as any,
   otpBoxFilled: { borderColor: "#EA580C", backgroundColor: "#FFF7ED" },
   otpHint: {
-    fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
     marginBottom: 4,
   },
 
   notifSection: { width: "100%", gap: 12, marginTop: 16, marginBottom: 8 },
   checkRow: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    paddingVertical: 14, paddingHorizontal: 16,
-    backgroundColor: "#F8FAFC", borderRadius: 14,
-    borderWidth: 1.5, borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
   },
   checkbox: {
-    width: 24, height: 24, borderRadius: 6, borderWidth: 2,
-    borderColor: "#CBD5E1", alignItems: "center", justifyContent: "center",
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxActive: { backgroundColor: "#EA580C", borderColor: "#EA580C" },
-  checkLabel: { fontSize: 14, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_600SemiBold" },
-  checkSub: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 1 },
+  checkLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+    fontFamily: "Inter_600SemiBold",
+  },
+  checkSub: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+    marginTop: 1,
+  },
 
   successCard: {
-    width: "100%", backgroundColor: "white", borderRadius: 20,
-    padding: 32, alignItems: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15, shadowRadius: 24, elevation: 8,
+    width: "100%",
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 32,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
   successIconWrap: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: "#D1FAE5",
-    alignItems: "center", justifyContent: "center", marginBottom: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#D1FAE5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
   successTitle: {
-    fontSize: 20, fontWeight: "800", color: "#059669",
-    fontFamily: "Inter_700Bold", marginBottom: 8,
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#059669",
+    fontFamily: "Inter_700Bold",
+    marginBottom: 8,
   },
   successSub: {
-    fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
     textAlign: "center",
   },
 
   modalOverlay: {
-    flex: 1, backgroundColor: "rgba(0,0,0,0.5)",
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   modalSheet: {
-    backgroundColor: "white", borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    padding: 24, maxHeight: "70%",
+    backgroundColor: "white",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    maxHeight: "70%",
   },
   modalHeader: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
   },
   wardRow: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    paddingVertical: 14, paddingHorizontal: 12, borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     marginBottom: 4,
   },
   wardRowActive: { backgroundColor: "#FFF7ED" },
   wardRowText: {
-    flex: 1, fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular",
+    flex: 1,
+    fontSize: 14,
+    color: "#334155",
+    fontFamily: "Inter_400Regular",
   },
 });
 
 const { width: SW } = Dimensions.get("window");
 const ld = StyleSheet.create({
-  blob: { position: "absolute", borderRadius: 9999, backgroundColor: "rgba(255,255,255,0.20)" },
-  ring: { position: "absolute", borderRadius: 9999, borderColor: "rgba(255,255,255,0.20)", borderWidth: 1.5 },
-  b1: { width: SW * 0.50, height: SW * 0.50, top: -SW * 0.16, right: -SW * 0.14 },
-  b2: { width: SW * 0.28, height: SW * 0.28, bottom: SW * 0.12, left: -SW * 0.08 },
-  r1: { width: SW * 0.88, height: SW * 0.88, top: -SW * 0.32, right: -SW * 0.32 },
-  r2: { width: SW * 0.62, height: SW * 0.62, top: -SW * 0.10, right: -SW * 0.10 },
-  r3: { width: SW * 0.72, height: SW * 0.72, bottom: SW * 0.05, left: -SW * 0.26 },
+  blob: {
+    position: "absolute",
+    borderRadius: 9999,
+    backgroundColor: "rgba(255,255,255,0.20)",
+  },
+  ring: {
+    position: "absolute",
+    borderRadius: 9999,
+    borderColor: "rgba(255,255,255,0.20)",
+    borderWidth: 1.5,
+  },
+  b1: { width: SW * 0.5, height: SW * 0.5, top: -SW * 0.16, right: -SW * 0.14 },
+  b2: {
+    width: SW * 0.28,
+    height: SW * 0.28,
+    bottom: SW * 0.12,
+    left: -SW * 0.08,
+  },
+  r1: {
+    width: SW * 0.88,
+    height: SW * 0.88,
+    top: -SW * 0.32,
+    right: -SW * 0.32,
+  },
+  r2: { width: SW * 0.62, height: SW * 0.62, top: -SW * 0.1, right: -SW * 0.1 },
+  r3: {
+    width: SW * 0.72,
+    height: SW * 0.72,
+    bottom: SW * 0.05,
+    left: -SW * 0.26,
+  },
 });

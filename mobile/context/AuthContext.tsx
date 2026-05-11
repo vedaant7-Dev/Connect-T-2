@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { findNagarsevakById, findNagarsevakByMobile } from "@/data/nagarsevaks";
 
@@ -10,7 +16,9 @@ export interface User {
   mobile: string;
   role: UserRole;
   ward?: string;
+  wardCode?: string;
   wardNumber?: string;
+  isSuperAdmin?: boolean;
   age?: number;
   email?: string;
   address?: string;
@@ -30,9 +38,14 @@ interface AuthContextType {
   login: (user: User) => Promise<void>;
   logout: () => Promise<void>;
   checkPhone: (mobile: string) => Promise<User | null>;
-  register: (userData: Omit<User, "id" | "avatarColor" | "createdAt">) => Promise<User>;
+  register: (
+    userData: Omit<User, "id" | "avatarColor" | "createdAt">,
+  ) => Promise<User>;
   loginWithPhone: (mobile: string) => Promise<User | null>;
-  loginWithNagarsevakId: (mobile: string, nagarsevakId: string) => Promise<User | null>;
+  loginWithNagarsevakId: (
+    mobile: string,
+    nagarsevakId: string,
+  ) => Promise<User | null>;
   updateUser: (updates: Partial<User>) => Promise<void>;
 }
 
@@ -40,8 +53,14 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const SESSION_KEY = "janseva_user";
 const USERS_KEY = "janseva_users";
 
-const AVATAR_COLORS = ["#1E40AF", "#059669", "#7C3AED", "#D97706", "#DC2626", "#0EA5E9"];
-
+const AVATAR_COLORS = [
+  "#1E40AF",
+  "#059669",
+  "#7C3AED",
+  "#D97706",
+  "#DC2626",
+  "#0EA5E9",
+];
 
 async function getAllUsers(): Promise<User[]> {
   try {
@@ -84,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (
-    userData: Omit<User, "id" | "avatarColor" | "createdAt">
+    userData: Omit<User, "id" | "avatarColor" | "createdAt">,
   ): Promise<User> => {
     const users = await getAllUsers();
     const colorIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
@@ -152,7 +171,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   };
 
-  const loginWithNagarsevakId = async (mobile: string, nagarsevakId: string): Promise<User | null> => {
+  const loginWithNagarsevakId = async (
+    mobile: string,
+    nagarsevakId: string,
+  ): Promise<User | null> => {
     const normalizedId = nagarsevakId.toUpperCase().trim();
     const directoryEntry = findNagarsevakById(normalizedId);
     if (!directoryEntry) return null;
@@ -161,7 +183,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (enteredMobile && enteredMobile !== directoryEntry.mobile) return null;
 
     const users = await getAllUsers();
-    const found = users.find((u) => u.role === "nagarsevak" && u.nagarsevakId === normalizedId);
+    const found = users.find(
+      (u) => u.role === "nagarsevak" && u.nagarsevakId === normalizedId,
+    );
     if (found) {
       const refreshed: User = {
         ...found,
@@ -197,7 +221,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = async (updates: Partial<User>) => {
     if (!user) return;
-    const updated = { ...user, ...updates, id: user.id, role: user.role, nagarsevakId: user.nagarsevakId, createdAt: user.createdAt };
+    const updated = {
+      ...user,
+      ...updates,
+      id: user.id,
+      role: user.role,
+      nagarsevakId: user.nagarsevakId,
+      createdAt: user.createdAt,
+    };
     setUser(updated);
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updated));
     const users = await getAllUsers();
@@ -209,7 +240,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, loading, login, logout, checkPhone, register, loginWithPhone, loginWithNagarsevakId, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoggedIn: !!user,
+        loading,
+        login,
+        logout,
+        checkPhone,
+        register,
+        loginWithPhone,
+        loginWithNagarsevakId,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
