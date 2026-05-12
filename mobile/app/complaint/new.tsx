@@ -11,6 +11,7 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -56,11 +57,8 @@ const categories: {
 
 function normalizeWardCodeFromWard(ward?: string | null): string | null {
   if (!ward) return null;
-
   const match = ward.match(/(\d+)\s*([A-Za-z])/);
-
   if (!match) return null;
-
   return `${match[1]}${match[2].toUpperCase()}`;
 }
 
@@ -205,7 +203,6 @@ export default function NewComplaintScreen() {
     } catch (error) {
       console.error("Submit complaint failed", error);
       setSubmitting(false);
-
       Alert.alert(
         "Error",
         error instanceof Error
@@ -216,7 +213,11 @@ export default function NewComplaintScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+    >
       <LinearGradient
         colors={["#C2410C", "#EA580C", "#FB923C"]}
         start={{ x: 0, y: 0 }}
@@ -244,10 +245,11 @@ export default function NewComplaintScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: Math.max(insets.bottom, 8) + 100 },
+          { paddingBottom: Math.max(insets.bottom, 8) + 150 },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t("photoOfProblem")}</Text>
@@ -436,7 +438,7 @@ export default function NewComplaintScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -499,11 +501,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  cameraBtnGrad: {
-    alignItems: "center",
-    paddingVertical: 24,
-    gap: 8,
-  },
+  cameraBtnGrad: { alignItems: "center", paddingVertical: 24, gap: 8 },
   cameraBtnText: {
     fontSize: 16,
     fontWeight: "700",
@@ -569,10 +567,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     position: "relative",
   },
-  categoryItemSelected: {
-    borderColor: "#EA580C",
-    backgroundColor: "#FFF7ED",
-  },
+  categoryItemSelected: { borderColor: "#EA580C", backgroundColor: "#FFF7ED" },
   catIconWrap: {
     width: 40,
     height: 40,
@@ -609,10 +604,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     outlineWidth: 0,
   } as any,
-  textarea: {
-    height: 110,
-    paddingTop: 13,
-  },
+  textarea: { height: 110, paddingTop: 13 },
   charCount: {
     fontSize: 10,
     color: "#CBD5E1",
