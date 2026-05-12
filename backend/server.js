@@ -936,7 +936,7 @@ function normalizeMobile(mobile) {
 
 app.post("/api/auth/send-otp", async (req, res) => {
   try {
-    const mobile = normalizeMobile(req.body.mobile);
+    const mobile = normalizeMobile(req.body?.mobile);
     const purpose = req.body.purpose || "login";
 
     if (mobile.length !== 10) {
@@ -989,7 +989,7 @@ app.post("/api/auth/send-otp", async (req, res) => {
 
 app.post("/api/auth/verify-otp", async (req, res) => {
   try {
-    const mobile = normalizeMobile(req.body.mobile);
+    const mobile = normalizeMobile(req.body?.mobile);
     const otp = String(req.body.otp || "").trim();
     const purpose = req.body.purpose || "login";
 
