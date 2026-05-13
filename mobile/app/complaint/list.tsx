@@ -235,7 +235,26 @@ export default function ComplaintListScreen() {
             userMobile: item.user_mobile,
           }));
 
-          setComplaints(mapped);
+          const isOfficer =
+            user?.role === "nagarsevak" || user?.role === "super_admin";
+
+          const ownComplaints =
+            isSuperAdmin || isOfficer
+              ? mapped
+              : mapped.filter((item) => {
+                  const userMobile = String(user?.mobile || "").replace(
+                    /\D/g,
+                    "",
+                  );
+                  const complaintMobile = String(item.userMobile || "").replace(
+                    /\D/g,
+                    "",
+                  );
+
+                  return complaintMobile === userMobile;
+                });
+
+          setComplaints(ownComplaints);
         } else {
           setComplaints([]);
         }
