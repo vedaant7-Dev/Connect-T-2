@@ -410,7 +410,6 @@ export default function AdminScreen() {
     : user?.ward
       ? complaints.filter((c) => c.ward === user.ward)
       : complaints;
-
   const filtered =
     filter === "all"
       ? wardComplaints
@@ -419,7 +418,6 @@ export default function AdminScreen() {
             return c.status === "in_progress" || c.status === "assigned";
           return c.status === filter;
         });
-
   const pending = wardComplaints.filter((c) => c.status === "submitted").length;
   const activeCount = wardComplaints.filter(
     (c) => c.status === "in_progress" || c.status === "assigned",
@@ -430,7 +428,6 @@ export default function AdminScreen() {
   const rejectedCount = wardComplaints.filter(
     (c) => c.status === "rejected",
   ).length;
-
   const dashboardFilters: {
     filter: ComplaintStatus;
     label: string;
@@ -559,11 +556,7 @@ export default function AdminScreen() {
         <View style={styles.headerTop}>
           <View>
             <View style={styles.adminBadge}>
-              <Feather
-                name={isSuperAdmin ? "shield" : "briefcase"}
-                size={10}
-                color="#6EE7B7"
-              />
+              <Feather name="briefcase" size={10} color="#6EE7B7" />
               <Text style={[styles.adminBadgeText, { color: "#6EE7B7" }]}>
                 {isSuperAdmin ? "SUPER ADMIN" : "NAGARSEVAK"}
               </Text>
@@ -624,119 +617,115 @@ export default function AdminScreen() {
         </View>
       </LinearGradient>
 
-      {pending > 0 && (
-        <View style={styles.urgentBanner}>
-          <Feather name="alert-circle" size={14} color="#DC2626" />
-          <Text style={styles.urgentText}>
-            {pending} {t("complaints")} — {t("needsAttention")}
-          </Text>
-        </View>
+      {isSuperAdmin && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.superQuickRow}
+        >
+          {[
+            {
+              label: "All Complaints",
+              count: wardComplaints.length,
+              icon: "list",
+              color: "#166534",
+              bg: "#DCFCE7",
+            },
+            {
+              label: "New",
+              count: pending,
+              icon: "clock",
+              color: "#D97706",
+              bg: "#FEF3C7",
+            },
+            {
+              label: "Active",
+              count: activeCount,
+              icon: "tool",
+              color: "#7C3AED",
+              bg: "#EDE9FE",
+            },
+            {
+              label: "Resolved",
+              count: resolvedCount,
+              icon: "check-circle",
+              color: "#059669",
+              bg: "#D1FAE5",
+            },
+            {
+              label: "Rejected",
+              count: rejectedCount,
+              icon: "x-circle",
+              color: "#DC2626",
+              bg: "#FEE2E2",
+            },
+          ].map((item) => (
+            <View
+              key={item.label}
+              style={[styles.superQuickCard, { borderColor: item.bg }]}
+            >
+              <View
+                style={[styles.superQuickIcon, { backgroundColor: item.bg }]}
+              >
+                <Feather name={item.icon as any} size={16} color={item.color} />
+              </View>
+              <Text style={[styles.superQuickCount, { color: item.color }]}>
+                {item.count}
+              </Text>
+              <Text style={styles.superQuickLabel}>{item.label}</Text>
+            </View>
+          ))}
+        </ScrollView>
       )}
 
       {isSuperAdmin && (
-        <ScrollView
-          style={{ maxHeight: 280 }}
-          contentContainerStyle={{
-            paddingHorizontal: 14,
-            paddingTop: 12,
-            paddingBottom: 4,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.superAdminCard}>
-            <View style={styles.superAdminHeader}>
-              <View>
-                <Text style={styles.superAdminTitle}>Super Admin Control</Text>
-                <Text style={styles.superAdminSub}>
-                  All wards and officer analytics
-                </Text>
-              </View>
-              <View style={styles.superAdminBadge}>
-                <Feather name="shield" size={11} color="#166534" />
-                <Text style={styles.superAdminBadgeText}>SECURE</Text>
-              </View>
+        <View style={styles.superAdminPanel}>
+          <View style={styles.superAdminHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.superAdminTitle}>Super Admin Control</Text>
+              <Text style={styles.superAdminSub}>
+                All wards · All officers · Live analytics
+              </Text>
             </View>
-
-            <View style={styles.superAdminMetricRow}>
-              {[
-                {
-                  label: "New",
-                  count: pending,
-                  color: "#D97706",
-                  bg: "#FEF3C7",
-                  icon: "clock",
-                },
-                {
-                  label: "Active",
-                  count: activeCount,
-                  color: "#7C3AED",
-                  bg: "#EDE9FE",
-                  icon: "tool",
-                },
-                {
-                  label: "Resolved",
-                  count: resolvedCount,
-                  color: "#059669",
-                  bg: "#D1FAE5",
-                  icon: "check-circle",
-                },
-                {
-                  label: "Rejected",
-                  count: rejectedCount,
-                  color: "#DC2626",
-                  bg: "#FEE2E2",
-                  icon: "x-circle",
-                },
-              ].map((m) => (
-                <TouchableOpacity
-                  key={m.label}
-                  style={styles.superMetric}
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    if (m.label === "New") openComplaintTab("submitted");
-                    if (m.label === "Active") openComplaintTab("in_progress");
-                    if (m.label === "Resolved") openComplaintTab("resolved");
-                    if (m.label === "Rejected") openComplaintTab("rejected");
-                  }}
-                >
-                  <View
-                    style={[styles.superMetricIcon, { backgroundColor: m.bg }]}
-                  >
-                    <Feather name={m.icon as any} size={14} color={m.color} />
-                  </View>
-                  <Text style={[styles.superMetricNum, { color: m.color }]}>
-                    {m.count}
-                  </Text>
-                  <Text style={styles.superMetricLabel}>{m.label}</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.superAdminShield}>
+              <Feather name="shield" size={12} color="#166534" />
+              <Text style={styles.superAdminShieldText}>SECURE</Text>
             </View>
           </View>
 
-          <View style={styles.superAdminCard}>
+          <View style={styles.superSection}>
             <Text style={styles.superSectionLabel}>WARD-WISE ANALYTICS</Text>
             {wardAnalytics.length === 0 ? (
-              <Text style={styles.superEmptyText}>No ward data yet</Text>
+              <Text style={styles.superEmptyText}>No ward data available</Text>
             ) : (
               wardAnalytics.map(([ward, stats]: any) => (
-                <View key={ward} style={styles.wardAnalyticsRow}>
-                  <View style={styles.wardAnalyticsLeft}>
-                    <View style={styles.wardAnalyticsIcon}>
+                <View key={ward} style={styles.analyticsRow}>
+                  <View style={styles.analyticsLeft}>
+                    <View
+                      style={[
+                        styles.analyticsIcon,
+                        { backgroundColor: "#DCFCE7" },
+                      ]}
+                    >
                       <Feather name="map-pin" size={13} color="#16A34A" />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.wardAnalyticsTitle}>{ward}</Text>
-                      <Text style={styles.wardAnalyticsSub}>
+                      <Text style={styles.analyticsTitle}>{ward}</Text>
+                      <Text style={styles.analyticsSub}>
                         {stats.total} total complaints
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.wardAnalyticsRight}>
-                    <Text style={styles.wardPending}>
-                      {stats.pending} pending
+                  <View style={styles.analyticsRight}>
+                    <Text
+                      style={[styles.analyticsMetric, { color: "#D97706" }]}
+                    >
+                      {stats.pending} new
                     </Text>
-                    <Text style={styles.wardResolved}>
-                      {stats.resolved} resolved
+                    <Text
+                      style={[styles.analyticsMetric, { color: "#059669" }]}
+                    >
+                      {stats.resolved} done
                     </Text>
                   </View>
                 </View>
@@ -744,37 +733,43 @@ export default function AdminScreen() {
             )}
           </View>
 
-          <View style={styles.superAdminCard}>
+          <View style={styles.superSection}>
             <Text style={styles.superSectionLabel}>OFFICER WORKLOAD</Text>
             {officerAnalytics.length === 0 ? (
-              <Text style={styles.superEmptyText}>No officer workload yet</Text>
+              <Text style={styles.superEmptyText}>
+                No officer data available
+              </Text>
             ) : (
               officerAnalytics.map(([officer, stats]: any) => (
-                <View key={officer} style={styles.wardAnalyticsRow}>
-                  <View style={styles.wardAnalyticsLeft}>
+                <View key={officer} style={styles.analyticsRow}>
+                  <View style={styles.analyticsLeft}>
                     <View
                       style={[
-                        styles.wardAnalyticsIcon,
+                        styles.analyticsIcon,
                         { backgroundColor: "#FFEDD5" },
                       ]}
                     >
                       <Feather name="user-check" size={13} color="#EA580C" />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.wardAnalyticsTitle} numberOfLines={1}>
+                      <Text style={styles.analyticsTitle} numberOfLines={1}>
                         {officer}
                       </Text>
-                      <Text style={styles.wardAnalyticsSub}>
+                      <Text style={styles.analyticsSub}>
                         {stats.total} assigned complaints
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.wardAnalyticsRight}>
-                    <Text style={styles.wardPending}>
+                  <View style={styles.analyticsRight}>
+                    <Text
+                      style={[styles.analyticsMetric, { color: "#7C3AED" }]}
+                    >
                       {stats.active} active
                     </Text>
-                    <Text style={styles.wardResolved}>
-                      {stats.resolved} resolved
+                    <Text
+                      style={[styles.analyticsMetric, { color: "#059669" }]}
+                    >
+                      {stats.resolved} solved
                     </Text>
                   </View>
                 </View>
@@ -782,7 +777,7 @@ export default function AdminScreen() {
             )}
           </View>
 
-          <View style={styles.superAdminCard}>
+          <View style={styles.superSection}>
             <Text style={styles.superSectionLabel}>RECENT COMPLAINTS</Text>
             {recentComplaints.length === 0 ? (
               <Text style={styles.superEmptyText}>No recent complaints</Text>
@@ -792,7 +787,7 @@ export default function AdminScreen() {
                 return (
                   <TouchableOpacity
                     key={c.id}
-                    style={styles.recentComplaintRow}
+                    style={styles.recentRow}
                     activeOpacity={0.85}
                     onPress={() =>
                       router.push({
@@ -802,22 +797,19 @@ export default function AdminScreen() {
                     }
                   >
                     <View
-                      style={[
-                        styles.recentStatusDot,
-                        { backgroundColor: st.bg },
-                      ]}
+                      style={[styles.analyticsIcon, { backgroundColor: st.bg }]}
                     >
                       <Feather
                         name={st.icon as any}
-                        size={10}
+                        size={13}
                         color={st.color}
                       />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.recentTitle} numberOfLines={1}>
+                      <Text style={styles.analyticsTitle} numberOfLines={1}>
                         {c.title}
                       </Text>
-                      <Text style={styles.recentSub} numberOfLines={1}>
+                      <Text style={styles.analyticsSub} numberOfLines={1}>
                         {c.ward} · {timeAgo(c.createdAt)}
                       </Text>
                     </View>
@@ -827,9 +819,19 @@ export default function AdminScreen() {
               })
             )}
           </View>
-        </ScrollView>
+        </View>
       )}
 
+      {pending > 0 && (
+        <View style={styles.urgentBanner}>
+          <Feather name="alert-circle" size={14} color="#DC2626" />
+          <Text style={styles.urgentText}>
+            {pending} {t("complaints")} — {t("needsAttention")}
+          </Text>
+        </View>
+      )}
+
+      {/* ALERTS PANEL */}
       <TouchableOpacity
         style={styles.alertPanel}
         activeOpacity={0.9}
@@ -955,71 +957,16 @@ export default function AdminScreen() {
         })}
       </View>
 
-      <View style={{ padding: 14 }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: "white",
-            borderRadius: 18,
-            padding: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 14,
-          }}
-          onPress={() => alert("Analytics Coming Soon")}
-        >
-          <View>
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: "800",
-                color: "#16A34A",
-              }}
-            >
-              View Analytics
-            </Text>
-
-            <Text
-              style={{
-                color: "#64748B",
-                marginTop: 4,
-              }}
-            >
-              Category wise complaint analysis
-            </Text>
-          </View>
-
-          <Feather name="bar-chart-2" size={28} color="#16A34A" />
-        </TouchableOpacity>
-
-        <View
-          style={{
-            backgroundColor: "#F0FDF4",
-            borderRadius: 18,
-            padding: 18,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 26,
-              fontWeight: "900",
-              color: "#16A34A",
-            }}
-          >
-            Connect-T
-          </Text>
-
-          <Text
-            style={{
-              color: "#64748B",
-              marginTop: 4,
-            }}
-          >
-            Civic services for better Ambernath
-          </Text>
-        </View>
-      </View>
+      <FlatList
+        ref={complaintListRef}
+        data={filtered}
+        extraData={filter}
+        keyExtractor={(c) => c.id}
+        renderItem={({ item }) => (
+          <DetailedComplaintCard
+            complaint={item}
+            onAction={() => setActive(item)}
+          />
         )}
         contentContainerStyle={[
           { padding: 14 },
@@ -1033,6 +980,7 @@ export default function AdminScreen() {
           </View>
         }
       />
+
       {active && (
         <Modal
           transparent
@@ -1096,7 +1044,7 @@ export default function AdminScreen() {
                 <View style={pStyles.rolePillRow}>
                   <View style={pStyles.rolePill}>
                     <Feather
-                      name={isSuperAdmin ? "shield" : "briefcase"}
+                      name="briefcase"
                       size={11}
                       color="rgba(255,255,255,0.9)"
                     />
@@ -1105,7 +1053,7 @@ export default function AdminScreen() {
                     </Text>
                   </View>
                   <Text style={pStyles.roleSub}>
-                    {isSuperAdmin ? "Head Administrator" : "Ward Officer"}
+                    {isSuperAdmin ? "Head Admin" : "Ward Officer"}
                   </Text>
                 </View>
                 <View style={pStyles.infoRow}>
@@ -1116,7 +1064,7 @@ export default function AdminScreen() {
                       color="rgba(255,255,255,0.55)"
                     />
                     <Text style={pStyles.infoChipText}>
-                      {isSuperAdmin ? "All Wards" : user?.ward || "Ambernath"}
+                      {user?.ward || "Ambernath"}
                     </Text>
                   </View>
                   <View style={pStyles.infoChip}>
@@ -1175,9 +1123,7 @@ export default function AdminScreen() {
                   {
                     icon: "award" as const,
                     label: isSuperAdmin ? "Admin ID" : "Nagarsevak ID",
-                    value:
-                      user?.nagarsevakId ||
-                      (isSuperAdmin ? "SUPER-ADMIN" : "—"),
+                    value: user?.nagarsevakId || "—",
                   },
                   {
                     icon: "briefcase" as const,
@@ -1308,9 +1254,7 @@ export default function AdminScreen() {
                   {
                     icon: "compass" as const,
                     label: "Area",
-                    value: isSuperAdmin
-                      ? "All Wards & Officers"
-                      : user?.ward || "Ambernath",
+                    value: user?.ward || "Ambernath",
                   },
                 ].map((item, idx, arr) => (
                   <View
@@ -1783,170 +1727,6 @@ const styles = StyleSheet.create({
     color: "#DC2626",
     fontFamily: "Inter_600SemiBold",
   },
-
-  superAdminCard: {
-    backgroundColor: "white",
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: "#166534",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  superAdminHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  superAdminTitle: {
-    fontSize: 14,
-    fontWeight: "900",
-    color: "#0F172A",
-    fontFamily: "Inter_700Bold",
-  },
-  superAdminSub: {
-    fontSize: 10,
-    color: "#94A3B8",
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
-  },
-  superAdminBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#DCFCE7",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  superAdminBadgeText: {
-    fontSize: 9,
-    fontWeight: "900",
-    color: "#166534",
-    fontFamily: "Inter_700Bold",
-  },
-  superAdminMetricRow: { flexDirection: "row", gap: 8 },
-  superMetric: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 13,
-    paddingVertical: 10,
-    alignItems: "center",
-    gap: 4,
-  },
-  superMetricIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  superMetricNum: {
-    fontSize: 18,
-    fontWeight: "900",
-    fontFamily: "Inter_700Bold",
-  },
-  superMetricLabel: {
-    fontSize: 9,
-    color: "#64748B",
-    fontFamily: "Inter_600SemiBold",
-    fontWeight: "700",
-  },
-  superSectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#94A3B8",
-    letterSpacing: 1.2,
-    fontFamily: "Inter_600SemiBold",
-    marginBottom: 10,
-  },
-  superEmptyText: {
-    fontSize: 12,
-    color: "#94A3B8",
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    paddingVertical: 14,
-  },
-  wardAnalyticsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 13,
-    padding: 10,
-    marginBottom: 8,
-  },
-  wardAnalyticsLeft: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  wardAnalyticsIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#DCFCE7",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  wardAnalyticsTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#0F172A",
-    fontFamily: "Inter_700Bold",
-  },
-  wardAnalyticsSub: {
-    fontSize: 10,
-    color: "#94A3B8",
-    fontFamily: "Inter_400Regular",
-    marginTop: 1,
-  },
-  wardAnalyticsRight: { alignItems: "flex-end" },
-  wardPending: {
-    fontSize: 10,
-    color: "#DC2626",
-    fontWeight: "800",
-    fontFamily: "Inter_700Bold",
-  },
-  wardResolved: {
-    fontSize: 10,
-    color: "#059669",
-    fontWeight: "800",
-    fontFamily: "Inter_700Bold",
-    marginTop: 2,
-  },
-  recentComplaintRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 9,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  recentStatusDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  recentTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#0F172A",
-    fontFamily: "Inter_700Bold",
-  },
-  recentSub: {
-    fontSize: 10,
-    color: "#94A3B8",
-    fontFamily: "Inter_400Regular",
-    marginTop: 1,
-  },
-
   dashboardGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -2113,6 +1893,156 @@ const styles = StyleSheet.create({
   },
   empty: { alignItems: "center", paddingTop: 60, gap: 10 },
   emptyText: { fontSize: 14, color: "#94A3B8", fontFamily: "Inter_400Regular" },
+  superQuickRow: {
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  superQuickCard: {
+    width: 118,
+    backgroundColor: "white",
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 12,
+    shadowColor: "#166534",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  superQuickIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  superQuickCount: {
+    fontSize: 22,
+    fontWeight: "900",
+    fontFamily: "Inter_700Bold",
+  },
+  superQuickLabel: {
+    fontSize: 10,
+    color: "#64748B",
+    fontFamily: "Inter_600SemiBold",
+    fontWeight: "600",
+    marginTop: 1,
+  },
+  superAdminPanel: {
+    backgroundColor: "white",
+    marginHorizontal: 14,
+    marginTop: 12,
+    marginBottom: 4,
+    borderRadius: 18,
+    padding: 14,
+    shadowColor: "#166534",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  superAdminHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+  },
+  superAdminTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+  },
+  superAdminSub: {
+    fontSize: 11,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  superAdminShield: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  superAdminShieldText: {
+    fontSize: 9,
+    color: "#166534",
+    fontWeight: "800",
+    fontFamily: "Inter_700Bold",
+  },
+  superSection: { marginTop: 10 },
+  superSectionLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#94A3B8",
+    letterSpacing: 1.1,
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 8,
+  },
+  superEmptyText: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+    paddingVertical: 10,
+    textAlign: "center",
+  },
+  analyticsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 13,
+    padding: 10,
+    marginBottom: 8,
+  },
+  analyticsLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  analyticsIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  analyticsTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+  },
+  analyticsSub: {
+    fontSize: 10,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+    marginTop: 1,
+  },
+  analyticsRight: { alignItems: "flex-end", gap: 2 },
+  analyticsMetric: {
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: "Inter_700Bold",
+  },
+  recentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 13,
+    padding: 10,
+    marginBottom: 8,
+  },
   logoutModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
