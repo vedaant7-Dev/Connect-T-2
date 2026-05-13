@@ -147,8 +147,15 @@ app.post("/api/users", async (req, res) => {
 /* COMPLAINTS */
 app.get("/api/complaints", async (req, res) => {
   try {
-    const { ward, ward_code, assigned_officer_id, status, category } =
-      req.query;
+    const {
+      ward,
+      ward_code,
+      assigned_officer_id,
+      status,
+      category,
+      user_id,
+      user_mobile,
+    } = req.query;
 
     let sql = "SELECT * FROM complaints WHERE 1=1";
     const params = [];
@@ -176,6 +183,16 @@ app.get("/api/complaints", async (req, res) => {
     if (category) {
       sql += " AND category = ?";
       params.push(category);
+    }
+
+    if (user_id) {
+      sql += " AND user_id = ?";
+      params.push(user_id);
+    }
+
+    if (user_mobile) {
+      sql += " AND user_mobile = ?";
+      params.push(user_mobile);
     }
 
     sql += " ORDER BY created_at DESC";

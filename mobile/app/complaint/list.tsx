@@ -200,8 +200,20 @@ export default function ComplaintListScreen() {
 
         let url = `${API_BASE_URL}/api/complaints`;
 
-        if (!isSuperAdmin && wardCode) {
+        const isOfficer =
+          user?.role === "nagarsevak" || user?.role === "super_admin";
+
+        if (isSuperAdmin) {
+          // super admin sees all complaints
+        } else if (isOfficer && wardCode) {
+          // nagarsevak sees only ward complaints
           url += `?ward_code=${encodeURIComponent(wardCode)}`;
+        } else if (user?.id) {
+          // citizen sees only own complaints
+          url += `?user_id=${encodeURIComponent(String(user.id))}`;
+        } else if (user?.mobile) {
+          // fallback
+          url += `?user_mobile=${encodeURIComponent(user.mobile)}`;
         }
 
         const response = await fetch(url);
