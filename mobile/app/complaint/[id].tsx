@@ -10,6 +10,7 @@ import {
   Platform,
   Animated,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -112,12 +113,113 @@ export default function ComplaintDetailScreen() {
   const { id, fresh } = useLocalSearchParams<{ id: string; fresh?: string }>();
   const { t } = useLanguage();
   const { user } = useAuth();
-  const isNagarsevak = user?.role === "nagarsevak";
+
+  const isOfficer = user?.role === "nagarsevak" || user?.role === "super_admin";
 
   const [complaint, setComplaint] = useState<ComplaintDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState<ComplaintStatus | null>(
+    null,
+  );
 
   const fadeAnim = useRef(new Animated.Value(fresh === "1" ? 0 : 1)).current;
+
+  const loadComplaint = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_BASE_URL}/api/complaints/${id}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setComplaint(null);
+        return;
+      }
+
+      const apiComplaint = data.complaint;
+
+      setComplaint({
+        id: apiComplaint.id,
+        title: apiComplaint.title,
+        description: apiComplaint.description,
+        category: apiComplaint.category || "other",
+        photoUri: apiComplaint.photo_url,
+        location: apiComplaint.location,
+        ward: apiComplaint.ward,
+        status: apiComplaint.status,
+        assignedTo: apiComplaint.assigned_to,
+        resolvedNote: apiComplaint.resolved_note,
+        userName: apiComplaint.user_name,
+        userMobile: apiComplaint.user_mobile,
+        userAddress: apiComplaint.user_address,
+        userAge: apiComplaint.user_age,
+        userEmail: apiComplaint.user_email,
+        createdAt: apiComplaint.created_at,
+        updatedAt: apiComplaint.updated_at,
+        timeline: (apiComplaint.timeline || []).map((item: any) => ({
+          status: item.status,
+          timestamp: item.created_at,
+          note: item.note,
+          updatedBy: item.updated_by,
+        })),
+      });
+    } catch (error) {
+      console.error("Load complaint failed", error);
+      setComplaint(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateComplaintStatus = async (
+    nextStatus: ComplaintStatus,
+    note: string,
+  ) => {
+    if (!complaint) return;
+
+    try {
+      setUpdatingStatus(nextStatus);
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/complaints/${complaint.id}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: nextStatus,
+            note,
+            assigned_to:
+              nextStatus === "assigned"
+                ? user?.name || "Ward Officer"
+                : undefined,
+            resolved_note:
+              nextStatus === "resolved" ? "Complaint resolved" : undefined,
+            updated_by: user?.name || "Ward Officer",
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Status update failed");
+      }
+
+      await loadComplaint();
+
+      Alert.alert("Updated", "Complaint status updated successfully.");
+    } catch (error) {
+      console.error("Update complaint status failed", error);
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Status update failed",
+      );
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
 
   useEffect(() => {
     if (fresh === "1") {
@@ -130,53 +232,6 @@ export default function ComplaintDetailScreen() {
   }, [fresh, fadeAnim]);
 
   useEffect(() => {
-    const loadComplaint = async () => {
-      try {
-        setLoading(true);
-
-        const response = await fetch(`${API_BASE_URL}/api/complaints/${id}`);
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          setComplaint(null);
-          return;
-        }
-
-        const apiComplaint = data.complaint;
-
-        setComplaint({
-          id: apiComplaint.id,
-          title: apiComplaint.title,
-          description: apiComplaint.description,
-          category: apiComplaint.category || "other",
-          photoUri: apiComplaint.photo_url,
-          location: apiComplaint.location,
-          ward: apiComplaint.ward,
-          status: apiComplaint.status,
-          assignedTo: apiComplaint.assigned_to,
-          resolvedNote: apiComplaint.resolved_note,
-          userName: apiComplaint.user_name,
-          userMobile: apiComplaint.user_mobile,
-          userAddress: apiComplaint.user_address,
-          userAge: apiComplaint.user_age,
-          userEmail: apiComplaint.user_email,
-          createdAt: apiComplaint.created_at,
-          updatedAt: apiComplaint.updated_at,
-          timeline: (apiComplaint.timeline || []).map((item: any) => ({
-            status: item.status,
-            timestamp: item.created_at,
-            note: item.note,
-            updatedBy: item.updated_by,
-          })),
-        });
-      } catch (error) {
-        console.error("Load complaint failed", error);
-        setComplaint(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (id) {
       loadComplaint();
     }
@@ -215,6 +270,59 @@ export default function ComplaintDetailScreen() {
     complaint.status === "rejected"
       ? -1
       : timelineSteps.indexOf(complaint.status);
+
+  const officerActions: {
+    status: ComplaintStatus;
+    label: string;
+    note: string;
+    icon: string;
+    color: string;
+    bg: string;
+    show: boolean;
+  }[] = [
+    {
+      status: "assigned",
+      label: "Assign",
+      note: "Complaint assigned to ward officer",
+      icon: "user-check",
+      color: "#EA580C",
+      bg: "#FFEDD5",
+      show: complaint.status === "submitted",
+    },
+    {
+      status: "in_progress",
+      label: "In Progress",
+      note: "Work started on this complaint",
+      icon: "tool",
+      color: "#7C3AED",
+      bg: "#EDE9FE",
+      show: complaint.status === "submitted" || complaint.status === "assigned",
+    },
+    {
+      status: "resolved",
+      label: "Resolve",
+      note: "Complaint resolved by ward officer",
+      icon: "check-circle",
+      color: "#059669",
+      bg: "#D1FAE5",
+      show:
+        complaint.status === "submitted" ||
+        complaint.status === "assigned" ||
+        complaint.status === "in_progress",
+    },
+    {
+      status: "rejected",
+      label: "Reject",
+      note: "Complaint rejected by ward officer",
+      icon: "x-circle",
+      color: "#DC2626",
+      bg: "#FEE2E2",
+      show:
+        complaint.status === "submitted" ||
+        complaint.status === "assigned" ||
+        complaint.status === "in_progress",
+    },
+  ];
 
   return (
     <Animated.View style={[styles.root, { opacity: fadeAnim }]}>
@@ -285,7 +393,7 @@ export default function ComplaintDetailScreen() {
           </View>
         ) : null}
 
-        {isNagarsevak && complaint.userName && (
+        {isOfficer && complaint.userName && (
           <View style={styles.complainantCard}>
             <Text style={styles.detailSectionTitle}>
               {t("complainantProfile")}
@@ -468,6 +576,73 @@ export default function ComplaintDetailScreen() {
             })}
           </View>
         </View>
+
+        {isOfficer && officerActions.some((action) => action.show) && (
+          <View style={styles.officerActionCard}>
+            <Text style={styles.detailSectionTitle}>Officer Actions</Text>
+
+            <View style={styles.officerActionGrid}>
+              {officerActions
+                .filter((action) => action.show)
+                .map((action) => {
+                  const isUpdating = updatingStatus === action.status;
+
+                  return (
+                    <TouchableOpacity
+                      key={action.status}
+                      style={[
+                        styles.officerActionBtn,
+                        {
+                          backgroundColor: action.bg,
+                          borderColor: action.color,
+                          opacity: updatingStatus && !isUpdating ? 0.5 : 1,
+                        },
+                      ]}
+                      activeOpacity={0.85}
+                      disabled={!!updatingStatus}
+                      onPress={() =>
+                        Alert.alert(
+                          "Update Complaint",
+                          `Mark this complaint as ${action.label}?`,
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                              text: "Update",
+                              onPress: () =>
+                                updateComplaintStatus(
+                                  action.status,
+                                  action.note,
+                                ),
+                            },
+                          ],
+                        )
+                      }
+                    >
+                      {isUpdating ? (
+                        <ActivityIndicator color={action.color} />
+                      ) : (
+                        <>
+                          <Feather
+                            name={action.icon as any}
+                            size={16}
+                            color={action.color}
+                          />
+                          <Text
+                            style={[
+                              styles.officerActionText,
+                              { color: action.color },
+                            ]}
+                          >
+                            {action.label}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+            </View>
+          </View>
+        )}
 
         <View style={styles.detailCard}>
           <Text style={styles.detailSectionTitle}>{t("complaintDetails")}</Text>
@@ -743,6 +918,39 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     textAlign: "center",
     maxWidth: 60,
+  },
+  officerActionCard: {
+    backgroundColor: "white",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#B45309",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  officerActionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  officerActionBtn: {
+    width: "47%",
+    minHeight: 46,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 7,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  officerActionText: {
+    fontSize: 12,
+    fontWeight: "800",
+    fontFamily: "Inter_700Bold",
   },
   detailCard: {
     backgroundColor: "white",

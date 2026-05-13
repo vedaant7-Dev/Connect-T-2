@@ -52,7 +52,6 @@
     "@babel/core": "^7.25.2",
     "@types/react": "~19.1.10",
     "@types/react-dom": "~19.1.7",
-    "eas-cli": "^18.11.0",
     "typescript": "~5.9.2"
   }
 }

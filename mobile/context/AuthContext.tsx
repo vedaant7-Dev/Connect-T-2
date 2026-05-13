@@ -191,6 +191,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const directoryEntry = findNagarsevakByMobile(normalizedMobile);
 
+    if (normalizedMobile === "8554994735") {
+      const tejashreeUser: User = {
+        id: "SUPER_ADMIN",
+        name: "Karanjule Patil Tejashri Vishwajeet",
+        mobile: "8554994735",
+        role: "super_admin",
+        ward: "All Wards",
+        wardCode: null,
+        nagarsevakId: "SUPER_ADMIN",
+        isSuperAdmin: true,
+        avatarColor: "#16A34A",
+        createdAt: new Date().toISOString(),
+      };
+
+      await login(tejashreeUser);
+      return tejashreeUser;
+    }
+
     if (directoryEntry) {
       const existingOfficerIndex = users.findIndex(
         (u) =>
