@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "Connect T",
-    "slug": "janseva",
+    "slug": "connect-t-final",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "janseva",
+    "scheme": "connectt",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -14,38 +14,37 @@
       "backgroundColor": "#EA580C"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.connectt.app"
     },
     "android": {
+      "package": "com.connectt.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#EA580C"
       },
-      "package": "com.Connect_T.App",
-      "enableProguardInReleaseBuilds": true,
-      "enableShrinkResourcesInReleaseBuilds": true,
-      "abiFilters": ["arm64-v8a", "armeabi-v7a"]
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "CAMERA",
+        "READ_MEDIA_IMAGES"
+      ]
     },
     "androidStatusBar": {
       "barStyle": "light-content",
-      "backgroundColor": "#000000",
-      "translucent": true
+      "backgroundColor": "#EA580C",
+      "translucent": false
     },
     "androidNavigationBar": {
       "visible": "sticky-immersive",
-      "barStyle": "dark-content",
-      "backgroundColor": "#FFFFFF"
+      "barStyle": "light-content",
+      "backgroundColor": "#EA580C"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
-      ],
+      "expo-router",
       "expo-font",
       "expo-web-browser"
     ],
@@ -55,11 +54,12 @@
     },
     "extra": {
       "router": {
-        "origin": "https://replit.com/"
+        "origin": false
       },
       "eas": {
-        "projectId": "e13e4886-ee29-4c2a-a04b-83703634b99d"
+        "projectId": "13b9ba4c-7565-4214-84d8-83b831ec860c"
       }
-    }
+    },
+    "owner": "vedantsatdive7"
   }
 }
