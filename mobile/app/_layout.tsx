@@ -1,73 +1,191 @@
-import React, { useEffect } from "react";
-import { Stack, usePathname, useRouter } from "expo-router";
+import "../global.css";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
+} from "@expo-google-fonts/inter";
+import { Image } from "react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  Stack,
+  useRouter,
+  useSegments,
+  router as staticRouter,
+} from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Feather } from "@expo/vector-icons";
 
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppSplash } from "@/components/AppSplash";
 import { ComplaintProvider } from "@/context/ComplaintContext";
 import { AlertProvider } from "@/context/AlertContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { FeedProvider } from "@/context/FeedContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { TabBarVisibilityProvider } from "@/context/TabBarVisibilityContext";
 
-function RootNavigation() {
+SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
+
+function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
+  const segments = useSegments();
 
   useEffect(() => {
     if (loading) return;
+    const inLogin = segments[0] === "login";
+    const inTabs = segments[0] === "(tabs)";
+    const inJobs = segments[0] === "jobs";
+    const inPortalSelect = segments[0] === "portal-select";
+    const currentTab = inTabs ? segments[1] : undefined;
 
-    const inTabs = pathname.startsWith("/(tabs)");
-    const currentTab = pathname.split("/").pop();
+    if (inJobs) return;
+    if (inPortalSelect) return;
 
-    if (!user) {
-      if (inTabs) {
-        router.replace("/login" as any);
-      }
-      return;
+    if (!user && !inLogin) {
+      router.replace("/login");
+    } else if (user && inLogin) {
+      router.replace(
+        user.role === "nagarsevak" ? ("/(tabs)/admin" as any) : "/(tabs)/",
+      );
+    } else if (
+      user &&
+      user.role === "nagarsevak" &&
+      inTabs &&
+      currentTab !== "admin"
+    ) {
+      router.replace("/(tabs)/admin" as any);
     }
+  }, [user, loading, segments]);
 
-    const isAdmin = user.role === "nagarsevak" || user.role === "super_admin";
+  return <>{children}</>;
+}
 
-    if (isAdmin) {
-      if (!inTabs || currentTab !== "admin") {
-        router.replace("/(tabs)/admin" as any);
-      }
+function AppShell({ children }: { children: React.ReactNode }) {
+  const [splashDone, setSplashDone] = useState(false);
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      setSplashDone(true);
+      staticRouter.replace(
+        user.role === "nagarsevak" ? ("/(tabs)/admin" as any) : "/(tabs)/",
+      );
+    }
+  }, [user, loading]);
+
+  const handleFinish = async (portal: "civic" | "jobs") => {
+    if (portal === "civic") {
+      setSplashDone(true);
+      staticRouter.replace(
+        user
+          ? user.role === "nagarsevak"
+            ? ("/(tabs)/admin" as any)
+            : "/(tabs)/"
+          : "/login",
+      );
     } else {
-      if (!inTabs || currentTab === "admin") {
-        router.replace("/(tabs)" as any);
-      }
+      setSplashDone(true);
+      staticRouter.replace("/jobs/login" as any);
     }
-  }, [user, loading, pathname]);
+  };
 
   return (
     <>
-      <StatusBar style="light" />
-
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="portal-select" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      {children}
+      {!splashDone && <AppSplash onFinish={handleFinish} />}
     </>
   );
 }
 
-export default function RootLayout() {
+function RootLayoutNav() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <ComplaintProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="login"
+        options={{ headerShown: false, animation: "fade" }}
+      />
+      <Stack.Screen
+        name="portal-select"
+        options={{ headerShown: false, animation: "fade" }}
+      />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="jobs"
+        options={{ headerShown: false, animation: "fade" }}
+      />
+      <Stack.Screen
+        name="complaint/new"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen name="complaint/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="complaint/list" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="alert/new"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen name="alert/list" options={{ headerShown: false }} />
+      <Stack.Screen name="service/[id]" options={{ headerShown: false }} />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    ...Feather.font,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+  const [assetsReady, setAssetsReady] = useState(false);
+
+  useEffect(() => {
+    setAssetsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && assetsReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError, assetsReady]);
+
+  if ((!fontsLoaded && !fontError) || !assetsReady) return null;
+
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <LanguageProvider>
+            <AuthProvider>
               <AlertProvider>
-                <RootNavigation />
+                <ComplaintProvider>
+                  <FeedProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                      <TabBarVisibilityProvider>
+                        <AppShell>
+                          <AuthGate>
+                            <RootLayoutNav />
+                          </AuthGate>
+                        </AppShell>
+                      </TabBarVisibilityProvider>
+                    </GestureHandlerRootView>
+                  </FeedProvider>
+                </ComplaintProvider>
               </AlertProvider>
-            </ComplaintProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+            </AuthProvider>
+          </LanguageProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
