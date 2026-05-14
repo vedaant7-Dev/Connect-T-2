@@ -233,8 +233,12 @@ export default function JobsLoginScreen() {
   const [gstNo, setGstNo] = useState("");
   const [location, setLocation] = useState("");
 
-  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [sessionToken, setSessionToken] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = [
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
     useRef<TextInput>(null),
     useRef<TextInput>(null),
     useRef<TextInput>(null),
@@ -264,7 +268,10 @@ export default function JobsLoginScreen() {
     return null;
   };
 
-  const handleSendOtp = () => {
+  const getApiBase = () =>
+    typeof window !== "undefined" && window.location ? window.location.origin : "";
+
+  const handleSendOtp = async () => {
     setError("");
     if (tab === "register") {
       const err = role === "seeker" ? validateSeeker() : validateEmployer();
@@ -272,16 +279,38 @@ export default function JobsLoginScreen() {
     } else {
       if (phone.length !== 10) { setError("Enter a valid 10-digit mobile number."); return; }
     }
-    setStep("otp");
+    setOtpSending(true);
+    try {
+      const res = await fetch(`${getApiBase()}/api/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error ?? "Failed to send OTP");
+      setSessionToken(data.sessionToken);
+      setStep("otp");
+    } catch (e: any) {
+      setError(e.message ?? "Failed to send OTP. Please try again.");
+    } finally {
+      setOtpSending(false);
+    }
   };
 
   const handleVerifyOtp = async () => {
     const code = otp.join("");
-    if (code.length < 4) { setError("Enter the 4-digit OTP."); return; }
+    if (code.length < 6) { setError("Enter the 6-digit OTP."); return; }
     setLoading(true);
     setError("");
-    await new Promise((r) => setTimeout(r, 800));
     try {
+      const verifyRes = await fetch(`${getApiBase()}/api/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp: code, sessionToken }),
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyData.valid) throw new Error(verifyData.error ?? "Invalid OTP");
+
       if (tab === "register") {
         await registerJobs({
           name: name.trim(),
@@ -307,14 +336,16 @@ export default function JobsLoginScreen() {
       }
       setStep("success");
       setTimeout(() => router.replace("/jobs/(tabs)" as any), 1200);
-    } catch {
-      setError("Something went wrong. Try again.");
+    } catch (e: any) {
+      setError(e.message ?? "Something went wrong. Try again.");
+      setOtp(["", "", "", "", "", ""]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const switchTab = (t: AuthTab) => {
-    setTab(t); setStep("form"); setError(""); setOtp(["", "", "", ""]);
+    setTab(t); setStep("form"); setError(""); setOtp(["", "", "", "", "", ""]);
   };
 
   return (
@@ -537,10 +568,19 @@ export default function JobsLoginScreen() {
 
                   {!!error && <Text style={styles.error}>{error}</Text>}
 
-                  <TouchableOpacity style={styles.btn} onPress={handleSendOtp} activeOpacity={0.85}>
+                  <TouchableOpacity style={styles.btn} onPress={handleSendOtp} activeOpacity={0.85} disabled={otpSending}>
                     <LinearGradient colors={["#047857", "#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btnGrad}>
-                      <Text style={styles.btnText}>Send OTP</Text>
-                      <Feather name="arrow-right" size={18} color="white" />
+                      {otpSending ? (
+                        <>
+                          <ActivityIndicator color="white" size="small" />
+                          <Text style={styles.btnText}>Sending OTP…</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text style={styles.btnText}>Send OTP</Text>
+                          <Feather name="arrow-right" size={18} color="white" />
+                        </>
+                      )}
                     </LinearGradient>
                   </TouchableOpacity>
                 </>
@@ -548,7 +588,7 @@ export default function JobsLoginScreen() {
 
               {step === "otp" && (
                 <>
-                  <Text style={styles.otpHint}>Enter the 4-digit OTP sent to +91 {phone}</Text>
+                  <Text style={styles.otpHint}>Enter the 6-digit OTP sent to +91 {phone} · valid 10 min</Text>
                   <View style={styles.otpRow}>
                     {otp.map((d, i) => (
                       <TextInput
@@ -562,7 +602,7 @@ export default function JobsLoginScreen() {
                       />
                     ))}
                   </View>
-                  <Text style={styles.otpDemoNote}>Demo: any 4 digits work</Text>
+                  <Text style={styles.otpDemoNote}>Check your SMS inbox for the code</Text>
 
                   {!!error && <Text style={styles.error}>{error}</Text>}
 

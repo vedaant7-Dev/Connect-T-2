@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
   Image,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -79,8 +80,11 @@ export default function LoginScreen() {
 
   const [activeTab, setActiveTab] = useState<AuthTab>("register");
   const [loading, setLoading] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
   const [error, setError] = useState("");
   const [wardModal, setWardModal] = useState(false);
+  const [sessionToken, setSessionToken] = useState("");
+  const [quickLoginUser, setQuickLoginUser] = useState<{ name: string } | null>(null);
 
   const [regStep, setRegStep] = useState<RegisterStep>("form");
   const [loginStep, setLoginStep] = useState<LoginStep>("form");
@@ -99,17 +103,56 @@ export default function LoginScreen() {
   const otpRef2 = useRef<TextInput>(null);
   const otpRef3 = useRef<TextInput>(null);
   const otpRef4 = useRef<TextInput>(null);
-  const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
+  const otpRef5 = useRef<TextInput>(null);
+  const otpRef6 = useRef<TextInput>(null);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
 
   const successAnim = useRef(new Animated.Value(0)).current;
   const { height: windowHeight } = useWindowDimensions();
+
+  useEffect(() => {
+    AsyncStorage.getItem("janseva_user").then((raw) => {
+      if (raw) {
+        try {
+          const u = JSON.parse(raw);
+          if (u?.id?.startsWith("G_") && u?.name) {
+            setQuickLoginUser({ name: u.name });
+          }
+        } catch {}
+      }
+    });
+  }, []);
+
+  const getApiBase = () =>
+    typeof window !== "undefined" && window.location ? window.location.origin : "";
+
+  const sendOtpToPhone = async (phone: string): Promise<string> => {
+    const res = await fetch(`${getApiBase()}/api/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error ?? "Failed to send OTP");
+    return data.sessionToken as string;
+  };
+
+  const verifyOtpToken = async (otp: string, token: string): Promise<void> => {
+    const res = await fetch(`${getApiBase()}/api/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ otp, sessionToken: token }),
+    });
+    const data = await res.json();
+    if (!data.valid) throw new Error(data.error ?? "Invalid OTP");
+  };
 
   const switchTab = (tab: AuthTab) => {
     setActiveTab(tab);
     setError("");
     setRegStep("form");
     setLoginStep("form");
-    setOtpDigits(["", "", "", ""]);
+    setOtpDigits(["", "", "", "", "", ""]);
   };
 
   const setOtpDigit = (index: number, value: string, refs: React.RefObject<TextInput | null>[]) => {
@@ -121,7 +164,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleRegisterSubmit = () => {
+  const handleRegisterSubmit = async () => {
     setError("");
     if (!regName.trim() || regName.trim().length < 2) {
       setError(t("enterFullName"));
@@ -145,18 +188,35 @@ export default function LoginScreen() {
       setError(t("selectWardError"));
       return;
     }
-    setRegStep("otp");
+    setOtpSending(true);
+    try {
+      const token = await sendOtpToPhone(phone);
+      setSessionToken(token);
+      setRegStep("otp");
+    } catch (e: any) {
+      setError(e.message ?? "Failed to send OTP. Please try again.");
+    } finally {
+      setOtpSending(false);
+    }
   };
 
   const handleRegisterOtp = async () => {
     const otp = otpDigits.join("");
-    if (otp.length !== 4) {
+    if (otp.length !== 6) {
       setError(t("enterOtp"));
       return;
     }
+    setLoading(true);
     setError("");
-    setRegStep("notifications");
-    setOtpDigits(["", "", "", ""]);
+    try {
+      await verifyOtpToken(otp, sessionToken);
+      setRegStep("notifications");
+      setOtpDigits(["", "", "", "", "", ""]);
+    } catch (e: any) {
+      setError(e.message ?? "OTP verification failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegisterFinish = async () => {
@@ -189,25 +249,35 @@ export default function LoginScreen() {
     }
   };
 
-  const handleLoginSubmit = () => {
+  const handleLoginSubmit = async () => {
     setError("");
     const phone = loginPhone.trim().replace(/\D/g, "");
     if (phone.length !== 10) {
       setError(t("enterValidPhone"));
       return;
     }
-    setLoginStep("otp");
+    setOtpSending(true);
+    try {
+      const token = await sendOtpToPhone(phone);
+      setSessionToken(token);
+      setLoginStep("otp");
+    } catch (e: any) {
+      setError(e.message ?? "Failed to send OTP. Please try again.");
+    } finally {
+      setOtpSending(false);
+    }
   };
 
   const handleLoginOtp = async () => {
     const otp = otpDigits.join("");
-    if (otp.length !== 4) {
+    if (otp.length !== 6) {
       setError(t("enterOtp"));
       return;
     }
     setLoading(true);
     setError("");
     try {
+      await verifyOtpToken(otp, sessionToken);
       const phone = loginPhone.trim().replace(/\D/g, "");
       const user = await loginWithPhone(phone);
       if (user) {
@@ -215,14 +285,17 @@ export default function LoginScreen() {
       } else {
         setError(t("accountNotFound"));
         setLoginStep("form");
-        setOtpDigits(["", "", "", ""]);
+        setOtpDigits(["", "", "", "", "", ""]);
       }
+    } catch (e: any) {
+      setError(e.message ?? "OTP verification failed.");
+      setOtpDigits(["", "", "", "", "", ""]);
     } finally {
       setLoading(false);
     }
   };
 
-  const otpRefs = [otpRef1, otpRef2, otpRef3, otpRef4];
+  const otpRefs = [otpRef1, otpRef2, otpRef3, otpRef4, otpRef5, otpRef6];
 
   const renderOtpInput = () => (
     <View style={s.otpSection}>
@@ -230,7 +303,7 @@ export default function LoginScreen() {
         <Feather name="smartphone" size={28} color="#EA580C" />
       </View>
       <Text style={s.otpTitle}>{t("otpVerification")}</Text>
-      <Text style={s.otpSub}>{t("otpSent")} +91 {activeTab === "register" ? regPhone : loginPhone}</Text>
+      <Text style={s.otpSub}>6-digit OTP sent to +91 {activeTab === "register" ? regPhone : loginPhone}</Text>
       <View style={s.otpRow}>
         {otpDigits.map((digit, i) => (
           <TextInput
@@ -253,7 +326,7 @@ export default function LoginScreen() {
           />
         ))}
       </View>
-      <Text style={s.otpHint}>{t("otpHint")}</Text>
+      <Text style={s.otpHint}>Check your SMS for the 6-digit code · valid 10 min</Text>
       {error ? <Text style={s.errorText}>{error}</Text> : null}
       <TouchableOpacity
         style={s.primaryBtn}
@@ -262,7 +335,10 @@ export default function LoginScreen() {
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="white" />
+          <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtnGrad}>
+            <ActivityIndicator color="white" size="small" />
+            <Text style={s.primaryBtnText}>Verifying…</Text>
+          </LinearGradient>
         ) : (
           <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtnGrad}>
             <Text style={s.primaryBtnText}>{t("verifyOtp")}</Text>
@@ -358,10 +434,20 @@ export default function LoginScreen() {
         style={s.primaryBtn}
         onPress={handleRegisterSubmit}
         activeOpacity={0.85}
+        disabled={otpSending}
       >
         <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtnGrad}>
-          <Text style={s.primaryBtnText}>{t("continue")}</Text>
-          <Feather name="arrow-right" size={18} color="white" />
+          {otpSending ? (
+            <>
+              <ActivityIndicator color="white" size="small" />
+              <Text style={s.primaryBtnText}>Sending OTP…</Text>
+            </>
+          ) : (
+            <>
+              <Text style={s.primaryBtnText}>{t("continue")}</Text>
+              <Feather name="arrow-right" size={18} color="white" />
+            </>
+          )}
         </LinearGradient>
       </TouchableOpacity>
     </View>
@@ -453,10 +539,20 @@ export default function LoginScreen() {
         style={s.primaryBtn}
         onPress={handleLoginSubmit}
         activeOpacity={0.85}
+        disabled={otpSending}
       >
         <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtnGrad}>
-          <Text style={s.primaryBtnText}>{t("continue")}</Text>
-          <Feather name="arrow-right" size={18} color="white" />
+          {otpSending ? (
+            <>
+              <ActivityIndicator color="white" size="small" />
+              <Text style={s.primaryBtnText}>Sending OTP…</Text>
+            </>
+          ) : (
+            <>
+              <Text style={s.primaryBtnText}>{t("continue")}</Text>
+              <Feather name="arrow-right" size={18} color="white" />
+            </>
+          )}
         </LinearGradient>
       </TouchableOpacity>
     </View>
@@ -502,6 +598,21 @@ export default function LoginScreen() {
             ))}
           </View>
 
+
+          {quickLoginUser && (
+            <TouchableOpacity style={s.quickCard} onPress={handleGoogleSignIn} activeOpacity={0.85}>
+              <View style={s.quickAvatar}>
+                <Text style={s.quickAvatarText}>{quickLoginUser.name.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.quickWelcome}>Welcome back!</Text>
+                <Text style={s.quickName} numberOfLines={1}>{quickLoginUser.name}</Text>
+              </View>
+              <LinearGradient colors={["#059669", "#10B981"]} style={s.quickContinueBtn}>
+                <Text style={s.quickContinueTxt}>Continue →</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           <View style={s.tabBar}>
             <TouchableOpacity
@@ -815,6 +926,21 @@ const s = StyleSheet.create({
     flex: 1, fontSize: 11, color: "rgba(255,255,255,0.55)",
     fontFamily: "Inter_400Regular", lineHeight: 16,
   },
+  quickCard: {
+    width: "100%", flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 18,
+    padding: 14, marginBottom: 12, borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+  },
+  quickAvatar: {
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.3)", alignItems: "center", justifyContent: "center",
+  },
+  quickAvatarText: { fontSize: 18, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" },
+  quickWelcome: { fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular" },
+  quickName: { fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  quickContinueBtn: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8 },
+  quickContinueTxt: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
 });
 
 const { width: SW } = Dimensions.get("window");
