@@ -235,6 +235,8 @@ export default function JobsLoginScreen() {
 
   const [sessionToken, setSessionToken] = useState("");
   const [otpSending, setOtpSending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = [
     useRef<TextInput>(null),
@@ -268,6 +270,19 @@ export default function JobsLoginScreen() {
     return null;
   };
 
+  const startCountdown = () => {
+    setCountdown(30);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) { clearInterval(countdownRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
+
   const getApiBase = () =>
     typeof window !== "undefined" && window.location ? window.location.origin : "";
 
@@ -290,6 +305,7 @@ export default function JobsLoginScreen() {
       if (!data.success) throw new Error(data.error ?? "Failed to send OTP");
       setSessionToken(data.sessionToken);
       setStep("otp");
+      startCountdown();
     } catch (e: any) {
       setError(e.message ?? "Failed to send OTP. Please try again.");
     } finally {
@@ -589,6 +605,33 @@ export default function JobsLoginScreen() {
               {step === "otp" && (
                 <>
                   <Text style={styles.otpHint}>Enter the 6-digit OTP sent to +91 {phone} · valid 10 min</Text>
+                  {countdown > 0 ? (
+                    <Text style={styles.resendCountdown}>Resend OTP in {countdown}s</Text>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={async () => {
+                        setError("");
+                        setOtp(["", "", "", "", "", ""]);
+                        setOtpSending(true);
+                        try {
+                          const res = await fetch(`${getApiBase()}/api/send-otp`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ phone }),
+                          });
+                          const data = await res.json();
+                          if (!data.success) throw new Error(data.error ?? "Failed to resend OTP");
+                          setSessionToken(data.sessionToken);
+                          startCountdown();
+                        } catch (e: any) { setError(e.message ?? "Failed to resend OTP"); }
+                        finally { setOtpSending(false); }
+                      }}
+                      disabled={otpSending}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.resendLink}>{otpSending ? "Sending…" : "Resend OTP"}</Text>
+                    </TouchableOpacity>
+                  )}
                   <View style={styles.otpRow}>
                     {otp.map((d, i) => (
                       <TextInput
@@ -719,6 +762,8 @@ const styles = StyleSheet.create({
   otpBox: { width: 56, height: 60, borderRadius: 14, borderWidth: 2, borderColor: "#E2E8F0", fontSize: 24, fontWeight: "700", color: "#0F172A", backgroundColor: "#F8FAFC", fontFamily: "Inter_700Bold", textAlign: "center", textAlignVertical: "center", paddingVertical: 0, includeFontPadding: false, lineHeight: 60 },
   otpBoxFilled: { borderColor: "#EA580C", backgroundColor: "#FFF7ED" },
   otpDemoNote: { fontSize: 11, color: "#94A3B8", textAlign: "center", marginBottom: 14, fontFamily: "Inter_400Regular" },
+  resendCountdown: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular", textAlign: "center", marginVertical: 6 },
+  resendLink: { fontSize: 13, fontWeight: "700", color: "#059669", fontFamily: "Inter_600SemiBold", textAlign: "center", marginVertical: 6, textDecorationLine: "underline" },
 
   error: { fontSize: 13, color: "#DC2626", fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 10, backgroundColor: "#FEE2E2", padding: 10, borderRadius: 8 },
   backLink: { fontSize: 13, color: "#EA580C", fontFamily: "Inter_400Regular" },

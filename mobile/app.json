@@ -17,11 +17,14 @@
       "supportsTablet": false
     },
     "android": {
-      "package": "com.connectt.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#EA580C"
-      }
+      },
+      "package": "com.Connect_T.App",
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true,
+      "abiFilters": ["arm64-v8a", "armeabi-v7a"]
     },
     "androidStatusBar": {
       "barStyle": "light-content",
@@ -44,8 +47,7 @@
         }
       ],
       "expo-font",
-      "expo-web-browser",
-      "expo-video"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -56,9 +58,8 @@
         "origin": "https://replit.com/"
       },
       "eas": {
-        "projectId": "8ebaae0f-06b3-4c5c-95cc-1eadee7f1b1c"
+        "projectId": "e13e4886-ee29-4c2a-a04b-83703634b99d"
       }
-    },
-    "owner": "vedaantsatdive7"
+    }
   }
 }

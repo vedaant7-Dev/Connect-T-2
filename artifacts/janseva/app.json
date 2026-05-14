@@ -21,7 +21,10 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#EA580C"
       },
-      "package": "com.Connect_T.App"
+      "package": "com.Connect_T.App",
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true,
+      "abiFilters": ["arm64-v8a", "armeabi-v7a"]
     },
     "androidStatusBar": {
       "barStyle": "light-content",

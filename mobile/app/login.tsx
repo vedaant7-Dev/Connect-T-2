@@ -109,6 +109,21 @@ export default function LoginScreen() {
 
   const successAnim = useRef(new Animated.Value(0)).current;
   const { height: windowHeight } = useWindowDimensions();
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCountdown = () => {
+    setCountdown(30);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) { clearInterval(countdownRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
 
   useEffect(() => {
     AsyncStorage.getItem("janseva_user").then((raw) => {
@@ -193,6 +208,7 @@ export default function LoginScreen() {
       const token = await sendOtpToPhone(phone);
       setSessionToken(token);
       setRegStep("otp");
+      startCountdown();
     } catch (e: any) {
       setError(e.message ?? "Failed to send OTP. Please try again.");
     } finally {
@@ -261,6 +277,7 @@ export default function LoginScreen() {
       const token = await sendOtpToPhone(phone);
       setSessionToken(token);
       setLoginStep("otp");
+      startCountdown();
     } catch (e: any) {
       setError(e.message ?? "Failed to send OTP. Please try again.");
     } finally {
@@ -327,6 +344,30 @@ export default function LoginScreen() {
         ))}
       </View>
       <Text style={s.otpHint}>Check your SMS for the 6-digit code · valid 10 min</Text>
+
+      {countdown > 0 ? (
+        <Text style={s.resendCountdown}>Resend OTP in {countdown}s</Text>
+      ) : (
+        <TouchableOpacity
+          onPress={async () => {
+            setError("");
+            setOtpDigits(["", "", "", "", "", ""]);
+            setOtpSending(true);
+            try {
+              const ph = (activeTab === "register" ? regPhone : loginPhone).trim().replace(/\D/g, "");
+              const token = await sendOtpToPhone(ph);
+              setSessionToken(token);
+              startCountdown();
+            } catch (e: any) { setError(e.message ?? "Failed to resend OTP"); }
+            finally { setOtpSending(false); }
+          }}
+          disabled={otpSending}
+          activeOpacity={0.7}
+        >
+          <Text style={s.resendLink}>{otpSending ? "Sending…" : "Resend OTP"}</Text>
+        </TouchableOpacity>
+      )}
+
       {error ? <Text style={s.errorText}>{error}</Text> : null}
       <TouchableOpacity
         style={s.primaryBtn}
@@ -941,6 +982,13 @@ const s = StyleSheet.create({
   quickName: { fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
   quickContinueBtn: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8 },
   quickContinueTxt: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  resendCountdown: {
+    fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 6, marginBottom: 2,
+  },
+  resendLink: {
+    fontSize: 13, fontWeight: "700", color: "#EA580C", fontFamily: "Inter_600SemiBold",
+    marginTop: 6, marginBottom: 2, textDecorationLine: "underline",
+  },
 });
 
 const { width: SW } = Dimensions.get("window");
