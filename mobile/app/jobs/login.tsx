@@ -1,7 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Modal, FlatList,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Modal,
+  FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -9,7 +18,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
-import { useJobsAuth, JobsUserRole, randomColor } from "@/context/JobsAuthContext";
+import {
+  useJobsAuth,
+  JobsUserRole,
+  randomColor,
+} from "@/context/JobsAuthContext";
 import DecorativeCircles from "@/components/DecorativeCircles";
 import TopShade from "@/components/TopShade";
 
@@ -18,10 +31,21 @@ WebBrowser.maybeCompleteAuthSession();
 type AuthTab = "login" | "register";
 type Step = "form" | "otp" | "success";
 
-const ROLES: { id: JobsUserRole; icon: string; label: string; sub: string }[] = [
-  { id: "seeker", icon: "user", label: "Job Seeker", sub: "Find jobs in Ambernath" },
-  { id: "employer", icon: "briefcase", label: "Employer", sub: "Post jobs & hire talent" },
-];
+const ROLES: { id: JobsUserRole; icon: string; label: string; sub: string }[] =
+  [
+    {
+      id: "seeker",
+      icon: "user",
+      label: "Job Seeker",
+      sub: "Find jobs in Ambernath",
+    },
+    {
+      id: "employer",
+      icon: "briefcase",
+      label: "Employer",
+      sub: "Post jobs & hire talent",
+    },
+  ];
 
 const AGE_OPTIONS = Array.from({ length: 43 }, (_, i) => String(i + 18));
 
@@ -76,7 +100,14 @@ interface DropdownPickerProps {
   required?: boolean;
 }
 
-function DropdownPicker({ label, value, options, placeholder, onSelect, required }: DropdownPickerProps) {
+function DropdownPicker({
+  label,
+  value,
+  options,
+  placeholder,
+  onSelect,
+  required,
+}: DropdownPickerProps) {
   const [open, setOpen] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manualText, setManualText] = useState("");
@@ -102,10 +133,17 @@ function DropdownPicker({ label, value, options, placeholder, onSelect, required
 
   return (
     <View style={dd.wrap}>
-      <Text style={dd.label}>{label}{required && <Text style={{ color: "#DC2626" }}> *</Text>}</Text>
+      <Text style={dd.label}>
+        {label}
+        {required && <Text style={{ color: "#DC2626" }}> *</Text>}
+      </Text>
 
       {!manualMode ? (
-        <TouchableOpacity style={dd.trigger} onPress={() => setOpen(true)} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={dd.trigger}
+          onPress={() => setOpen(true)}
+          activeOpacity={0.8}
+        >
           <Text style={[dd.triggerText, !value && dd.placeholder]}>
             {value || placeholder || `Select ${label}`}
           </Text>
@@ -123,25 +161,47 @@ function DropdownPicker({ label, value, options, placeholder, onSelect, required
           <TouchableOpacity style={dd.doneBtn} onPress={handleManualDone}>
             <Feather name="check" size={16} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity style={dd.cancelBtn} onPress={() => setManualMode(false)}>
+          <TouchableOpacity
+            style={dd.cancelBtn}
+            onPress={() => setManualMode(false)}
+          >
             <Feather name="x" size={16} color="#64748B" />
           </TouchableOpacity>
         </View>
       )}
 
       {value && !manualMode && (
-        <TouchableOpacity onPress={() => { setManualMode(true); setManualText(value); }} style={dd.editLink}>
+        <TouchableOpacity
+          onPress={() => {
+            setManualMode(true);
+            setManualText(value);
+          }}
+          style={dd.editLink}
+        >
           <Feather name="edit-2" size={10} color="#EA580C" />
           <Text style={dd.editLinkText}>Type manually instead</Text>
         </TouchableOpacity>
       )}
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={dd.overlay} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={[dd.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <TouchableOpacity
+          style={dd.overlay}
+          activeOpacity={1}
+          onPress={() => setOpen(false)}
+        >
+          <View
+            style={[dd.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
+          >
             <View style={dd.sheetHeader}>
               <Text style={dd.sheetTitle}>Select {label}</Text>
-              <TouchableOpacity onPress={() => setOpen(false)}><Feather name="x" size={20} color="#64748B" /></TouchableOpacity>
+              <TouchableOpacity onPress={() => setOpen(false)}>
+                <Feather name="x" size={20} color="#64748B" />
+              </TouchableOpacity>
             </View>
             <FlatList
               data={options}
@@ -149,19 +209,46 @@ function DropdownPicker({ label, value, options, placeholder, onSelect, required
               showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[dd.option, item === value && dd.optionActive, item === "Other" && dd.optionOther]}
+                  style={[
+                    dd.option,
+                    item === value && dd.optionActive,
+                    item === "Other" && dd.optionOther,
+                  ]}
                   onPress={() => handleSelect(item)}
                   activeOpacity={0.7}
                 >
                   {item === "Other" ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
                       <Feather name="edit-3" size={14} color="#EA580C" />
-                      <Text style={[dd.optionText, { color: "#EA580C" }]}>Other (type manually)</Text>
+                      <Text style={[dd.optionText, { color: "#EA580C" }]}>
+                        Other (type manually)
+                      </Text>
                     </View>
                   ) : (
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                      <Text style={[dd.optionText, item === value && dd.optionTextActive]}>{item}</Text>
-                      {item === value && <Feather name="check" size={14} color="#EA580C" />}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Text
+                        style={[
+                          dd.optionText,
+                          item === value && dd.optionTextActive,
+                        ]}
+                      >
+                        {item}
+                      </Text>
+                      {item === value && (
+                        <Feather name="check" size={14} color="#EA580C" />
+                      )}
                     </View>
                   )}
                 </TouchableOpacity>
@@ -237,10 +324,8 @@ export default function JobsLoginScreen() {
   const [otpSending, setOtpSending] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState(["", "", "", ""]);
   const otpRefs = [
-    useRef<TextInput>(null),
-    useRef<TextInput>(null),
     useRef<TextInput>(null),
     useRef<TextInput>(null),
     useRef<TextInput>(null),
@@ -275,39 +360,51 @@ export default function JobsLoginScreen() {
     if (countdownRef.current) clearInterval(countdownRef.current);
     countdownRef.current = setInterval(() => {
       setCountdown((prev) => {
-        if (prev <= 1) { clearInterval(countdownRef.current!); return 0; }
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
   };
 
-  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    },
+    [],
+  );
 
   const getApiBase = () =>
-    typeof window !== "undefined" && window.location ? window.location.origin : "";
+    typeof window !== "undefined" && window.location
+      ? window.location.origin
+      : "";
 
   const handleSendOtp = async () => {
     setError("");
+
     if (tab === "register") {
       const err = role === "seeker" ? validateSeeker() : validateEmployer();
-      if (err) { setError(err); return; }
+      if (err) {
+        setError(err);
+        return;
+      }
     } else {
-      if (phone.length !== 10) { setError("Enter a valid 10-digit mobile number."); return; }
+      if (phone.length !== 10) {
+        setError("Enter a valid 10-digit mobile number.");
+        return;
+      }
     }
+
     setOtpSending(true);
+
     try {
-      const res = await fetch(`${getApiBase()}/api/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error ?? "Failed to send OTP");
-      setSessionToken(data.sessionToken);
+      setSessionToken("DEMO_JOB_OTP_SESSION");
       setStep("otp");
       startCountdown();
     } catch (e: any) {
-      setError(e.message ?? "Failed to send OTP. Please try again.");
+      setError(e.message ?? "Failed to resend OTP");
     } finally {
       setOtpSending(false);
     }
@@ -315,18 +412,16 @@ export default function JobsLoginScreen() {
 
   const handleVerifyOtp = async () => {
     const code = otp.join("");
-    if (code.length < 6) { setError("Enter the 6-digit OTP."); return; }
+
+    if (code !== "1234") {
+      setError("Invalid OTP. Use demo OTP 1234.");
+      return;
+    }
+
     setLoading(true);
     setError("");
-    try {
-      const verifyRes = await fetch(`${getApiBase()}/api/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp: code, sessionToken }),
-      });
-      const verifyData = await verifyRes.json();
-      if (!verifyData.valid) throw new Error(verifyData.error ?? "Invalid OTP");
 
+    try {
       if (tab === "register") {
         await registerJobs({
           name: name.trim(),
@@ -350,22 +445,29 @@ export default function JobsLoginScreen() {
           return;
         }
       }
+
       setStep("success");
       setTimeout(() => router.replace("/jobs/(tabs)" as any), 1200);
     } catch (e: any) {
       setError(e.message ?? "Something went wrong. Try again.");
-      setOtp(["", "", "", "", "", ""]);
+      setOtp(["", "", "", ""]);
     } finally {
       setLoading(false);
     }
   };
 
   const switchTab = (t: AuthTab) => {
-    setTab(t); setStep("form"); setError(""); setOtp(["", "", "", "", "", ""]);
+    setTab(t);
+    setStep("form");
+    setError("");
+    setOtp(["", "", "", ""]);
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <ScrollView
         style={{ flex: 1, backgroundColor: "#FFF7ED" }}
         contentContainerStyle={{ flexGrow: 1 }}
@@ -374,8 +476,15 @@ export default function JobsLoginScreen() {
       >
         <LinearGradient
           colors={["#9A3412", "#C2410C", "#EA580C", "#F97316", "#FB923C"]}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[styles.header, { paddingTop: (Platform.OS === "web" ? 44 : insets.top) + 20, overflow: "hidden" }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.header,
+            {
+              paddingTop: (Platform.OS === "web" ? 44 : insets.top) + 20,
+              overflow: "hidden",
+            },
+          ]}
         >
           <TopShade height={120} />
           <DecorativeCircles />
@@ -390,33 +499,72 @@ export default function JobsLoginScreen() {
                 <Feather name="check" size={36} color="white" />
               </View>
               <Text style={styles.successTitle}>Welcome!</Text>
-              <Text style={styles.successSub}>Taking you to the job portal…</Text>
+              <Text style={styles.successSub}>
+                Taking you to the job portal…
+              </Text>
             </View>
           ) : (
             <>
-              <Text style={styles.cardTitle}>{tab === "login" ? "Welcome Back" : "Create Account"}</Text>
+              <Text style={styles.cardTitle}>
+                {tab === "login" ? "Welcome Back" : "Create Account"}
+              </Text>
 
               <View style={styles.roleRow}>
                 {ROLES.map((r) => (
                   <TouchableOpacity
                     key={r.id}
-                    style={[styles.roleCard, role === r.id && styles.roleCardActive]}
+                    style={[
+                      styles.roleCard,
+                      role === r.id && styles.roleCardActive,
+                    ]}
                     onPress={() => setRole(r.id)}
                     activeOpacity={0.8}
                   >
-                    <View style={[styles.roleIcon, role === r.id && styles.roleIconActive]}>
-                      <Feather name={r.icon as any} size={20} color={role === r.id ? "white" : "#EA580C"} />
+                    <View
+                      style={[
+                        styles.roleIcon,
+                        role === r.id && styles.roleIconActive,
+                      ]}
+                    >
+                      <Feather
+                        name={r.icon as any}
+                        size={20}
+                        color={role === r.id ? "white" : "#EA580C"}
+                      />
                     </View>
-                    <Text style={[styles.roleLabel, role === r.id && styles.roleLabelActive]}>{r.label}</Text>
-                    <Text style={[styles.roleSub, role === r.id && { color: "rgba(255,255,255,0.75)" }]}>{r.sub}</Text>
+                    <Text
+                      style={[
+                        styles.roleLabel,
+                        role === r.id && styles.roleLabelActive,
+                      ]}
+                    >
+                      {r.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.roleSub,
+                        role === r.id && { color: "rgba(255,255,255,0.75)" },
+                      ]}
+                    >
+                      {r.sub}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
               <View style={styles.tabRow}>
                 {(["login", "register"] as AuthTab[]).map((t) => (
-                  <TouchableOpacity key={t} style={[styles.tabItem, tab === t && styles.tabActive]} onPress={() => switchTab(t)}>
-                    <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.tabItem, tab === t && styles.tabActive]}
+                    onPress={() => switchTab(t)}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        tab === t && styles.tabTextActive,
+                      ]}
+                    >
                       {t === "login" ? "Login" : "Register"}
                     </Text>
                   </TouchableOpacity>
@@ -429,11 +577,15 @@ export default function JobsLoginScreen() {
                     <>
                       <View style={styles.sectionBanner}>
                         <Feather name="user" size={13} color="#EA580C" />
-                        <Text style={styles.sectionBannerText}>Job Seeker Details</Text>
+                        <Text style={styles.sectionBannerText}>
+                          Job Seeker Details
+                        </Text>
                       </View>
 
                       <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>Full Name <Text style={{ color: "#DC2626" }}>*</Text></Text>
+                        <Text style={styles.inputLabel}>
+                          Full Name <Text style={{ color: "#DC2626" }}>*</Text>
+                        </Text>
                         <TextInput
                           style={styles.input}
                           value={name}
@@ -454,13 +606,20 @@ export default function JobsLoginScreen() {
                       />
 
                       <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>Mobile Number <Text style={{ color: "#DC2626" }}>*</Text></Text>
+                        <Text style={styles.inputLabel}>
+                          Mobile Number{" "}
+                          <Text style={{ color: "#DC2626" }}>*</Text>
+                        </Text>
                         <View style={styles.phoneRow}>
-                          <View style={styles.phoneCode}><Text style={styles.phoneCodeText}>+91</Text></View>
+                          <View style={styles.phoneCode}>
+                            <Text style={styles.phoneCodeText}>+91</Text>
+                          </View>
                           <TextInput
                             style={[styles.input, { flex: 1, marginBottom: 0 }]}
                             value={phone}
-                            onChangeText={(t) => setPhone(t.replace(/\D/g, "").slice(0, 10))}
+                            onChangeText={(t) =>
+                              setPhone(t.replace(/\D/g, "").slice(0, 10))
+                            }
                             placeholder="XXXXX XXXXX"
                             placeholderTextColor="#CBD5E1"
                             keyboardType="phone-pad"
@@ -479,7 +638,9 @@ export default function JobsLoginScreen() {
                       />
 
                       <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>Skills <Text style={styles.optional}>(optional)</Text></Text>
+                        <Text style={styles.inputLabel}>
+                          Skills <Text style={styles.optional}>(optional)</Text>
+                        </Text>
                         <TextInput
                           style={styles.input}
                           value={skills}
@@ -487,7 +648,9 @@ export default function JobsLoginScreen() {
                           placeholder="e.g. Welding, MS Office, Driving"
                           placeholderTextColor="#CBD5E1"
                         />
-                        <Text style={styles.hint}>Separate multiple skills with commas</Text>
+                        <Text style={styles.hint}>
+                          Separate multiple skills with commas
+                        </Text>
                       </View>
                     </>
                   )}
@@ -496,11 +659,15 @@ export default function JobsLoginScreen() {
                     <>
                       <View style={styles.sectionBanner}>
                         <Feather name="briefcase" size={13} color="#EA580C" />
-                        <Text style={styles.sectionBannerText}>Employer Registration</Text>
+                        <Text style={styles.sectionBannerText}>
+                          Employer Registration
+                        </Text>
                       </View>
 
                       <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>Full Name <Text style={{ color: "#DC2626" }}>*</Text></Text>
+                        <Text style={styles.inputLabel}>
+                          Full Name <Text style={{ color: "#DC2626" }}>*</Text>
+                        </Text>
                         <TextInput
                           style={styles.input}
                           value={name}
@@ -512,7 +679,10 @@ export default function JobsLoginScreen() {
                       </View>
 
                       <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>Company Name <Text style={{ color: "#DC2626" }}>*</Text></Text>
+                        <Text style={styles.inputLabel}>
+                          Company Name{" "}
+                          <Text style={{ color: "#DC2626" }}>*</Text>
+                        </Text>
                         <TextInput
                           style={styles.input}
                           value={company}
@@ -524,7 +694,10 @@ export default function JobsLoginScreen() {
                       </View>
 
                       <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>GST Number <Text style={styles.optional}>(optional)</Text></Text>
+                        <Text style={styles.inputLabel}>
+                          GST Number{" "}
+                          <Text style={styles.optional}>(optional)</Text>
+                        </Text>
                         <TextInput
                           style={styles.input}
                           value={gstNo}
@@ -534,7 +707,9 @@ export default function JobsLoginScreen() {
                           autoCapitalize="characters"
                           maxLength={15}
                         />
-                        <Text style={styles.hint}>15-digit GST Identification Number</Text>
+                        <Text style={styles.hint}>
+                          15-digit GST Identification Number
+                        </Text>
                       </View>
 
                       <DropdownPicker
@@ -547,13 +722,20 @@ export default function JobsLoginScreen() {
                       />
 
                       <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>Mobile Number <Text style={{ color: "#DC2626" }}>*</Text></Text>
+                        <Text style={styles.inputLabel}>
+                          Mobile Number{" "}
+                          <Text style={{ color: "#DC2626" }}>*</Text>
+                        </Text>
                         <View style={styles.phoneRow}>
-                          <View style={styles.phoneCode}><Text style={styles.phoneCodeText}>+91</Text></View>
+                          <View style={styles.phoneCode}>
+                            <Text style={styles.phoneCodeText}>+91</Text>
+                          </View>
                           <TextInput
                             style={[styles.input, { flex: 1, marginBottom: 0 }]}
                             value={phone}
-                            onChangeText={(t) => setPhone(t.replace(/\D/g, "").slice(0, 10))}
+                            onChangeText={(t) =>
+                              setPhone(t.replace(/\D/g, "").slice(0, 10))
+                            }
                             placeholder="XXXXX XXXXX"
                             placeholderTextColor="#CBD5E1"
                             keyboardType="phone-pad"
@@ -566,13 +748,20 @@ export default function JobsLoginScreen() {
 
                   {tab === "login" && (
                     <View style={styles.inputWrap}>
-                      <Text style={styles.inputLabel}>Mobile Number <Text style={{ color: "#DC2626" }}>*</Text></Text>
+                      <Text style={styles.inputLabel}>
+                        Mobile Number{" "}
+                        <Text style={{ color: "#DC2626" }}>*</Text>
+                      </Text>
                       <View style={styles.phoneRow}>
-                        <View style={styles.phoneCode}><Text style={styles.phoneCodeText}>+91</Text></View>
+                        <View style={styles.phoneCode}>
+                          <Text style={styles.phoneCodeText}>+91</Text>
+                        </View>
                         <TextInput
                           style={[styles.input, { flex: 1, marginBottom: 0 }]}
                           value={phone}
-                          onChangeText={(t) => setPhone(t.replace(/\D/g, "").slice(0, 10))}
+                          onChangeText={(t) =>
+                            setPhone(t.replace(/\D/g, "").slice(0, 10))
+                          }
                           placeholder="XXXXX XXXXX"
                           placeholderTextColor="#CBD5E1"
                           keyboardType="phone-pad"
@@ -584,8 +773,18 @@ export default function JobsLoginScreen() {
 
                   {!!error && <Text style={styles.error}>{error}</Text>}
 
-                  <TouchableOpacity style={styles.btn} onPress={handleSendOtp} activeOpacity={0.85} disabled={otpSending}>
-                    <LinearGradient colors={["#047857", "#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btnGrad}>
+                  <TouchableOpacity
+                    style={styles.btn}
+                    onPress={handleSendOtp}
+                    activeOpacity={0.85}
+                    disabled={otpSending}
+                  >
+                    <LinearGradient
+                      colors={["#047857", "#059669", "#10B981"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.btnGrad}
+                    >
                       {otpSending ? (
                         <>
                           <ActivityIndicator color="white" size="small" />
@@ -604,32 +803,47 @@ export default function JobsLoginScreen() {
 
               {step === "otp" && (
                 <>
-                  <Text style={styles.otpHint}>Enter the 6-digit OTP sent to +91 {phone} · valid 10 min</Text>
+                  <Text style={styles.otpHint}>
+                    Enter demo OTP 1234 sent to +91 {phone} · valid 10 min
+                  </Text>
                   {countdown > 0 ? (
-                    <Text style={styles.resendCountdown}>Resend OTP in {countdown}s</Text>
+                    <Text style={styles.resendCountdown}>
+                      Resend OTP in {countdown}s
+                    </Text>
                   ) : (
                     <TouchableOpacity
                       onPress={async () => {
                         setError("");
-                        setOtp(["", "", "", "", "", ""]);
+                        setOtp(["", "", "", ""]);
                         setOtpSending(true);
                         try {
-                          const res = await fetch(`${getApiBase()}/api/send-otp`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ phone }),
-                          });
+                          const res = await fetch(
+                            `${getApiBase()}/api/send-otp`,
+                            {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ phone }),
+                            },
+                          );
                           const data = await res.json();
-                          if (!data.success) throw new Error(data.error ?? "Failed to resend OTP");
+                          if (!data.success)
+                            throw new Error(
+                              data.error ?? "Failed to resend OTP",
+                            );
                           setSessionToken(data.sessionToken);
                           startCountdown();
-                        } catch (e: any) { setError(e.message ?? "Failed to resend OTP"); }
-                        finally { setOtpSending(false); }
+                        } catch (e: any) {
+                          setError(e.message ?? "Failed to resend OTP");
+                        } finally {
+                          setOtpSending(false);
+                        }
                       }}
                       disabled={otpSending}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.resendLink}>{otpSending ? "Sending…" : "Resend OTP"}</Text>
+                      <Text style={styles.resendLink}>
+                        {otpSending ? "Sending…" : "Resend OTP"}
+                      </Text>
                     </TouchableOpacity>
                   )}
                   <View style={styles.otpRow}>
@@ -639,19 +853,33 @@ export default function JobsLoginScreen() {
                         ref={otpRefs[i]}
                         style={[styles.otpBox, d && styles.otpBoxFilled]}
                         value={d}
-                        onChangeText={(v) => setOtpDigit(i, v.replace(/\D/g, "").slice(-1))}
+                        onChangeText={(v) =>
+                          setOtpDigit(i, v.replace(/\D/g, "").slice(-1))
+                        }
                         keyboardType="number-pad"
                         maxLength={1}
                       />
                     ))}
                   </View>
-                  <Text style={styles.otpDemoNote}>Check your SMS inbox for the code</Text>
+                  <Text style={styles.otpDemoNote}>Demo OTP is 1234 </Text>
 
                   {!!error && <Text style={styles.error}>{error}</Text>}
 
-                  <TouchableOpacity style={styles.btn} onPress={handleVerifyOtp} activeOpacity={0.85} disabled={loading}>
-                    <LinearGradient colors={["#047857", "#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btnGrad}>
-                      {loading ? <ActivityIndicator color="white" /> : (
+                  <TouchableOpacity
+                    style={styles.btn}
+                    onPress={handleVerifyOtp}
+                    activeOpacity={0.85}
+                    disabled={loading}
+                  >
+                    <LinearGradient
+                      colors={["#047857", "#059669", "#10B981"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.btnGrad}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color="white" />
+                      ) : (
                         <>
                           <Text style={styles.btnText}>Verify & Continue</Text>
                           <Feather name="check" size={18} color="white" />
@@ -661,7 +889,11 @@ export default function JobsLoginScreen() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => { setStep("form"); setOtp(["", "", "", ""]); setError(""); }}
+                    onPress={() => {
+                      setStep("form");
+                      setOtp(["", "", "", ""]);
+                      setError("");
+                    }}
                     style={{ alignSelf: "center", marginTop: 10 }}
                   >
                     <Text style={styles.backLink}>← Change number</Text>
@@ -701,14 +933,18 @@ export default function JobsLoginScreen() {
             <View style={styles.googleNote}>
               <Feather name="info" size={12} color="#94A3B8" />
               <Text style={styles.googleNoteText}>
-                Google Sign-In needs a Client ID — contact your admin to enable it.
+                Google Sign-In needs a Client ID — contact your admin to enable
+                it.
               </Text>
             </View>
           )}
         </View>
 
         <View style={styles.backBtn}>
-          <TouchableOpacity onPress={() => router.replace("/portal-select" as any)} style={styles.backPill}>
+          <TouchableOpacity
+            onPress={() => router.replace("/portal-select" as any)}
+            style={styles.backPill}
+          >
             <Feather name="arrow-left" size={14} color="#EA580C" />
             <Text style={styles.backPillText}>Back</Text>
           </TouchableOpacity>
@@ -720,98 +956,441 @@ export default function JobsLoginScreen() {
 
 const styles = StyleSheet.create({
   header: { alignItems: "center", paddingHorizontal: 24, paddingBottom: 32 },
-  headerTitle: { fontSize: 24, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginTop: 4 },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.3,
+  },
+  headerSub: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+    fontFamily: "Inter_400Regular",
+    marginTop: 4,
+  },
 
-  card: { backgroundColor: "white", borderRadius: 28, margin: 16, marginTop: -20, padding: 24, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
-  cardTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 18, textAlign: "center" },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 28,
+    margin: 16,
+    marginTop: -20,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+    marginBottom: 18,
+    textAlign: "center",
+  },
 
   roleRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
-  roleCard: { flex: 1, borderRadius: 14, borderWidth: 2, borderColor: "#FED7AA", backgroundColor: "#FFF7ED", padding: 12, alignItems: "center", gap: 6 },
+  roleCard: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#FED7AA",
+    backgroundColor: "#FFF7ED",
+    padding: 12,
+    alignItems: "center",
+    gap: 6,
+  },
   roleCardActive: { borderColor: "#EA580C", backgroundColor: "#EA580C" },
-  roleIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#FFEDD5", alignItems: "center", justifyContent: "center" },
+  roleIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFEDD5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   roleIconActive: { backgroundColor: "rgba(255,255,255,0.25)" },
-  roleLabel: { fontSize: 13, fontWeight: "700", color: "#EA580C", fontFamily: "Inter_700Bold" },
+  roleLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#EA580C",
+    fontFamily: "Inter_700Bold",
+  },
   roleLabelActive: { color: "white" },
-  roleSub: { fontSize: 10, color: "#92400E", fontFamily: "Inter_400Regular", textAlign: "center" },
+  roleSub: {
+    fontSize: 10,
+    color: "#92400E",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+  },
 
-  tabRow: { flexDirection: "row", backgroundColor: "#F1F5F9", borderRadius: 12, padding: 3, marginBottom: 20 },
-  tabItem: { flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 10 },
-  tabActive: { backgroundColor: "white", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  tabRow: {
+    flexDirection: "row",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 20,
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 10,
+  },
+  tabActive: {
+    backgroundColor: "white",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
   tabText: { fontSize: 14, color: "#64748B", fontFamily: "Inter_500Medium" },
   tabTextActive: { color: "#EA580C", fontFamily: "Inter_700Bold" },
 
-  sectionBanner: { flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFF7ED", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: "#EA580C" },
-  sectionBannerText: { fontSize: 13, fontWeight: "700", color: "#EA580C", fontFamily: "Inter_700Bold" },
+  sectionBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "#FFF7ED",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: "#EA580C",
+  },
+  sectionBannerText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#EA580C",
+    fontFamily: "Inter_700Bold",
+  },
 
   inputWrap: { marginBottom: 14 },
-  inputLabel: { fontSize: 12, fontWeight: "600", color: "#475569", fontFamily: "Inter_600SemiBold", marginBottom: 6 },
-  optional: { fontSize: 11, color: "#94A3B8", fontWeight: "400", fontFamily: "Inter_400Regular" },
-  input: { backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular" },
-  hint: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 4 },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 6,
+  },
+  optional: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontWeight: "400",
+    fontFamily: "Inter_400Regular",
+  },
+  input: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#0F172A",
+    fontFamily: "Inter_400Regular",
+  },
+  hint: {
+    fontSize: 10,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+    marginTop: 4,
+  },
   phoneRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  phoneCode: { backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12 },
-  phoneCodeText: { fontSize: 15, color: "#0F172A", fontFamily: "Inter_600SemiBold" },
+  phoneCode: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  phoneCodeText: {
+    fontSize: 15,
+    color: "#0F172A",
+    fontFamily: "Inter_600SemiBold",
+  },
 
   btn: { borderRadius: 14, overflow: "hidden", marginTop: 6 },
-  btnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 15, gap: 8 },
-  btnText: { fontSize: 16, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  btnGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+    gap: 8,
+  },
+  btnText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "white",
+    fontFamily: "Inter_700Bold",
+  },
 
-  otpHint: { fontSize: 13, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 16 },
-  otpRow: { flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: 8 },
-  otpBox: { width: 56, height: 60, borderRadius: 14, borderWidth: 2, borderColor: "#E2E8F0", fontSize: 24, fontWeight: "700", color: "#0F172A", backgroundColor: "#F8FAFC", fontFamily: "Inter_700Bold", textAlign: "center", textAlignVertical: "center", paddingVertical: 0, includeFontPadding: false, lineHeight: 60 },
+  otpHint: {
+    fontSize: 13,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  otpRow: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  otpBox: {
+    width: 56,
+    height: 60,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#0F172A",
+    backgroundColor: "#F8FAFC",
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+    textAlignVertical: "center",
+    paddingVertical: 0,
+    includeFontPadding: false,
+    lineHeight: 60,
+  },
   otpBoxFilled: { borderColor: "#EA580C", backgroundColor: "#FFF7ED" },
-  otpDemoNote: { fontSize: 11, color: "#94A3B8", textAlign: "center", marginBottom: 14, fontFamily: "Inter_400Regular" },
-  resendCountdown: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular", textAlign: "center", marginVertical: 6 },
-  resendLink: { fontSize: 13, fontWeight: "700", color: "#059669", fontFamily: "Inter_600SemiBold", textAlign: "center", marginVertical: 6, textDecorationLine: "underline" },
+  otpDemoNote: {
+    fontSize: 11,
+    color: "#94A3B8",
+    textAlign: "center",
+    marginBottom: 14,
+    fontFamily: "Inter_400Regular",
+  },
+  resendCountdown: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginVertical: 6,
+  },
+  resendLink: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#059669",
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
+    marginVertical: 6,
+    textDecorationLine: "underline",
+  },
 
-  error: { fontSize: 13, color: "#DC2626", fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 10, backgroundColor: "#FEE2E2", padding: 10, borderRadius: 8 },
+  error: {
+    fontSize: 13,
+    color: "#DC2626",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginBottom: 10,
+    backgroundColor: "#FEE2E2",
+    padding: 10,
+    borderRadius: 8,
+  },
   backLink: { fontSize: 13, color: "#EA580C", fontFamily: "Inter_400Regular" },
 
   successWrap: { alignItems: "center", paddingVertical: 32, gap: 12 },
-  successCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#EA580C", alignItems: "center", justifyContent: "center" },
-  successTitle: { fontSize: 24, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  successSub: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular" },
+  successCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#EA580C",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+  },
+  successSub: {
+    fontSize: 14,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+  },
 
   backBtn: { alignItems: "center", paddingBottom: 32 },
-  backPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "white", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, borderColor: "#FED7AA" },
-  backPillText: { fontSize: 13, color: "#EA580C", fontFamily: "Inter_600SemiBold" },
+  backPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "white",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#FED7AA",
+  },
+  backPillText: {
+    fontSize: 13,
+    color: "#EA580C",
+    fontFamily: "Inter_600SemiBold",
+  },
 
   googleSection: { marginHorizontal: 16, marginBottom: 8 },
-  orRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
+  orRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
+  },
   orLine: { flex: 1, height: 1, backgroundColor: "#E2E8F0" },
   orText: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  googleBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "white", borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20, borderWidth: 1.5, borderColor: "#E2E8F0", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  googleIconWrap: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#EA580C", alignItems: "center", justifyContent: "center" },
-  googleG: { fontSize: 15, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
-  googleBtnText: { fontSize: 15, fontWeight: "600", color: "#0F172A", fontFamily: "Inter_600SemiBold" },
-  googleNote: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingHorizontal: 4 },
-  googleNoteText: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular", flex: 1 },
+  googleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "white",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  googleIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#EA580C",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleG: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_700Bold",
+  },
+  googleBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#0F172A",
+    fontFamily: "Inter_600SemiBold",
+  },
+  googleNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  googleNoteText: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+  },
 });
 
 const dd = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { fontSize: 12, fontWeight: "600", color: "#475569", fontFamily: "Inter_600SemiBold", marginBottom: 6 },
-  trigger: {
-    backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    flexDirection: "row" as const, alignItems: "center" as const, justifyContent: "space-between" as const,
+  label: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 6,
   },
-  triggerText: { fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", flex: 1 },
+  trigger: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+  },
+  triggerText: {
+    fontSize: 15,
+    color: "#0F172A",
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+  },
   placeholder: { color: "#CBD5E1" },
   manualRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  doneBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#EA580C", alignItems: "center", justifyContent: "center" },
-  cancelBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
-  editLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  editLinkText: { fontSize: 10, color: "#EA580C", fontFamily: "Inter_400Regular" },
+  doneBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#EA580C",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  editLinkText: {
+    fontSize: 10,
+    color: "#EA580C",
+    fontFamily: "Inter_400Regular",
+  },
 
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: 480 },
-  sheetHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
-  sheetTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  option: { paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F8FAFC" },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: 480,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+  },
+  option: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8FAFC",
+  },
   optionActive: { backgroundColor: "#FFF7ED" },
   optionOther: { borderTopWidth: 1, borderTopColor: "#FED7AA", marginTop: 4 },
-  optionText: { fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular" },
+  optionText: {
+    fontSize: 14,
+    color: "#334155",
+    fontFamily: "Inter_400Regular",
+  },
   optionTextActive: { color: "#EA580C", fontFamily: "Inter_700Bold" },
 });

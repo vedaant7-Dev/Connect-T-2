@@ -170,7 +170,7 @@ export default function LoginScreen() {
     setError("");
     setRegStep("form");
     setLoginStep("form");
-    setOtpDigits(["", "", "", "", "", ""]);
+    setOtpDigits(["", "", "", ""]);
   };
 
   const setOtpDigit = (
@@ -234,7 +234,7 @@ export default function LoginScreen() {
     try {
       await verifyOtpToken(otp, sessionToken);
       setRegStep("notifications");
-      setOtpDigits(["", "", "", "", "", ""]);
+      setOtpDigits(["", "", "", ""]);
     } catch (e: any) {
       setError(e.message ?? "OTP verification failed.");
     } finally {
@@ -313,11 +313,11 @@ export default function LoginScreen() {
       } else {
         setError(t("accountNotFound"));
         setLoginStep("form");
-        setOtpDigits(["", "", "", "", "", ""]);
+        setOtpDigits(["", "", "", ""]);
       }
     } catch (e: any) {
       setError(e.message ?? "OTP verification failed.");
-      setOtpDigits(["", "", "", "", "", ""]);
+      setOtpDigits(["", "", "", ""]);
     } finally {
       setLoading(false);
     }
@@ -365,7 +365,7 @@ export default function LoginScreen() {
         <TouchableOpacity
           onPress={async () => {
             setError("");
-            setOtpDigits(["", "", "", "", "", ""]);
+            setOtpDigits(["", "", "", ""]);
             setOtpSending(true);
             try {
               const ph = (activeTab === "register" ? regPhone : loginPhone)
