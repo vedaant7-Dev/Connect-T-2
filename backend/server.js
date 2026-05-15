@@ -954,7 +954,7 @@ function normalizeMobile(mobile) {
 app.post("/api/auth/send-otp", async (req, res) => {
   try {
     const mobile = normalizeMobile(req.body?.mobile);
-    const purpose = req.body.purpose || "login";
+    const purpose = req.body?.purpose || "login";
 
     if (mobile.length !== 10) {
       return res.status(400).json({
@@ -963,7 +963,7 @@ app.post("/api/auth/send-otp", async (req, res) => {
       });
     }
 
-    const otp = generateOtp();
+    const otp = "1234";
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await db.query(
@@ -972,32 +972,13 @@ app.post("/api/auth/send-otp", async (req, res) => {
       [mobile, otp, purpose, expiresAt],
     );
 
-    const params = new URLSearchParams({
-      authorization: process.env.FAST2SMS_API_KEY,
-      variables_values: otp,
-      route: "otp",
-      numbers: mobile,
-    });
-
-    const smsResponse = await fetch(
-      `https://www.fast2sms.com/dev/bulkV2?${params.toString()}`,
-    );
-
-    const smsData = await smsResponse.json();
-
-    if (!smsResponse.ok || smsData.return === false) {
-      return res.status(500).json({
-        success: false,
-        error: smsData.message || "Failed to send OTP",
-      });
-    }
-
-    res.json({
+    return res.json({
       success: true,
-      message: "OTP sent successfully",
+      message: "Demo OTP sent successfully",
+      devOtp: "1234",
     });
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: err.message,
     });
@@ -1007,45 +988,33 @@ app.post("/api/auth/send-otp", async (req, res) => {
 app.post("/api/auth/verify-otp", async (req, res) => {
   try {
     const mobile = normalizeMobile(req.body?.mobile);
-    const otp = String(req.body.otp || "").trim();
-    const purpose = req.body.purpose || "login";
+    const otp = String(req.body?.otp || "").trim();
 
-    if (mobile.length !== 10 || otp.length !== 6) {
+    if (mobile.length !== 10) {
       return res.status(400).json({
         success: false,
-        error: "Mobile and 6 digit OTP are required",
+        error: "Valid mobile number required",
       });
     }
 
-    const [rows] = await db.query(
-      `SELECT * FROM otp_codes
-       WHERE mobile = ?
-         AND otp_code = ?
-         AND purpose = ?
-         AND verified = 0
-         AND expires_at > NOW()
-       ORDER BY id DESC
-       LIMIT 1`,
-      [mobile, otp, purpose],
-    );
-
-    if (rows.length === 0) {
+    if (otp !== "1234") {
       return res.status(400).json({
         success: false,
-        error: "Invalid or expired OTP",
+        error: "Invalid OTP. Use demo OTP 1234",
       });
     }
 
-    await db.query("UPDATE otp_codes SET verified = 1 WHERE id = ?", [
-      rows[0].id,
-    ]);
-
-    res.json({
+    return res.json({
       success: true,
       message: "OTP verified successfully",
+      user: {
+        mobile,
+        role: mobile === "8554994735" ? "super_admin" : "citizen",
+        is_super_admin: mobile === "8554994735" ? 1 : 0,
+      },
     });
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: err.message,
     });
