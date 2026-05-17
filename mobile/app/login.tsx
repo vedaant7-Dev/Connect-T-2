@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
+
 import { useAuth } from "@/context/AuthContext";
 import TopShade from "@/components/TopShade";
 import { ambernathWards } from "@/data/mumbaiServices";
@@ -50,8 +51,8 @@ export default function LoginScreen() {
   const [regAddress, setRegAddress] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regWard, setRegWard] = useState("");
-  const [notifyEmail, setNotifyEmail] = useState(false);
-  const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState(true);
+  const [notifyWhatsapp, setNotifyWhatsapp] = useState(true);
 
   const [loginPhone, setLoginPhone] = useState("");
 
@@ -59,8 +60,6 @@ export default function LoginScreen() {
   const otpRef2 = useRef<TextInput>(null);
   const otpRef3 = useRef<TextInput>(null);
   const otpRef4 = useRef<TextInput>(null);
-  const otpRef5 = useRef<TextInput>(null);
-  const otpRef6 = useRef<TextInput>(null);
   const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
 
   const successAnim = useRef(new Animated.Value(0)).current;
@@ -89,33 +88,12 @@ export default function LoginScreen() {
     [],
   );
 
-  useEffect(() => {
-    AsyncStorage.getItem("janseva_user").then((raw) => {
-      if (raw) {
-        try {
-          const u = JSON.parse(raw);
-          if (u?.id?.startsWith("G_") && u?.name) {
-            setQuickLoginUser({ name: u.name });
-          }
-        } catch {}
-      }
-    });
-  }, []);
-
-  const getApiBase = () =>
-    typeof window !== "undefined" && window.location
-      ? window.location.origin
-      : "";
-
-  const sendOtpToPhone = async (phone: string): Promise<string> => {
+  const sendOtpToPhone = async (_phone: string): Promise<string> => {
     return "DEMO_OTP_SESSION";
   };
 
-  const verifyOtpToken = async (otp: string, token: string): Promise<void> => {
-    if (otp === "1234") {
-      return;
-    }
-
+  const verifyOtpToken = async (otp: string, _token: string): Promise<void> => {
+    if (otp === "1234") return;
     throw new Error("Invalid OTP. Use 1234");
   };
 
@@ -135,35 +113,39 @@ export default function LoginScreen() {
     const newDigits = [...otpDigits];
     newDigits[index] = value;
     setOtpDigits(newDigits);
-    if (value && index < 3) {
-      refs[index + 1]?.current?.focus();
-    }
+    if (value && index < 3) refs[index + 1]?.current?.focus();
   };
 
   const handleRegisterSubmit = async () => {
     setError("");
+
     if (!regName.trim() || regName.trim().length < 2) {
       setError(t("enterFullName"));
       return;
     }
+
     const ageNum = parseInt(regAge, 10);
     if (!regAge || isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
       setError(t("enterValidAge"));
       return;
     }
+
     if (!regAddress.trim()) {
       setError(t("enterAddress"));
       return;
     }
+
     const phone = regPhone.trim().replace(/\D/g, "");
     if (phone.length !== 10) {
       setError(t("enterValidPhone"));
       return;
     }
+
     if (!regWard) {
       setError(t("selectWardError"));
       return;
     }
+
     setOtpSending(true);
     try {
       const token = await sendOtpToPhone(phone);
@@ -179,12 +161,15 @@ export default function LoginScreen() {
 
   const handleRegisterOtp = async () => {
     const otp = otpDigits.join("");
+
     if (otp !== "1234") {
       setError(t("enterOtp"));
       return;
     }
+
     setLoading(true);
     setError("");
+
     try {
       await verifyOtpToken(otp, sessionToken);
       setRegStep("notifications");
@@ -197,10 +182,12 @@ export default function LoginScreen() {
   };
 
   const handleRegisterFinish = async () => {
-    email: (regEmail.trim(), setLoading(true));
+    setLoading(true);
+
     try {
       await register({
         name: regName.trim(),
+        email: regEmail.trim(),
         mobile: regPhone.trim().replace(/\D/g, ""),
         role: "citizen",
         ward: regWard,
@@ -208,14 +195,17 @@ export default function LoginScreen() {
         address: regAddress.trim(),
         notifyEmail,
         notifyWhatsapp,
-      });
+      } as any);
+
       setRegStep("success");
+
       Animated.spring(successAnim, {
         toValue: 1,
         tension: 60,
         friction: 7,
         useNativeDriver: true,
       }).start();
+
       setTimeout(() => {
         router.replace("/portal-select" as any);
       }, 1200);
@@ -228,11 +218,13 @@ export default function LoginScreen() {
 
   const handleLoginSubmit = async () => {
     setError("");
+
     const phone = loginPhone.trim().replace(/\D/g, "");
     if (phone.length !== 10) {
       setError(t("enterValidPhone"));
       return;
     }
+
     setOtpSending(true);
     try {
       const token = await sendOtpToPhone(phone);
@@ -248,16 +240,21 @@ export default function LoginScreen() {
 
   const handleLoginOtp = async () => {
     const otp = otpDigits.join("");
+
     if (otp !== "1234") {
       setError(t("enterOtp"));
       return;
     }
+
     setLoading(true);
     setError("");
+
     try {
       await verifyOtpToken(otp, sessionToken);
+
       const phone = loginPhone.trim().replace(/\D/g, "");
       const user = await loginWithPhone(phone);
+
       if (user) {
         router.replace(
           user.role === "nagarsevak"
@@ -284,11 +281,14 @@ export default function LoginScreen() {
       <View style={s.otpIconWrap}>
         <Feather name="smartphone" size={28} color="#EA580C" />
       </View>
+
       <Text style={s.otpTitle}>{t("otpVerification")}</Text>
+
       <Text style={s.otpSub}>
         4-digit OTP sent to +91{" "}
         {activeTab === "register" ? regPhone : loginPhone}
       </Text>
+
       <View style={s.otpRow}>
         {otpDigits.map((digit, i) => (
           <TextInput
@@ -297,7 +297,7 @@ export default function LoginScreen() {
             style={[s.otpBox, digit ? s.otpBoxFilled : null]}
             value={digit}
             onChangeText={(v) => {
-              const next = v.slice(-1);
+              const next = v.replace(/\D/g, "").slice(-1);
               setOtpDigit(i, next, otpRefs);
             }}
             keyboardType="number-pad"
@@ -311,6 +311,7 @@ export default function LoginScreen() {
           />
         ))}
       </View>
+
       <Text style={s.otpHint}>Enter demo OTP 1234 · valid 10 min</Text>
 
       {countdown > 0 ? (
@@ -344,33 +345,31 @@ export default function LoginScreen() {
       )}
 
       {error ? <Text style={s.errorText}>{error}</Text> : null}
+
       <TouchableOpacity
         style={s.primaryBtn}
         onPress={activeTab === "register" ? handleRegisterOtp : handleLoginOtp}
         activeOpacity={0.85}
         disabled={loading}
       >
-        {loading ? (
-          <LinearGradient
-            colors={["#059669", "#10B981"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={s.primaryBtnGrad}
-          >
-            <ActivityIndicator color="white" size="small" />
-            <Text style={s.primaryBtnText}>Verifying…</Text>
-          </LinearGradient>
-        ) : (
-          <LinearGradient
-            colors={["#059669", "#10B981"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={s.primaryBtnGrad}
-          >
-            <Text style={s.primaryBtnText}>{t("verifyOtp")}</Text>
-            <Feather name="check" size={18} color="white" />
-          </LinearGradient>
-        )}
+        <LinearGradient
+          colors={["#059669", "#10B981"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={s.primaryBtnGrad}
+        >
+          {loading ? (
+            <>
+              <ActivityIndicator color="white" size="small" />
+              <Text style={s.primaryBtnText}>Verifying…</Text>
+            </>
+          ) : (
+            <>
+              <Text style={s.primaryBtnText}>{t("verifyOtp")}</Text>
+              <Feather name="check" size={18} color="white" />
+            </>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -385,10 +384,21 @@ export default function LoginScreen() {
         placeholder={t("enterFullName")}
         placeholderTextColor="#94A3B8"
         value={regName}
-        onChangeText={(v) => {
-          setRegName(v);
-        }}
+        onChangeText={setRegName}
         autoCapitalize="words"
+      />
+
+      <Text style={s.fieldLabel}>
+        Email Address <Text style={s.optional}>(optional)</Text>
+      </Text>
+      <TextInput
+        style={s.input}
+        placeholder="Enter email address"
+        placeholderTextColor="#94A3B8"
+        value={regEmail}
+        onChangeText={setRegEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <Text style={s.fieldLabel}>{t("age")}</Text>
@@ -399,9 +409,7 @@ export default function LoginScreen() {
         keyboardType="number-pad"
         maxLength={3}
         value={regAge}
-        onChangeText={(v) => {
-          setRegAge(v);
-        }}
+        onChangeText={setRegAge}
       />
 
       <Text style={s.fieldLabel}>
@@ -414,9 +422,7 @@ export default function LoginScreen() {
         multiline
         numberOfLines={2}
         value={regAddress}
-        onChangeText={(v) => {
-          setRegAddress(v);
-        }}
+        onChangeText={setRegAddress}
       />
 
       <Text style={s.fieldLabel}>
@@ -433,9 +439,7 @@ export default function LoginScreen() {
           keyboardType="phone-pad"
           maxLength={10}
           value={regPhone}
-          onChangeText={(v) => {
-            setRegPhone(v);
-          }}
+          onChangeText={setRegPhone}
         />
       </View>
 
@@ -493,6 +497,7 @@ export default function LoginScreen() {
       <View style={s.otpIconWrap}>
         <Feather name="check-circle" size={28} color="#059669" />
       </View>
+
       <Text style={s.otpTitle}>{t("phoneVerified")}</Text>
       <Text style={s.otpSub}>{t("allowNotifications")}</Text>
 
@@ -510,6 +515,7 @@ export default function LoginScreen() {
             <Text style={s.checkSub}>{t("emailNotifDesc")}</Text>
           </View>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={s.checkRow}
           onPress={() => setNotifyWhatsapp(!notifyWhatsapp)}
@@ -533,19 +539,21 @@ export default function LoginScreen() {
         activeOpacity={0.85}
         disabled={loading}
       >
-        {loading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <LinearGradient
-            colors={["#059669", "#10B981"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={s.primaryBtnGrad}
-          >
-            <Text style={s.primaryBtnText}>{t("registerBtn")}</Text>
-            <Feather name="user-plus" size={18} color="white" />
-          </LinearGradient>
-        )}
+        <LinearGradient
+          colors={["#059669", "#10B981"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={s.primaryBtnGrad}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <Text style={s.primaryBtnText}>{t("registerBtn")}</Text>
+              <Feather name="user-plus" size={18} color="white" />
+            </>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -580,9 +588,7 @@ export default function LoginScreen() {
           keyboardType="phone-pad"
           maxLength={10}
           value={loginPhone}
-          onChangeText={(v) => {
-            setLoginPhone(v);
-          }}
+          onChangeText={setLoginPhone}
         />
       </View>
 
@@ -628,6 +634,7 @@ export default function LoginScreen() {
       <View style={[ld.ring, ld.r1]} />
       <View style={[ld.ring, ld.r2]} />
       <View style={[ld.ring, ld.r3]} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
@@ -647,6 +654,7 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={s.connectTitle}>Connect T</Text>
+
           <View style={s.langRow}>
             {languageOptions.map((opt) => (
               <TouchableOpacity
@@ -667,32 +675,6 @@ export default function LoginScreen() {
             ))}
           </View>
 
-          {quickLoginUser && (
-            <TouchableOpacity
-              style={s.quickCard}
-              onPress={handleGoogleSignIn}
-              activeOpacity={0.85}
-            >
-              <View style={s.quickAvatar}>
-                <Text style={s.quickAvatarText}>
-                  {quickLoginUser.name.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.quickWelcome}>Welcome back!</Text>
-                <Text style={s.quickName} numberOfLines={1}>
-                  {quickLoginUser.name}
-                </Text>
-              </View>
-              <LinearGradient
-                colors={["#059669", "#10B981"]}
-                style={s.quickContinueBtn}
-              >
-                <Text style={s.quickContinueTxt}>Continue →</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
           <View style={s.tabBar}>
             <TouchableOpacity
               style={[s.tab, activeTab === "register" && s.tabActive]}
@@ -710,6 +692,7 @@ export default function LoginScreen() {
                 {t("registerBtn")}
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[s.tab, activeTab === "login" && s.tabActive]}
               onPress={() => switchTab("login")}
@@ -765,6 +748,7 @@ export default function LoginScreen() {
                 <Feather name="x" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
+
             <ScrollView showsVerticalScrollIndicator={false}>
               {ambernathWards.map((ward) => (
                 <TouchableOpacity
@@ -889,7 +873,6 @@ const s = StyleSheet.create({
     fontFamily: "Inter_700Bold",
   },
   tabTextActive: { color: "#EA580C" },
-
   formCard: {
     width: "100%",
     backgroundColor: "white",
@@ -985,7 +968,6 @@ const s = StyleSheet.create({
     color: "white",
     fontFamily: "Inter_700Bold",
   },
-
   otpSection: {
     width: "100%",
     backgroundColor: "white",
@@ -1044,7 +1026,6 @@ const s = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     marginBottom: 4,
   },
-
   notifSection: { width: "100%", gap: 12, marginTop: 16, marginBottom: 8 },
   checkRow: {
     flexDirection: "row",
@@ -1079,7 +1060,6 @@ const s = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     marginTop: 1,
   },
-
   successCard: {
     width: "100%",
     backgroundColor: "white",
@@ -1114,7 +1094,6 @@ const s = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     textAlign: "center",
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -1155,119 +1134,6 @@ const s = StyleSheet.create({
     color: "#334155",
     fontFamily: "Inter_400Regular",
   },
-  orRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    width: "100%",
-    marginTop: 20,
-    marginBottom: 4,
-  },
-  orLine: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.25)" },
-  orText: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.6)",
-    fontFamily: "Inter_400Regular",
-    fontWeight: "600",
-  },
-  googleBtn: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    backgroundColor: "white",
-    borderRadius: 16,
-    paddingVertical: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-    marginTop: 8,
-  },
-  googleIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#EA580C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  googleG: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "white",
-    fontFamily: "Inter_700Bold",
-  },
-  googleBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1F2937",
-    fontFamily: "Inter_700Bold",
-  },
-  googleNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 8,
-    paddingHorizontal: 4,
-  },
-  googleNoteText: {
-    flex: 1,
-    fontSize: 11,
-    color: "rgba(255,255,255,0.55)",
-    fontFamily: "Inter_400Regular",
-    lineHeight: 16,
-  },
-  quickCard: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
-  },
-  quickAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickAvatarText: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "white",
-    fontFamily: "Inter_700Bold",
-  },
-  quickWelcome: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.7)",
-    fontFamily: "Inter_400Regular",
-  },
-  quickName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "white",
-    fontFamily: "Inter_700Bold",
-  },
-  quickContinueBtn: {
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  quickContinueTxt: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "white",
-    fontFamily: "Inter_700Bold",
-  },
   resendCountdown: {
     fontSize: 12,
     color: "#94A3B8",
@@ -1287,6 +1153,7 @@ const s = StyleSheet.create({
 });
 
 const { width: SW } = Dimensions.get("window");
+
 const ld = StyleSheet.create({
   blob: {
     position: "absolute",
@@ -1299,7 +1166,12 @@ const ld = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.20)",
     borderWidth: 1.5,
   },
-  b1: { width: SW * 0.5, height: SW * 0.5, top: -SW * 0.16, right: -SW * 0.14 },
+  b1: {
+    width: SW * 0.5,
+    height: SW * 0.5,
+    top: -SW * 0.16,
+    right: -SW * 0.14,
+  },
   b2: {
     width: SW * 0.28,
     height: SW * 0.28,
@@ -1312,7 +1184,12 @@ const ld = StyleSheet.create({
     top: -SW * 0.32,
     right: -SW * 0.32,
   },
-  r2: { width: SW * 0.62, height: SW * 0.62, top: -SW * 0.1, right: -SW * 0.1 },
+  r2: {
+    width: SW * 0.62,
+    height: SW * 0.62,
+    top: -SW * 0.1,
+    right: -SW * 0.1,
+  },
   r3: {
     width: SW * 0.72,
     height: SW * 0.72,
