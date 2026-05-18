@@ -16,8 +16,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
 import {
   useJobsAuth,
   JobsUserRole,
@@ -25,8 +23,6 @@ import {
 } from "@/context/JobsAuthContext";
 import DecorativeCircles from "@/components/DecorativeCircles";
 import TopShade from "@/components/TopShade";
-
-WebBrowser.maybeCompleteAuthSession();
 
 type AuthTab = "login" | "register";
 type Step = "form" | "otp" | "success";
@@ -264,42 +260,7 @@ function DropdownPicker({
 export default function JobsLoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { registerJobs, loginJobs, loginWithGoogleJobs } = useJobsAuth();
-
-  const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_CLIENT_ID || "not-configured",
-    iosClientId: GOOGLE_CLIENT_ID || "not-configured",
-    androidClientId: GOOGLE_CLIENT_ID || "not-configured",
-  });
-
-  const [googleLoading, setGoogleLoading] = useState(false);
-
-  useEffect(() => {
-    if (response?.type === "success") {
-      const { access_token } = response.params;
-      setGoogleLoading(true);
-      fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${access_token}` },
-      })
-        .then((r) => r.json())
-        .then(async (userInfo) => {
-          await loginWithGoogleJobs(userInfo, role);
-          router.replace("/jobs/(tabs)" as any);
-        })
-        .catch(() => setError("Google sign-in failed. Please try again."))
-        .finally(() => setGoogleLoading(false));
-    }
-  }, [response]);
-
-  const handleGoogleSignIn = async () => {
-    if (!GOOGLE_CLIENT_ID) {
-      setError("Google Sign-In is not configured yet. Contact your admin.");
-      return;
-    }
-    setError("");
-    await promptAsync();
-  };
+  const { registerJobs, loginJobs } = useJobsAuth();
 
   const [tab, setTab] = useState<AuthTab>("login");
   const [role, setRole] = useState<JobsUserRole>("seeker");
@@ -401,7 +362,6 @@ export default function JobsLoginScreen() {
 
     try {
       setSessionToken("DEMO_JOB_OTP_SESSION");
-      setStep("otp");
       startCountdown();
     } catch (e: any) {
       setError(e.message ?? "Failed to resend OTP");
@@ -774,78 +734,28 @@ export default function JobsLoginScreen() {
                   {!!error && <Text style={styles.error}>{error}</Text>}
 
                   <TouchableOpacity
-                    style={styles.btn}
-                    onPress={handleSendOtp}
-                    activeOpacity={0.85}
-                    disabled={otpSending}
-                  >
-                    <LinearGradient
-                      colors={["#047857", "#059669", "#10B981"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.btnGrad}
-                    >
-                      {otpSending ? (
-                        <>
-                          <ActivityIndicator color="white" size="small" />
-                          <Text style={styles.btnText}>Sending OTP…</Text>
-                        </>
-                      ) : (
-                        <>
-                          <Text style={styles.btnText}>Send OTP</Text>
-                          <Feather name="arrow-right" size={18} color="white" />
-                        </>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </>
-              )}
+                    onPress={async () => {
+                      setError("");
+                      setOtp(["", "", "", ""]);
+                      setOtpSending(true);
 
-              {step === "otp" && (
-                <>
-                  <Text style={styles.otpHint}>
-                    Enter demo OTP 1234 sent to +91 {phone} · valid 10 min
-                  </Text>
-                  {countdown > 0 ? (
-                    <Text style={styles.resendCountdown}>
-                      Resend OTP in {countdown}s
+                      try {
+                        setSessionToken("DEMO_JOB_OTP_SESSION");
+                        startCountdown();
+                      } catch (e: any) {
+                        setError(e.message ?? "Failed to resend OTP");
+                      } finally {
+                        setOtpSending(false);
+                      }
+                    }}
+                    disabled={otpSending}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.resendLink}>
+                      {otpSending ? "Sending…" : "Resend OTP"}
                     </Text>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={async () => {
-                        setError("");
-                        setOtp(["", "", "", ""]);
-                        setOtpSending(true);
-                        try {
-                          const res = await fetch(
-                            `${getApiBase()}/api/send-otp`,
-                            {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ phone }),
-                            },
-                          );
-                          const data = await res.json();
-                          if (!data.success)
-                            throw new Error(
-                              data.error ?? "Failed to resend OTP",
-                            );
-                          setSessionToken(data.sessionToken);
-                          startCountdown();
-                        } catch (e: any) {
-                          setError(e.message ?? "Failed to resend OTP");
-                        } finally {
-                          setOtpSending(false);
-                        }
-                      }}
-                      disabled={otpSending}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.resendLink}>
-                        {otpSending ? "Sending…" : "Resend OTP"}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  </TouchableOpacity>
+
                   <View style={styles.otpRow}>
                     {otp.map((d, i) => (
                       <TextInput
@@ -901,42 +811,6 @@ export default function JobsLoginScreen() {
                 </>
               )}
             </>
-          )}
-        </View>
-
-        <View style={styles.googleSection}>
-          <View style={styles.orRow}>
-            <View style={styles.orLine} />
-            <Text style={styles.orText}>or continue with</Text>
-            <View style={styles.orLine} />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.googleBtn, googleLoading && { opacity: 0.6 }]}
-            onPress={handleGoogleSignIn}
-            activeOpacity={0.85}
-            disabled={googleLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color="#EA580C" size="small" />
-            ) : (
-              <>
-                <View style={styles.googleIconWrap}>
-                  <Text style={styles.googleG}>G</Text>
-                </View>
-                <Text style={styles.googleBtnText}>Continue with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {!GOOGLE_CLIENT_ID && (
-            <View style={styles.googleNote}>
-              <Feather name="info" size={12} color="#94A3B8" />
-              <Text style={styles.googleNoteText}>
-                Google Sign-In needs a Client ID — contact your admin to enable
-                it.
-              </Text>
-            </View>
           )}
         </View>
 
@@ -1234,66 +1108,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#EA580C",
     fontFamily: "Inter_600SemiBold",
-  },
-
-  googleSection: { marginHorizontal: 16, marginBottom: 8 },
-  orRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 14,
-  },
-  orLine: { flex: 1, height: 1, backgroundColor: "#E2E8F0" },
-  orText: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  googleBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "white",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  googleIconWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#EA580C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  googleG: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: "white",
-    fontFamily: "Inter_700Bold",
-  },
-  googleBtnText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#0F172A",
-    fontFamily: "Inter_600SemiBold",
-  },
-  googleNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 8,
-    paddingHorizontal: 4,
-  },
-  googleNoteText: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontFamily: "Inter_400Regular",
-    flex: 1,
   },
 });
 
