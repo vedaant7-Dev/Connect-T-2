@@ -278,11 +278,6 @@ export default function ProfileScreen() {
       name: editName.trim(),
       ward: newWard,
       wardChanged: user.wardChanged || wardWasChanged,
-      officeAddress: editOfficeAddress,
-      residenceAddress: editResidenceAddress,
-      officeTimings: editOfficeTimings,
-      contactName: editContactName,
-      contactNumber: editContactNumber,
     });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowEditModal(false);
@@ -434,62 +429,6 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         )}
-
-        <View style={{ marginTop: 14 }}>
-          <Text style={styles.inputLabel}>Office Address</Text>
-          <TextInput
-            value={editOfficeAddress}
-            onChangeText={setEditOfficeAddress}
-            placeholder="Enter office address"
-            placeholderTextColor="#94A3B8"
-            style={styles.input}
-          />
-        </View>
-
-        <View style={{ marginTop: 14 }}>
-          <Text style={styles.inputLabel}>Residence Address</Text>
-          <TextInput
-            value={editResidenceAddress}
-            onChangeText={setEditResidenceAddress}
-            placeholder="Enter residence address"
-            placeholderTextColor="#94A3B8"
-            style={styles.input}
-          />
-        </View>
-
-        <View style={{ marginTop: 14 }}>
-          <Text style={styles.inputLabel}>Office Timings</Text>
-          <TextInput
-            value={editOfficeTimings}
-            onChangeText={setEditOfficeTimings}
-            placeholder="10 AM - 6 PM"
-            placeholderTextColor="#94A3B8"
-            style={styles.input}
-          />
-        </View>
-
-        <View style={{ marginTop: 14 }}>
-          <Text style={styles.inputLabel}>Contact Person</Text>
-          <TextInput
-            value={editContactName}
-            onChangeText={setEditContactName}
-            placeholder="Contact person name"
-            placeholderTextColor="#94A3B8"
-            style={styles.input}
-          />
-        </View>
-
-        <View style={{ marginTop: 14 }}>
-          <Text style={styles.inputLabel}>Contact Number</Text>
-          <TextInput
-            value={editContactNumber}
-            onChangeText={setEditContactNumber}
-            placeholder="Enter contact number"
-            placeholderTextColor="#94A3B8"
-            keyboardType="phone-pad"
-            style={styles.input}
-          />
-        </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
