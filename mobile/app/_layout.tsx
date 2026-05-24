@@ -1,11 +1,14 @@
 import "../global.css";
+import { useFonts } from "expo-font";
+import { Feather } from "@expo/vector-icons";
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
-} from "@expo-google-fonts/inter";
+  INTER_REGULAR,
+  INTER_MEDIUM,
+  INTER_SEMIBOLD,
+  INTER_BOLD,
+  INTER_EXTRABOLD,
+  INTER_LIGHT,
+} from "../constants/Fonts";
 import { Image } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -19,8 +22,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
-
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplash } from "@/components/AppSplash";
 import { ComplaintProvider } from "@/context/ComplaintContext";
@@ -46,12 +47,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const inJobs = segments[0] === "jobs";
     const inPortalSelect = segments[0] === "portal-select";
     const currentTab = inTabs ? segments[1] : undefined;
-
     if (inJobs) return;
     if (inPortalSelect) return;
     const inSuperAdmin = segments[0] === "super-admin";
     if (inSuperAdmin && user && (user.role === "super_admin" || user.isSuperAdmin)) return;
-
     if (!user && !inLogin) {
       router.replace("/login");
     } else if (user && inLogin) {
@@ -158,10 +157,12 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Feather.font,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
+    [INTER_REGULAR]: require("../assets/fonts/Inter-Regular.ttf"),
+    [INTER_MEDIUM]: require("../assets/fonts/Inter-Medium.ttf"),
+    [INTER_SEMIBOLD]: require("../assets/fonts/Inter-SemiBold.ttf"),
+    [INTER_BOLD]: require("../assets/fonts/Inter-Bold.ttf"),
+    [INTER_EXTRABOLD]: require("../assets/fonts/Inter-ExtraBold.ttf"),
+    [INTER_LIGHT]: require("../assets/fonts/Inter-Light.ttf"),
   });
   const [assetsReady, setAssetsReady] = useState(false);
 
