@@ -117,24 +117,36 @@ const StatCard = memo(function StatCard({
       </View>
       <Text
         style={{
-          fontSize: 18,
-          fontFamily: "Inter_700Bold",
+          fontSize: 22,
+          fontFamily: "Inter_800ExtraBold",
           color: "#0F172A",
-          marginBottom: 2,
+          marginBottom: 3,
+          letterSpacing: 0.3,
         }}
       >
         {value}
       </Text>
       <Text
         style={{
-          fontSize: 9,
-          fontFamily: "Inter_400Regular",
-          color: "#64748B",
+          fontSize: 10,
+          fontFamily: "Inter_600SemiBold",
+          color: "#475569",
           textAlign: "center",
+          lineHeight: 14,
         }}
       >
         {label}
       </Text>
+      <View
+        style={{
+          marginTop: 6,
+          height: 3,
+          width: 26,
+          borderRadius: 4,
+          backgroundColor: color,
+          opacity: 0.9,
+        }}
+      />
       {onPress && (
         <View
           style={{
