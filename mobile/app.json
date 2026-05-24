@@ -30,6 +30,10 @@
         "READ_MEDIA_IMAGES",
         "ACCESS_FINE_LOCATION",
         "VIBRATE"
+      ],
+      "abiFilters": [
+        "armeabi-v7a",
+        "arm64-v8a"
       ]
     },
     "androidStatusBar": {
