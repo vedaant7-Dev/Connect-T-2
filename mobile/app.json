@@ -66,6 +66,13 @@
         "projectId": "1dbe66ec-03ef-4507-b632-399a0d1e1bfd"
       }
     },
+    "updates": {
+      "url": "https://u.expo.dev/1dbe66ec-03ef-4507-b632-399a0d1e1bfd",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      },
+      "checkAutomatically": "ON_LOAD"
+    },
     "owner": "vedantt7"
   }
 }
