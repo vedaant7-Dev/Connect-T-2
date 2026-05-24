@@ -65,6 +65,9 @@ export default function LoginScreen() {
   const successAnim = useRef(new Animated.Value(0)).current;
   const { height: windowHeight } = useWindowDimensions();
   const [countdown, setCountdown] = useState(0);
+  const [logoTapCount, setLogoTapCount] = useState(0);
+
+  const [showAdminAccess, setShowAdminAccess] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startCountdown = () => {
@@ -95,6 +98,17 @@ export default function LoginScreen() {
   const verifyOtpToken = async (otp: string, _token: string): Promise<void> => {
     if (otp === "1234") return;
     throw new Error("Invalid OTP. Use 1234");
+  };
+  const handleSecretTap = () => {
+    const next = logoTapCount + 1;
+
+    if (next >= 7) {
+      setLogoTapCount(0);
+      setShowAdminAccess(true);
+      return;
+    }
+
+    setLogoTapCount(next);
   };
 
   const switchTab = (tab: AuthTab) => {
@@ -206,7 +220,7 @@ export default function LoginScreen() {
       }).start();
 
       setTimeout(() => {
-        router.replace("/portal-select" as any);
+        router.replace("/select-service" as any);
       }, 1200);
     } catch (e: any) {
       setError(e.message ?? t("registrationFailed"));
@@ -651,7 +665,9 @@ export default function LoginScreen() {
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
-          <Text style={s.connectTitle}>Connect T</Text>
+          <TouchableOpacity activeOpacity={1} onPress={handleSecretTap}>
+            <Text style={s.connectTitle}>Connect T</Text>
+          </TouchableOpacity>
 
           <View style={s.langRow}>
             {languageOptions.map((opt) => (
@@ -720,6 +736,70 @@ export default function LoginScreen() {
 
           {activeTab === "login" && loginStep === "form" && renderLoginForm()}
           {activeTab === "login" && loginStep === "otp" && renderOtpInput()}
+
+          {showAdminAccess && (
+            <View
+              style={{
+                marginTop: 18,
+                backgroundColor: "#166534",
+                borderRadius: 20,
+                padding: 18,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.12)",
+              }}
+            >
+              <Text
+                style={{
+                  color: "white",
+                  fontSize: 16,
+                  fontFamily: "Inter_700Bold",
+                  marginBottom: 14,
+                  textAlign: "center",
+                }}
+              >
+                Officer Access
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => router.push("/nagarsevak/login" as any)}
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.12)",
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontFamily: "Inter_600SemiBold",
+                  }}
+                >
+                  Nagarsevak Login
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => router.push("/super-admin/login" as any)}
+                style={{
+                  backgroundColor: "#22C55E",
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontFamily: "Inter_700Bold",
+                  }}
+                >
+                  Super Admin Login
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <TouchableOpacity
             style={s.backPill}
