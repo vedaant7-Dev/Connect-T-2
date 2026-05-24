@@ -12,6 +12,7 @@ import { useAlerts } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
 import { useLanguage } from "@/context/LanguageContext";
+import { wardMatchesNagarsevak } from "@/data/wards";
 
 const statusLabelKeys: Record<ComplaintStatus, string> = {
   submitted: "submitted",
@@ -219,7 +220,9 @@ export default function AdminScreen() {
     );
   }
 
-  const wardComplaints = user?.ward ? complaints.filter((c) => c.ward === user.ward) : complaints;
+  const wardComplaints = user?.ward
+    ? complaints.filter((c) => wardMatchesNagarsevak(c.ward, user!.ward))
+    : complaints;
   const filtered = filter === "all"
     ? wardComplaints
     : wardComplaints.filter((c) => {

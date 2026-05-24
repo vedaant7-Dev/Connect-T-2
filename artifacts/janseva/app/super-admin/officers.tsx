@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { NAGARSEVAK_DIRECTORY } from "@/data/nagarsevaks";
+import { useOfficers } from "@/hooks/useOfficers";
 import { useComplaints } from "@/context/ComplaintContext";
 
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
@@ -31,7 +31,10 @@ export default function OfficersScreen() {
   const [selectedOfficer, setSelectedOfficer] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"officers" | "wards">("officers");
 
-  const officers = NAGARSEVAK_DIRECTORY.filter((n) => n.role === "nagarsevak");
+  const { officers: allOfficers, loading: officersLoading, approveOfficer, refetch } = useOfficers();
+  const [activeStatus, setActiveStatus] = useState<"approved" | "pending" | "rejected">("approved");
+
+  const officers = allOfficers.filter((o) => o.approvalStatus === activeStatus);
   const filteredOfficers = officers.filter(
     (o) =>
       o.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -41,6 +44,12 @@ export default function OfficersScreen() {
 
   const wardOfficers = officers.filter((o) => o.wardCode);
   const nominatedOfficers = officers.filter((o) => !o.wardCode);
+  const pendingCount = allOfficers.filter((o) => o.approvalStatus === "pending").length;
+
+  const handleApprove = async (id: string, status: "approved" | "rejected") => {
+    await approveOfficer(id, status);
+    refetch();
+  };
 
   function getOfficerStats(officer: any) {
     const wardComplaints = officer.wardCode
@@ -127,6 +136,30 @@ export default function OfficersScreen() {
         ))}
       </View>
 
+      {activeTab === "officers" && (
+        <View style={{ flexDirection: "row", backgroundColor: "#F0F4F8", paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 8 }}>
+          {(["approved", "pending", "rejected"] as const).map((s) => (
+            <TouchableOpacity
+              key={s}
+              onPress={() => setActiveStatus(s)}
+              style={{
+                flex: 1, paddingVertical: 7, borderRadius: 10, alignItems: "center",
+                backgroundColor: activeStatus === s
+                  ? (s === "approved" ? "#16A34A" : s === "pending" ? "#D97706" : "#DC2626")
+                  : "white",
+                borderWidth: s === "pending" && pendingCount > 0 && activeStatus !== "pending" ? 1.5 : 0,
+                borderColor: "#D97706",
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: activeStatus === s ? "white" : "#64748B", textTransform: "capitalize" }}>
+                {s === "approved" ? "Approved" : s === "pending" ? `Pending${pendingCount > 0 ? ` (${pendingCount})` : ""}` : "Rejected"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       <ScrollView style={{ flex: 1, backgroundColor: "#F0F4F8" }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         {activeTab === "officers" ? (
           <>
@@ -196,7 +229,7 @@ export default function OfficersScreen() {
                     </View>
                     <Feather name="chevron-right" size={16} color="#CBD5E1" />
                   </View>
-                  {officer.wardCode && (
+                  {officer.wardCode && activeStatus === "approved" && (
                     <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
                       {[
                         { label: "Total", value: stats.total, color: "#3B82F6", bg: "#DBEAFE" },
@@ -209,6 +242,26 @@ export default function OfficersScreen() {
                           <Text style={{ fontSize: 9, fontFamily: "Inter_400Regular", color: s.color + "AA" }}>{s.label}</Text>
                         </View>
                       ))}
+                    </View>
+                  )}
+                  {activeStatus === "pending" && (
+                    <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => handleApprove(officer.id, "approved")}
+                        style={{ flex: 1, backgroundColor: "#D1FAE5", borderRadius: 10, paddingVertical: 9, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                        activeOpacity={0.8}
+                      >
+                        <Feather name="check" size={14} color="#059669" />
+                        <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#059669" }}>Approve</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleApprove(officer.id, "rejected")}
+                        style={{ flex: 1, backgroundColor: "#FEE2E2", borderRadius: 10, paddingVertical: 9, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                        activeOpacity={0.8}
+                      >
+                        <Feather name="x" size={14} color="#DC2626" />
+                        <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#DC2626" }}>Reject</Text>
+                      </TouchableOpacity>
                     </View>
                   )}
                 </TouchableOpacity>

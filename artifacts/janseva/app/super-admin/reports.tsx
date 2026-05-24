@@ -10,7 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useComplaints } from "@/context/ComplaintContext";
-import { NAGARSEVAK_DIRECTORY } from "@/data/nagarsevaks";
+import { useOfficers } from "@/hooks/useOfficers";
 import { useAuth } from "@/context/AuthContext";
 
 const categoryConfig: Record<string, { icon: string; color: string; label: string }> = {
@@ -37,7 +37,8 @@ export default function ReportsScreen() {
   const rejected = complaints.filter((c) => c.status === "rejected").length;
   const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
-  const officers = NAGARSEVAK_DIRECTORY.filter((n) => n.role === "nagarsevak" && n.wardCode);
+  const { officers: officerList } = useOfficers("approved");
+  const officers = officerList.filter((o) => o.wardCode);
 
   const wardPerformance = officers.map((officer) => {
     const wardComplaints = complaints.filter((c) => c.ward === officer.ward);

@@ -14,7 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useComplaints, Complaint } from "@/context/ComplaintContext";
-import { NAGARSEVAK_DIRECTORY } from "@/data/nagarsevaks";
+import { useOfficers, Officer } from "@/hooks/useOfficers";
 import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
@@ -106,9 +106,9 @@ const ComplaintRow = memo(function ComplaintRow({ c, onPress }: { c: Complaint; 
   );
 });
 
-function ComplaintDetail({ c, onBack }: { c: Complaint; onBack: () => void }) {
+function ComplaintDetail({ c, onBack, officers }: { c: Complaint; onBack: () => void; officers?: Officer[] }) {
   const cat = categoryConfig[c.category] || categoryConfig.other;
-  const officer = NAGARSEVAK_DIRECTORY.find((n) => n.ward === c.ward);
+  const officer = officers?.find((n) => n.ward === c.ward && n.approvalStatus === "approved");
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
       <TouchableOpacity onPress={onBack} style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
@@ -199,6 +199,7 @@ export default function SuperAdminDashboard() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user, logout } = useAuth();
   const { complaints } = useComplaints();
+  const { officers: allOfficers } = useOfficers("approved");
   const router = useRouter();
   const [modal, setModal] = useState<{ type: CardType; title: string; sub: string } | null>(null);
   const [selectedC, setSelectedC] = useState<Complaint | null>(null);
@@ -210,11 +211,10 @@ export default function SuperAdminDashboard() {
     const resolved = complaints.filter((c) => c.status === "resolved").length;
     const rejected = complaints.filter((c) => c.status === "rejected").length;
     const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
-    const wardOfficers = NAGARSEVAK_DIRECTORY.filter((n) => n.ward.startsWith("Ward"));
-    const totalOfficers = wardOfficers.length;
-    const totalWards = new Set(wardOfficers.map((n) => n.ward)).size;
+    const totalOfficers = allOfficers.length;
+    const totalWards = new Set(allOfficers.map((n) => n.ward)).size;
     return { total, pending, inProgress, resolved, rejected, resolutionRate, totalOfficers, totalWards };
-  }, [complaints]);
+  }, [complaints, allOfficers]);
 
   const wardAnalytics = useMemo(() => (
     Object.entries(
@@ -250,7 +250,7 @@ export default function SuperAdminDashboard() {
     [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
   ), [complaints]);
 
-  const wardOfficers = useMemo(() => NAGARSEVAK_DIRECTORY.filter((n) => n.ward.startsWith("Ward")), []);
+  const wardOfficers = useMemo(() => allOfficers.filter((n) => n.ward), [allOfficers]);
 
   const getFilteredComplaints = useCallback((type: CardType) => {
     const sorted = [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -413,7 +413,7 @@ export default function SuperAdminDashboard() {
             </View>
 
             {selectedC ? (
-              <ComplaintDetail c={selectedC} onBack={() => setSelectedC(null)} />
+              <ComplaintDetail c={selectedC} onBack={() => setSelectedC(null)} officers={allOfficers} />
             ) : modal.type === "officers" ? (
               <FlatList
                 data={wardOfficers}
@@ -487,7 +487,7 @@ export default function SuperAdminDashboard() {
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item: [ward, data], index }) => {
                   const d = data as any;
-                  const officer = NAGARSEVAK_DIRECTORY.find((n) => n.ward === ward);
+                  const officer = allOfficers.find((n) => n.ward === ward);
                   return (
                     <View style={{ backgroundColor: "white", borderRadius: 14, padding: 14, marginBottom: 8, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>

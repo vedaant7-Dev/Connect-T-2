@@ -16,7 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AppSplash } from "@/components/AppSplash";
+import { AppSplash, SplashPortal } from "@/components/AppSplash";
 import { ComplaintProvider } from "@/context/ComplaintContext";
 import { AlertProvider } from "@/context/AlertContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -87,9 +87,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading]);
 
-  const handleFinish = async (portal: "civic" | "jobs") => {
-    if (portal === "civic") {
-      setSplashDone(true);
+  const handleFinish = async (portal: SplashPortal) => {
+    setSplashDone(true);
+    if (portal === "super_admin") {
+      staticRouter.replace("/super-admin" as any);
+    } else if (portal === "nagarsevak") {
+      if (user && user.role === "nagarsevak" && !isSuperAdminUser(user)) {
+        staticRouter.replace("/(tabs)/admin" as any);
+      } else if (user && isSuperAdminUser(user)) {
+        staticRouter.replace("/super-admin" as any);
+      } else {
+        staticRouter.replace("/nagarsevak/login" as any);
+      }
+    } else {
       if (user) {
         if (isSuperAdminUser(user)) {
           staticRouter.replace("/super-admin" as any);
@@ -101,9 +111,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
       } else {
         staticRouter.replace("/login");
       }
-    } else {
-      setSplashDone(true);
-      staticRouter.replace("/jobs/login" as any);
     }
   };
 
@@ -123,6 +130,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="super-admin" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="jobs" options={{ headerShown: false, animation: "fade" }} />
+      <Stack.Screen name="nagarsevak" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="complaint/new" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="complaint/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="complaint/list" options={{ headerShown: false }} />

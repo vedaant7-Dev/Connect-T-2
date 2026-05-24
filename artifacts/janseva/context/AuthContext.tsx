@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { findNagarsevakById, findNagarsevakByMobile } from "@/data/nagarsevaks";
 
 export type UserRole = "citizen" | "nagarsevak" | "super_admin";
 
@@ -23,6 +22,7 @@ export interface User {
   notifyWhatsapp?: boolean;
   profilePhoto?: string;
   wardChanged?: boolean;
+  officeAddress?: string;
 }
 
 export interface GoogleUserInfo {
@@ -53,7 +53,6 @@ const SESSION_KEY = "janseva_user";
 const USERS_KEY = "janseva_users";
 
 const AVATAR_COLORS = ["#1E40AF", "#059669", "#7C3AED", "#D97706", "#DC2626", "#0EA5E9"];
-
 const SUPER_ADMIN_MOBILE = "8554994735";
 
 function normalizeMobile(mobile: string): string {
@@ -151,98 +150,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const users = await getAllUsers();
     const existingUser = users.find((u) => normalizeMobile(u.mobile) === normalizedMobile);
     if (existingUser) {
-      if (existingUser.role === "nagarsevak" && existingUser.nagarsevakId) {
-        const directoryEntry = findNagarsevakById(existingUser.nagarsevakId);
-        if (directoryEntry) {
-          const refreshed: User = {
-            ...existingUser,
-            name: directoryEntry.name,
-            ward: directoryEntry.ward,
-            wardCode: directoryEntry.wardCode ?? null,
-            isSuperAdmin: directoryEntry.isSuperAdmin || false,
-          };
-          const idx = users.findIndex((u) => u.id === existingUser.id);
-          if (idx >= 0) {
-            users[idx] = refreshed;
-            await saveAllUsers(users);
-          }
-          await login(refreshed);
-          return refreshed;
-        }
-      }
       await login(existingUser);
       return existingUser;
-    }
-
-    const directoryEntry = findNagarsevakByMobile(normalizedMobile);
-    if (directoryEntry) {
-      const colorIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
-      const nagarsevakUser: User = {
-        id: "U" + Date.now(),
-        name: directoryEntry.name,
-        mobile: directoryEntry.mobile,
-        role: directoryEntry.role || "nagarsevak",
-        ward: directoryEntry.ward,
-        wardCode: directoryEntry.wardCode ?? null,
-        nagarsevakId: directoryEntry.id,
-        isSuperAdmin: directoryEntry.isSuperAdmin || false,
-        avatarColor: AVATAR_COLORS[colorIndex],
-        createdAt: new Date().toISOString(),
-      };
-      users.push(nagarsevakUser);
-      await saveAllUsers(users);
-      await login(nagarsevakUser);
-      return nagarsevakUser;
     }
 
     return null;
   };
 
-  const loginWithNagarsevakId = async (mobile: string, nagarsevakId: string): Promise<User | null> => {
-    const normalizedId = nagarsevakId.toUpperCase().trim();
-    const directoryEntry = findNagarsevakById(normalizedId);
-    if (!directoryEntry) return null;
-
-    const enteredMobile = normalizeMobile(mobile);
-    if (enteredMobile && enteredMobile !== normalizeMobile(directoryEntry.mobile)) return null;
-
-    const users = await getAllUsers();
-    const found = users.find((u) => u.role === "nagarsevak" && u.nagarsevakId === normalizedId);
-    if (found) {
-      const refreshed: User = {
-        ...found,
-        name: directoryEntry.name,
-        mobile: directoryEntry.mobile,
-        ward: directoryEntry.ward,
-        wardCode: directoryEntry.wardCode ?? null,
-        isSuperAdmin: directoryEntry.isSuperAdmin || false,
-      };
-      const idx = users.findIndex((u) => u.id === found.id);
-      if (idx >= 0) {
-        users[idx] = refreshed;
-        await saveAllUsers(users);
-      }
-      await login(refreshed);
-      return refreshed;
-    }
-
-    const colorIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
-    const newUser: User = {
-      id: "U" + Date.now(),
-      name: directoryEntry.name,
-      mobile: directoryEntry.mobile,
-      role: directoryEntry.role || "nagarsevak",
-      ward: directoryEntry.ward,
-      wardCode: directoryEntry.wardCode ?? null,
-      nagarsevakId: normalizedId,
-      isSuperAdmin: directoryEntry.isSuperAdmin || false,
-      avatarColor: AVATAR_COLORS[colorIndex],
-      createdAt: new Date().toISOString(),
-    };
-    users.push(newUser);
-    await saveAllUsers(users);
-    await login(newUser);
-    return newUser;
+  const loginWithNagarsevakId = async (_mobile: string, _nagarsevakId: string): Promise<User | null> => {
+    return null;
   };
 
   const loginWithGoogle = async (googleUser: GoogleUserInfo): Promise<User> => {
