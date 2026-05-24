@@ -27,7 +27,9 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "CAMERA",
-        "READ_MEDIA_IMAGES"
+        "READ_MEDIA_IMAGES",
+        "ACCESS_FINE_LOCATION",
+        "VIBRATE"
       ]
     },
     "androidStatusBar": {
