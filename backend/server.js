@@ -1023,6 +1023,331 @@ app.get("/api/jobs/:id/applications", async (req, res) => {
   }
 });
 
+
+/* NAGARSEVAK AUTH + APPROVAL */
+app.get("/api/auth/ward-check", async (req, res) => {
+  try {
+    const ward = String(req.query.ward || "").trim();
+    const wardCode = normalizeWardCode(ward) || normalizeWardCode(req.query.ward_code);
+
+    if (!ward && !wardCode) {
+      return res.status(400).json({
+        success: false,
+        available: false,
+        message: "ward is required",
+      });
+    }
+
+    const [rows] = await db.query(
+      `SELECT id
+       FROM users
+       WHERE role = 'nagarsevak'
+         AND approval_status IN ('pending', 'approved')
+         AND (
+           ward = ?
+           OR ward_code = ?
+         )
+       LIMIT 1`,
+      [ward, wardCode],
+    );
+
+    return res.json({
+      success: true,
+      available: rows.length === 0,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      available: false,
+      message: err.message,
+    });
+  }
+});
+
+app.post("/api/auth/nagarsevak-register", async (req, res) => {
+  try {
+    const mobile = normalizeMobile(req.body.mobile);
+
+    if (!req.body.name || mobile.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and valid mobile number are required",
+      });
+    }
+
+    const ward = String(req.body.ward || "").trim();
+    const wardCode = normalizeWardCode(req.body.wardCode) || normalizeWardCode(ward);
+
+    if (!ward) {
+      return res.status(400).json({
+        success: false,
+        message: "Ward is required",
+      });
+    }
+
+    const [existingMobile] = await db.query(
+      `SELECT id, approval_status
+       FROM users
+       WHERE mobile = ?
+         AND role = 'nagarsevak'
+       LIMIT 1`,
+      [mobile],
+    );
+
+    if (existingMobile.length) {
+      const status = existingMobile[0].approval_status || "pending";
+
+      return res.status(409).json({
+        success: false,
+        message: status === "pending" ? "ALREADY_PENDING" : "Officer already registered",
+        approvalStatus: status,
+      });
+    }
+
+    const [existingWard] = await db.query(
+      `SELECT id
+       FROM users
+       WHERE role = 'nagarsevak'
+         AND approval_status IN ('pending', 'approved')
+         AND (
+           ward = ?
+           OR ward_code = ?
+         )
+       LIMIT 1`,
+      [ward, wardCode],
+    );
+
+    if (existingWard.length) {
+      return res.status(409).json({
+        success: false,
+        message: "WARD_TAKEN",
+      });
+    }
+
+    const id = req.body.id || makeNagarsevakId();
+
+    await db.query(
+      `INSERT INTO users
+       (id, name, mobile, role, ward, ward_code, ward_number, is_super_admin,
+        approval_status, address, nagarsevak_id, office_address,
+        residence_address, office_timings, contact_name, contact_number,
+        profile_photo)
+       VALUES (?, ?, ?, 'nagarsevak', ?, ?, ?, 0,
+        'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        String(req.body.name || "").trim(),
+        mobile,
+        ward,
+        wardCode || null,
+        wardCode ? wardCode.replace(/[A-Z]/g, "") : null,
+        req.body.address || null,
+        id,
+        req.body.officeAddress || null,
+        req.body.residenceAddress || null,
+        req.body.officeTimings || null,
+        req.body.contactName || null,
+        req.body.contactNumber || mobile,
+        req.body.profilePhoto || null,
+      ],
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Nagarsevak registration submitted for approval",
+      officerId: id,
+      approvalStatus: "pending",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+app.post("/api/auth/nagarsevak-login", async (req, res) => {
+  try {
+    const mobile = normalizeMobile(req.body.mobile);
+
+    if (mobile.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid mobile number is required",
+      });
+    }
+
+    const [rows] = await db.query(
+      `SELECT
+         id,
+         name,
+         mobile,
+         role,
+         ward,
+         ward_code AS wardCode,
+         ward_number AS wardNumber,
+         is_super_admin AS isSuperAdmin,
+         approval_status AS approvalStatus,
+         address,
+         nagarsevak_id AS nagarsevakId,
+         avatar_color AS avatarColor,
+         profile_photo AS profilePhoto,
+         office_address AS officeAddress,
+         residence_address AS residenceAddress,
+         office_timings AS officeTimings,
+         contact_name AS contactName,
+         contact_number AS contactNumber,
+         created_at AS createdAt
+       FROM users
+       WHERE mobile = ?
+         AND role IN ('nagarsevak', 'super_admin')
+       LIMIT 1`,
+      [mobile],
+    );
+
+    if (!rows.length) {
+      return res.json({
+        success: false,
+        message: "NOT_FOUND",
+        notFound: true,
+      });
+    }
+
+    const officer = rows[0];
+    const approvalStatus = officer.approvalStatus || "approved";
+
+    if (approvalStatus === "pending") {
+      return res.json({
+        success: false,
+        message: "PENDING",
+        approvalStatus,
+      });
+    }
+
+    if (approvalStatus === "rejected") {
+      return res.json({
+        success: false,
+        message: "REJECTED",
+        approvalStatus,
+      });
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        id: officer.id,
+        name: officer.name,
+        mobile: officer.mobile,
+        role: officer.isSuperAdmin ? "super_admin" : "nagarsevak",
+        ward: officer.ward,
+        wardCode: officer.wardCode,
+        wardNumber: officer.wardNumber,
+        nagarsevakId: officer.nagarsevakId || officer.id,
+        isSuperAdmin: !!officer.isSuperAdmin,
+        avatarColor: officer.avatarColor || "#EA580C",
+        profilePhoto: officer.profilePhoto,
+        officeAddress: officer.officeAddress,
+        residenceAddress: officer.residenceAddress,
+        officeTimings: officer.officeTimings,
+        contactName: officer.contactName,
+        contactNumber: officer.contactNumber,
+        createdAt: officer.createdAt,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+app.get("/api/auth/officers", async (req, res) => {
+  try {
+    const status = req.query.status ? normalizeApprovalStatus(req.query.status) : null;
+
+    let sql = `
+      SELECT
+        id,
+        name,
+        mobile,
+        ward,
+        ward_code AS wardCode,
+        role,
+        is_super_admin AS isSuperAdmin,
+        approval_status AS approvalStatus,
+        office_address AS officeAddress,
+        residence_address AS residenceAddress,
+        office_timings AS officeTimings,
+        contact_name AS contactName,
+        contact_number AS contactNumber,
+        profile_photo AS profilePhoto,
+        created_at AS createdAt
+      FROM users
+      WHERE role = 'nagarsevak'
+    `;
+
+    const params = [];
+
+    if (status) {
+      sql += " AND approval_status = ?";
+      params.push(status);
+    }
+
+    sql += " ORDER BY created_at DESC";
+
+    const [rows] = await db.query(sql, params);
+
+    return res.json({
+      success: true,
+      officers: rows.map((row) => ({
+        ...row,
+        isSuperAdmin: !!row.isSuperAdmin,
+        approvalStatus: row.approvalStatus || "approved",
+      })),
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+app.patch("/api/auth/officers", async (req, res) => {
+  try {
+    const id = String(req.body.id || "").trim();
+    const approvalStatus = normalizeApprovalStatus(req.body.approvalStatus);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Officer id is required",
+      });
+    }
+
+    await db.query(
+      `UPDATE users
+       SET approval_status = ?
+       WHERE id = ?
+         AND role = 'nagarsevak'`,
+      [approvalStatus, id],
+    );
+
+    return res.json({
+      success: true,
+      id,
+      approvalStatus,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+
 /* OTP AUTH */
 function generateOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -1030,6 +1355,18 @@ function generateOtp() {
 
 function normalizeMobile(mobile) {
   return String(mobile || "").replace(/\D/g, "");
+}
+
+function normalizeApprovalStatus(value) {
+  if (value === "approved" || value === "pending" || value === "rejected") {
+    return value;
+  }
+
+  return "pending";
+}
+
+function makeNagarsevakId() {
+  return `NS${Date.now()}`;
 }
 
 app.post("/api/auth/send-otp", async (req, res) => {
