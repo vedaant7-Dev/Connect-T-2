@@ -1,7 +1,14 @@
-import "../global.css";
-import { useFonts } from "expo-font";
-import { Feather } from "@expo/vector-icons";
+import "react-native-reanimated";
+
+import React from "react";
+import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StatusBar } from "expo-status-bar";
+
 import {
+<<<<<<< HEAD
   INTER_REGULAR,
   INTER_MEDIUM,
   INTER_SEMIBOLD,
@@ -25,11 +32,23 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { FeedProvider } from "@/context/FeedContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { TabBarVisibilityProvider } from "@/context/TabBarVisibilityContext";
+=======
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from "@expo-google-fonts/inter";
+>>>>>>> e8796f4 (optimize android build configuration)
 
-SplashScreen.preventAutoHideAsync();
+import { useFonts } from "expo-font";
+
+import { AuthProvider } from "../context/AuthContext";
+import { ComplaintProvider } from "../context/ComplaintContext";
 
 const queryClient = new QueryClient();
 
+<<<<<<< HEAD
 function isSuperAdminUser(user: any) {
   return user?.role === "super_admin" || user?.isSuperAdmin === true;
 }
@@ -144,56 +163,44 @@ function RootLayoutNav() {
   );
 }
 
+=======
+>>>>>>> e8796f4 (optimize android build configuration)
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    ...Feather.font,
-    [INTER_REGULAR]: require("../assets/fonts/Inter-Regular.ttf"),
-    [INTER_MEDIUM]: require("../assets/fonts/Inter-Medium.ttf"),
-    [INTER_SEMIBOLD]: require("../assets/fonts/Inter-SemiBold.ttf"),
-    [INTER_BOLD]: require("../assets/fonts/Inter-Bold.ttf"),
-    [INTER_EXTRABOLD]: require("../assets/fonts/Inter-ExtraBold.ttf"),
-    [INTER_LIGHT]: require("../assets/fonts/Inter-Light.ttf"),
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
   });
-  const [assetsReady, setAssetsReady] = useState(false);
 
-  useEffect(() => {
-    setAssetsReady(true);
-  }, []);
-
-  useEffect(() => {
-    if ((fontsLoaded || fontError) && assetsReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError, assetsReady]);
-
-  if ((!fontsLoaded && !fontError) || !assetsReady) return null;
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
-      <ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <LanguageProvider>
-            <AuthProvider>
-              <AlertProvider>
-                <ComplaintProvider>
-                  <FeedProvider>
-                    <GestureHandlerRootView style={{ flex: 1 }}>
-                      <TabBarVisibilityProvider>
-                        <AppShell>
-                          <AuthGate>
-                            <RootLayoutNav />
-                          </AuthGate>
-                        </AppShell>
-                      </TabBarVisibilityProvider>
-                    </GestureHandlerRootView>
-                  </FeedProvider>
-                </ComplaintProvider>
-              </AlertProvider>
-            </AuthProvider>
-          </LanguageProvider>
+          <AuthProvider>
+            <ComplaintProvider>
+              <StatusBar style="light" />
+
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="login" />
+                <Stack.Screen name="select-service" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="jobs" />
+                <Stack.Screen name="nagarsevak" />
+                <Stack.Screen name="super-admin" />
+                <Stack.Screen name="complaint" />
+                <Stack.Screen name="alert" />
+              </Stack>
+            </ComplaintProvider>
+          </AuthProvider>
         </QueryClientProvider>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
