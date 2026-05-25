@@ -349,7 +349,7 @@ app.post("/api/complaints", async (req, res) => {
         photo_url || null,
         location,
         ward,
-        ward_code || null,
+        finalWardCode || null,
         finalAssignedOfficerId || null,
         user_id || null,
         user_name || null,
