@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import { API_BASE_URL } from "@/constants/api";
 
 export interface Officer {
   id: string;
@@ -9,16 +11,65 @@ export interface Officer {
   role: string;
   isSuperAdmin: boolean;
   approvalStatus: "pending" | "approved" | "rejected";
-  officeAddress?: string;
-  residenceAddress?: string;
-  contactNumber?: string;
-  profilePhoto?: string;
+  officeAddress?: string | null;
+  residenceAddress?: string | null;
+  officeTimings?: string | null;
+  contactName?: string | null;
+  contactNumber?: string | null;
+  profilePhoto?: string | null;
   createdAt?: string;
 }
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "";
+type ApprovalStatus = "pending" | "approved" | "rejected";
 
-export function useOfficers(statusFilter?: string) {
+function buildApiUrl(path: string) {
+  const cleanBase = API_BASE_URL.replace(/\/$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${cleanBase}${cleanPath}`;
+}
+
+async function readJson(res: Response) {
+  const text = await res.text();
+
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      success: false,
+      message: text,
+    };
+  }
+}
+
+function normalizeOfficer(item: any): Officer {
+  return {
+    id: String(item.id || ""),
+    name: String(item.name || "Unknown Officer"),
+    mobile: String(item.mobile || ""),
+    ward: String(item.ward || "Not assigned"),
+    wardCode: item.wardCode || item.ward_code || null,
+    role: item.role || "nagarsevak",
+    isSuperAdmin: Boolean(item.isSuperAdmin || item.is_super_admin),
+    approvalStatus:
+      item.approvalStatus === "approved" ||
+      item.approvalStatus === "rejected" ||
+      item.approvalStatus === "pending"
+        ? item.approvalStatus
+        : "pending",
+    officeAddress: item.officeAddress || item.office_address || null,
+    residenceAddress: item.residenceAddress || item.residence_address || null,
+    officeTimings: item.officeTimings || item.office_timings || null,
+    contactName: item.contactName || item.contact_name || null,
+    contactNumber: item.contactNumber || item.contact_number || item.mobile || null,
+    profilePhoto: item.profilePhoto || item.profile_photo || null,
+    createdAt: item.createdAt || item.created_at,
+  };
+}
+
+export function useOfficers(statusFilter?: ApprovalStatus) {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,46 +77,69 @@ export function useOfficers(statusFilter?: string) {
   const fetchOfficers = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
-      const url = statusFilter
-        ? `${API_URL}/api/auth/officers?status=${statusFilter}`
-        : `${API_URL}/api/auth/officers`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
-        setOfficers(data.officers || []);
-      } else {
-        setError(data.message || "Failed to load officers");
+      const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
+      const res = await fetch(buildApiUrl(`/api/auth/officers${query}`));
+      const data = await readJson(res);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || data.error || "Failed to load officers");
       }
+
+      setOfficers((data.officers || []).map(normalizeOfficer));
     } catch (e: any) {
-      setError("Network error: " + (e.message || "Unknown error"));
+      setError(e?.message || "Failed to load officers");
+      setOfficers([]);
     } finally {
       setLoading(false);
     }
   }, [statusFilter]);
 
   useEffect(() => {
-    fetchOfficers();
+    void fetchOfficers();
   }, [fetchOfficers]);
 
-  const approveOfficer = async (id: string, approvalStatus: "approved" | "rejected") => {
+  const approveOfficer = async (
+    id: string,
+    approvalStatus: "approved" | "rejected",
+  ) => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/officers`, {
+      const res = await fetch(buildApiUrl("/api/auth/officers"), {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, approvalStatus }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          approvalStatus,
+        }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setOfficers((prev) =>
-          prev.map((o) => (o.id === id ? { ...o, approvalStatus } : o))
-        );
+
+      const data = await readJson(res);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || data.error || "Failed to update officer");
       }
+
+      setOfficers((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, approvalStatus } : o)),
+      );
+
       return data;
     } catch (e: any) {
-      return { success: false, message: e.message };
+      return {
+        success: false,
+        message: e?.message || "Failed to update officer",
+      };
     }
   };
 
-  return { officers, loading, error, refetch: fetchOfficers, approveOfficer };
+  return {
+    officers,
+    loading,
+    error,
+    refetch: fetchOfficers,
+    approveOfficer,
+  };
 }
