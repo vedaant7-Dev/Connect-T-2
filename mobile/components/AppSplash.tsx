@@ -5,6 +5,10 @@ import {
 import TopShade from "@/components/TopShade";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
+import {
+  INTER_BOLD,
+  INTER_REGULAR,
+} from "@/constants/Fonts";
 
 const { width } = Dimensions.get("window");
 
@@ -148,21 +152,21 @@ const styles = StyleSheet.create({
   logoImg: { width: 200, height: 200 },
   appName: {
     fontSize: 32, fontWeight: "900", color: "white",
-    fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginBottom: 10,
+    fontFamily: INTER_BOLD, letterSpacing: -0.5, marginBottom: 10,
   },
   taglineWrap: { alignItems: "center", gap: 6 },
-  taglineEn: { fontSize: 15, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", letterSpacing: 0.8 },
-  taglineHi: { fontSize: 13, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular", letterSpacing: 1.5 },
-  poweredBy: { fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular", letterSpacing: 0.5, marginTop: 16 },
+  taglineEn: { fontSize: 15, color: "rgba(255,255,255,0.75)", fontFamily: INTER_REGULAR, letterSpacing: 0.8 },
+  taglineHi: { fontSize: 13, color: "rgba(255,255,255,0.5)", fontFamily: INTER_REGULAR, letterSpacing: 1.5 },
+  poweredBy: { fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: INTER_REGULAR, letterSpacing: 0.5, marginTop: 16 },
   footer: { width: "100%", alignItems: "center", gap: 12, paddingBottom: 52, paddingHorizontal: 32 },
   continueBtn: { width: "100%", borderRadius: 18, overflow: "hidden", backgroundColor: "white" },
   continueBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, paddingHorizontal: 24, gap: 12 },
-  continueBtnText: { fontSize: 17, fontWeight: "700", color: "#059669", fontFamily: "Inter_700Bold", letterSpacing: 0.3 },
+  continueBtnText: { fontSize: 17, fontWeight: "700", color: "#059669", fontFamily: INTER_BOLD, letterSpacing: 0.3 },
   continueBtnIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center" },
-  continueHint: { fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "Inter_400Regular", letterSpacing: 0.5 },
+  continueHint: { fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: INTER_REGULAR, letterSpacing: 0.5 },
   chooseWrap: { flex: 1, width: "100%", alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
-  chooseTitle: { fontSize: 26, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3, marginBottom: 4 },
-  chooseSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginBottom: 32, textAlign: "center" },
+  chooseTitle: { fontSize: 26, fontWeight: "900", color: "white", fontFamily: INTER_BOLD, letterSpacing: -0.3, marginBottom: 4 },
+  chooseSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.7)", fontFamily: INTER_REGULAR, marginBottom: 32, textAlign: "center" },
   portalRow: { flexDirection: "row", gap: 14, width: "100%", marginBottom: 36 },
   portalCard: {
     flex: 1, backgroundColor: "white", borderRadius: 20, padding: 18,
@@ -171,13 +175,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   portalIconWrap: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  portalCardTitle: { fontSize: 15, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", lineHeight: 21 },
-  portalCardSub: { fontSize: 10, color: "#64748B", fontFamily: "Inter_400Regular", lineHeight: 14 },
+  portalCardTitle: { fontSize: 15, fontWeight: "800", color: "#0F172A", fontFamily: INTER_BOLD, lineHeight: 21 },
+  portalCardSub: { fontSize: 10, color: "#64748B", fontFamily: INTER_REGULAR, lineHeight: 14 },
   portalArrow: {
     marginTop: 4, width: 28, height: 28, borderRadius: 14,
     alignItems: "center", justifyContent: "center", alignSelf: "flex-end",
   },
-  chooseFooter: { fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "Inter_400Regular", letterSpacing: 2 },
+  chooseFooter: { fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: INTER_REGULAR, letterSpacing: 2 },
 });
 
 const s2 = StyleSheet.create({
