@@ -2,7 +2,6 @@ import "../global.css";
 import { useFonts } from "expo-font";
 import { Feather } from "@expo/vector-icons";
 import {
-
   INTER_REGULAR,
   INTER_MEDIUM,
   INTER_SEMIBOLD,
@@ -11,14 +10,6 @@ import {
   INTER_LIGHT,
 } from "../constants/Fonts";
 import { Image } from "react-native";
-
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
-} from "@expo-google-fonts/inter";
- e18d1b1 (Update complaint form and streamline user portal access)
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments, router as staticRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -56,15 +47,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const inPortalSelect = segments[0] === "portal-select";
     const inSuperAdmin = segments[0] === "super-admin";
     const currentTab = inTabs ? segments[1] : undefined;
+
     if (inJobs) return;
     if (inPortalSelect) return;
 
-    const inSuperAdmin = segments[0] === "super-admin";
-    if (inSuperAdmin && user && (user.role === "super_admin" || user.isSuperAdmin)) return;
-
     if (inSuperAdmin && user && isSuperAdminUser(user)) return;
 
-  e18d1b1 (Update complaint form and streamline user portal access)
     if (!user && !inLogin) {
       router.replace("/login");
     } else if (user && inLogin) {
