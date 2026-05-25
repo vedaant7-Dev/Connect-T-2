@@ -50,27 +50,22 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const root = segments[0];
     const currentTab = root === "(tabs)" ? segments[1] : undefined;
 
+    const inIndex = !root || root === "index";
     const inLogin = root === "login";
     const inTabs = root === "(tabs)";
     const inJobs = root === "jobs";
     const inPortalSelect = root === "portal-select";
+    const inSecretAccess = root === "secret-access";
     const inSuperAdmin = root === "super-admin";
     const inNagarsevakAuth = root === "nagarsevak";
 
-    if (inJobs || inPortalSelect) return;
-
-    if (inNagarsevakAuth) {
-      if (user && isSuperAdminUser(user)) {
-        router.replace("/super-admin" as any);
-      } else if (user?.role === "nagarsevak") {
-        router.replace("/(tabs)/admin" as any);
-      }
+    if (inIndex || inPortalSelect || inSecretAccess || inJobs || inNagarsevakAuth) {
       return;
     }
 
     if (inSuperAdmin) {
       if (!user) {
-        router.replace("/login");
+        router.replace("/secret-access" as any);
         return;
       }
 
@@ -78,7 +73,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         if (user.role === "nagarsevak") {
           router.replace("/(tabs)/admin" as any);
         } else {
-          router.replace("/(tabs)/");
+          router.replace("/(tabs)" as any);
         }
       }
 
@@ -86,7 +81,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
 
     if (!user && !inLogin) {
-      router.replace("/login");
+      router.replace("/login" as any);
       return;
     }
 
@@ -96,7 +91,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       } else if (user.role === "nagarsevak") {
         router.replace("/(tabs)/admin" as any);
       } else {
-        router.replace("/(tabs)/");
+        router.replace("/(tabs)" as any);
       }
       return;
     }
@@ -122,52 +117,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const [splashDone, setSplashDone] = useState(false);
-  const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && user) {
-      setSplashDone(true);
-
-      if (isSuperAdminUser(user)) {
-        staticRouter.replace("/super-admin" as any);
-      } else if (user.role === "nagarsevak") {
-        staticRouter.replace("/(tabs)/admin" as any);
-      } else {
-        staticRouter.replace("/(tabs)/");
-      }
-    }
-  }, [user, loading]);
 
   const handleFinish = async (portal: SplashPortal) => {
     setSplashDone(true);
 
-    if (portal === "super_admin") {
-      staticRouter.replace("/super-admin" as any);
+    if (portal === "secret_access") {
+      staticRouter.replace("/secret-access" as any);
       return;
     }
 
-    if (portal === "nagarsevak") {
-      if (user && user.role === "nagarsevak" && !isSuperAdminUser(user)) {
-        staticRouter.replace("/(tabs)/admin" as any);
-      } else if (user && isSuperAdminUser(user)) {
-        staticRouter.replace("/super-admin" as any);
-      } else {
-        staticRouter.replace("/nagarsevak/login" as any);
-      }
-      return;
-    }
-
-    if (user) {
-      if (isSuperAdminUser(user)) {
-        staticRouter.replace("/super-admin" as any);
-      } else if (user.role === "nagarsevak") {
-        staticRouter.replace("/(tabs)/admin" as any);
-      } else {
-        staticRouter.replace("/(tabs)/");
-      }
-    } else {
-      staticRouter.replace("/login");
-    }
+    staticRouter.replace("/portal-select" as any);
   };
 
   return (
@@ -181,27 +140,15 @@ function AppShell({ children }: { children: React.ReactNode }) {
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="login"
-        options={{ headerShown: false, animation: "fade" }}
-      />
-      <Stack.Screen
-        name="portal-select"
-        options={{ headerShown: false, animation: "fade" }}
-      />
+      <Stack.Screen name="index" options={{ headerShown: false, animation: "fade" }} />
+      <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
+      <Stack.Screen name="portal-select" options={{ headerShown: false, animation: "fade" }} />
+      <Stack.Screen name="secret-access" options={{ headerShown: false, animation: "fade" }} />
+
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="super-admin"
-        options={{ headerShown: false, animation: "fade" }}
-      />
-      <Stack.Screen
-        name="jobs"
-        options={{ headerShown: false, animation: "fade" }}
-      />
-      <Stack.Screen
-        name="nagarsevak"
-        options={{ headerShown: false, animation: "fade" }}
-      />
+      <Stack.Screen name="super-admin" options={{ headerShown: false, animation: "fade" }} />
+      <Stack.Screen name="jobs" options={{ headerShown: false, animation: "fade" }} />
+      <Stack.Screen name="nagarsevak" options={{ headerShown: false, animation: "fade" }} />
 
       <Stack.Screen
         name="complaint/new"
