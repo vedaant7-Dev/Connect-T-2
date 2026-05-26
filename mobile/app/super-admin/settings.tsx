@@ -427,6 +427,73 @@ export default function SettingsScreen() {
             marginBottom: 10,
           }}
         >
+          ADMIN ACCESS
+        </Text>
+
+        <TouchableOpacity
+          onPress={() => router.push("/super-admin/access" as any)}
+          style={{
+            backgroundColor: "white",
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20,
+            shadowColor: "#000",
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+            elevation: 2,
+            flexDirection: "row",
+            alignItems: "center",
+          }}
+          activeOpacity={0.85}
+        >
+          <View
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              backgroundColor: "#DCFCE7",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 12,
+            }}
+          >
+            <Feather name="key" size={18} color="#16A34A" />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontFamily: "Inter_700Bold",
+                color: "#0F172A",
+              }}
+            >
+              Manage Super Admin Access
+            </Text>
+            <Text
+              style={{
+                fontSize: 11,
+                fontFamily: "Inter_400Regular",
+                color: "#94A3B8",
+                marginTop: 3,
+              }}
+            >
+              Generate and revoke unique IDs for trusted admins
+            </Text>
+          </View>
+
+          <Feather name="chevron-right" size={18} color="#CBD5E1" />
+        </TouchableOpacity>
+
+        <Text
+          style={{
+            fontSize: 12,
+            fontFamily: "Inter_700Bold",
+            color: "#94A3B8",
+            letterSpacing: 1,
+            marginBottom: 10,
+          }}
+        >
           COMPLAINT CATEGORIES
         </Text>
         <View
