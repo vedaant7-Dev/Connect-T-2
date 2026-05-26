@@ -28,7 +28,7 @@ function SuperAdminTabBar({ state, descriptors, navigation }: any) {
         borderTopColor: "#E2E8F0",
       }}
     >
-      {state.routes.filter((r: any) => r.name !== "settings").map((route: any, index: number) => {
+      {state.routes.filter((r: any) => r.name !== "settings" && r.name !== "access").map((route: any, index: number) => {
         const tab = tabs.find((t) => t.name === route.name) || tabs[0];
         const isFocused = state.routes[state.index]?.name === route.name;
         return (
@@ -92,6 +92,7 @@ export default function SuperAdminLayout() {
           <Tabs.Screen name="broadcast" />
           <Tabs.Screen name="reports" />
           <Tabs.Screen name="settings" />
+          <Tabs.Screen name="access" />
         </Tabs>
       </JobsProvider>
     </JobsAuthProvider>

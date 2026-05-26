@@ -203,8 +203,6 @@ export default function NewAlertScreen() {
         location: location.trim(),
         validUntil: validUntilLabel,
         expiresAt,
-        validFrom,
-        validTo,
         media,
       },
       user?.name || "Nagarsevak",

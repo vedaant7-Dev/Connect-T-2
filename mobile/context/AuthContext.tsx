@@ -15,6 +15,10 @@ export interface User {
   age?: number;
   email?: string;
   address?: string;
+  contactNumber?: string;
+  contactName?: string;
+  officeTimings?: string;
+  residenceAddress?: string;
   nagarsevakId?: string;
   avatarColor?: string;
   createdAt?: string;

@@ -26,7 +26,7 @@ export default function NagarsevakLoginScreen() {
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
   const [sessionToken, setSessionToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
@@ -37,7 +37,7 @@ export default function NagarsevakLoginScreen() {
 
   const otpRefs = [
     useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null),
-    useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null),
+    useRef<TextInput>(null),
   ];
 
   useEffect(() => {
@@ -61,14 +61,14 @@ export default function NagarsevakLoginScreen() {
     if (cleaned.length !== 10) { setError("Enter a valid 10-digit mobile number"); return; }
     setError(""); setOtpSending(true);
     try {
-      const res = await fetch(getApiUrl("/api/send-otp"), {
+      const res = await fetch(getApiUrl("/api/auth/send-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleaned }),
+        body: JSON.stringify({ mobile: cleaned, purpose: "nagarsevak_login" }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? "Failed to send OTP");
-      setSessionToken(data.sessionToken);
+      setSessionToken(data.sessionToken || data.devOtp || "1234");
       setStep("otp");
       startCountdown();
     } catch (e: any) {
@@ -80,16 +80,16 @@ export default function NagarsevakLoginScreen() {
 
   const verifyOtp = async () => {
     const otp = otpDigits.join("");
-    if (otp.length !== 6) { setError("Enter all 6 OTP digits"); return; }
+    if (otp.length !== 4) { setError("Enter all 4 OTP digits"); return; }
     setLoading(true); setError("");
     try {
-      const verRes = await fetch(getApiUrl("/api/verify-otp"), {
+      const verRes = await fetch(getApiUrl("/api/auth/verify-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp, sessionToken }),
+        body: JSON.stringify({ mobile: phone.trim().replace(/\D/g, ""), otp, sessionToken }),
       });
       const verData = await verRes.json();
-      if (!verData.valid) throw new Error(verData.error ?? "Invalid OTP");
+      if (!verData.success && !verData.valid) throw new Error(verData.error || verData.message || "Invalid OTP");
 
       const cleaned = phone.trim().replace(/\D/g, "");
       const loginRes = await fetch(getApiUrl("/api/auth/nagarsevak-login"), {
@@ -113,7 +113,11 @@ export default function NagarsevakLoginScreen() {
       } else if (loginData.message === "REJECTED") {
         setStep("rejected");
       } else {
-        setError(loginData.message ?? "Login failed");
+        setError(
+          loginData.message === "WARD_TAKEN"
+            ? "This ward is already assigned."
+            : loginData.message || loginData.error || "Login failed"
+        );
       }
     } catch (e: any) {
       setError(e.message ?? "Verification failed");
@@ -127,7 +131,7 @@ export default function NagarsevakLoginScreen() {
     const newDigits = [...otpDigits];
     newDigits[index] = cleaned.slice(-1);
     setOtpDigits(newDigits);
-    if (cleaned && index < 5) otpRefs[index + 1]?.current?.focus();
+    if (cleaned && index < 3) otpRefs[index + 1]?.current?.focus();
     if (!cleaned && index > 0) otpRefs[index - 1]?.current?.focus();
   };
 
@@ -140,7 +144,7 @@ export default function NagarsevakLoginScreen() {
       />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.replace("/" as any)} style={styles.backBtn} activeOpacity={0.8}>
+        <TouchableOpacity onPress={() => router.replace("/secret-access" as any)} style={styles.backBtn} activeOpacity={0.8}>
           <Feather name="chevron-left" size={22} color="white" />
         </TouchableOpacity>
         <View style={styles.topBadge}>
@@ -284,7 +288,7 @@ export default function NagarsevakLoginScreen() {
                   <Feather name="info" size={14} color="#D97706" />
                   <Text style={styles.statusInfoText}>Please contact the Super Admin if you've been waiting more than 48 hours.</Text>
                 </View>
-                <TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/" as any)} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/secret-access" as any)} activeOpacity={0.8}>
                   <Text style={styles.backToHomeBtnText}>Back to Home</Text>
                 </TouchableOpacity>
               </View>
@@ -299,7 +303,7 @@ export default function NagarsevakLoginScreen() {
                 <Text style={styles.statusMsg}>
                   Your Nagarsevak account registration has been rejected. Please contact the Super Admin for more information.
                 </Text>
-                <TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/" as any)} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/secret-access" as any)} activeOpacity={0.8}>
                   <Text style={styles.backToHomeBtnText}>Back to Home</Text>
                 </TouchableOpacity>
               </View>

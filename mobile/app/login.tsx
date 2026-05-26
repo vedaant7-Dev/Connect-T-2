@@ -18,7 +18,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { useAuth } from "@/context/AuthContext";
 import TopShade from "@/components/TopShade";
@@ -34,6 +34,7 @@ export default function LoginScreen() {
   const topPad = Platform.OS === "web" ? 44 : insets.top;
   const { register, loginWithPhone } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const params = useLocalSearchParams<{ mode?: string; admin?: string }>();
 
   const [activeTab, setActiveTab] = useState<AuthTab>("register");
   const [loading, setLoading] = useState(false);
@@ -70,6 +71,16 @@ export default function LoginScreen() {
   const [showAdminAccess, setShowAdminAccess] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  useEffect(() => {
+    if (params.mode === "login") {
+      setActiveTab("login");
+      setRegStep("form");
+      setLoginStep("form");
+      setError("");
+      setOtpDigits(["", "", "", ""]);
+    }
+  }, [params.mode]);
+
   const startCountdown = () => {
     setCountdown(30);
     if (countdownRef.current) clearInterval(countdownRef.current);
@@ -98,6 +109,39 @@ export default function LoginScreen() {
   const verifyOtpToken = async (otp: string, _token: string): Promise<void> => {
     if (otp === "1234") return;
     throw new Error("Invalid OTP. Use 1234");
+  };
+
+  const formatDobInput = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    const day = digits.slice(0, 2);
+    const month = digits.slice(2, 4);
+    const year = digits.slice(4, 8);
+
+    if (digits.length <= 2) return day;
+    if (digits.length <= 4) return `${day}-${month}`;
+    return `${day}-${month}-${year}`;
+  };
+
+  const isValidDob = (value: string) => {
+    if (!/^\d{2}-\d{2}-\d{4}$/.test(value)) return false;
+
+    const [dayRaw, monthRaw, yearRaw] = value.split("-");
+    const day = Number(dayRaw);
+    const month = Number(monthRaw);
+    const year = Number(yearRaw);
+    const currentYear = new Date().getFullYear();
+
+    if (day < 1 || day > 31) return false;
+    if (month < 1 || month > 12) return false;
+    if (year < 1900 || year > currentYear) return false;
+
+    const date = new Date(year, month - 1, day);
+
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    );
   };
   const handleSecretTap = () => {
     const next = logoTapCount + 1;
@@ -138,8 +182,8 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!regDob.trim()) {
-      setError("Please enter date of birth");
+    if (!isValidDob(regDob.trim())) {
+      setError("Please enter date of birth as DD-MM-YYYY");
       return;
     }
 
@@ -270,9 +314,11 @@ export default function LoginScreen() {
 
       if (user) {
         router.replace(
-          user.role === "nagarsevak"
-            ? ("/(tabs)/admin" as any)
-            : ("/portal-select" as any),
+          user.role === "super_admin" || user.isSuperAdmin
+            ? ("/super-admin" as any)
+            : user.role === "nagarsevak"
+              ? ("/(tabs)/admin" as any)
+              : ("/portal-select" as any),
         );
       } else {
         setError(t("accountNotFound"));
@@ -417,10 +463,11 @@ export default function LoginScreen() {
       <Text style={s.fieldLabel}>Date of Birth</Text>
       <TextInput
         style={s.input}
-        placeholder="DD/MM/YYYY"
+        placeholder="DD-MM-YYYY"
         placeholderTextColor="#94A3B8"
         value={regDob}
-        onChangeText={setRegDob}
+        onChangeText={(value) => setRegDob(formatDobInput(value))}
+        keyboardType="number-pad"
         maxLength={10}
       />
 
@@ -781,7 +828,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => router.push("/super-admin/login" as any)}
+                onPress={() => router.push("/login?mode=login&admin=1" as any)}
                 style={{
                   backgroundColor: "#22C55E",
                   borderRadius: 14,

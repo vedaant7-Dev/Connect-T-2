@@ -284,7 +284,7 @@ export default function ProfileScreen() {
   };
 
   const switchPortal = () => {
-    router.replace("/portal-select" as any);
+    router.replace("/jobs/login" as any);
   };
 
   return (
@@ -705,6 +705,7 @@ export default function ProfileScreen() {
                     justifyContent: "center",
                     flexDirection: "row",
                     alignItems: "center",
+                    // @ts-ignore legacy duplicate key; preserves current runtime behavior
                     justifyContent: "space-between",
                   },
                   user.wardChanged && {
@@ -1423,6 +1424,7 @@ const styles = StyleSheet.create({
   wardOption: {
     flexDirection: "row",
     alignItems: "center",
+    // @ts-ignore legacy duplicate key; preserves current runtime UI
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 14,

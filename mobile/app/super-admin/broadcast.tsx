@@ -92,7 +92,7 @@ export default function BroadcastScreen() {
   );
 
   const emergencyAlerts = alerts.filter(
-    (a) => a.type === "emergency" || a.priority === "high",
+    (a) => (a.type as string) === "emergency" || (a.priority as string) === "high",
   );
   const recentAlerts = [...alerts]
     .sort(

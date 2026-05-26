@@ -815,7 +815,7 @@ export default function JobsAdminScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push("/super-admin/settings")}
+            onPress={() => router.push("/super-admin/settings" as any)}
             style={{
               width: 42,
               height: 42,

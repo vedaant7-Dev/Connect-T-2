@@ -64,8 +64,6 @@ function InlineVideo({ uri }: { uri: string }) {
     <VideoView
       style={styles.postVideo}
       player={player}
-      allowsFullscreen
-      allowsPictureInPicture
       nativeControls
       contentFit="cover"
     />
