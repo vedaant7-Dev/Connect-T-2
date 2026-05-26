@@ -1024,6 +1024,214 @@ app.get("/api/jobs/:id/applications", async (req, res) => {
 });
 
 
+
+/* SUPER ADMIN UNIQUE ACCESS */
+app.get("/api/super-admin/access-codes", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         id,
+         access_code AS accessCode,
+         name,
+         mobile,
+         status,
+         created_by AS createdBy,
+         created_at AS createdAt,
+         updated_at AS updatedAt
+       FROM super_admin_access_codes
+       ORDER BY created_at DESC`,
+    );
+
+    return res.json({
+      success: true,
+      accessCodes: rows,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+app.post("/api/super-admin/access-codes", async (req, res) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    const mobile = normalizeMobile(req.body.mobile);
+    const createdBy = String(req.body.createdBy || req.body.created_by || "main_super_admin").trim();
+
+    if (!name || mobile.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and valid 10 digit mobile number are required",
+      });
+    }
+
+    const id = req.body.id || createId("sa_access");
+    const accessCode = normalizeAccessCode(req.body.accessCode) || generateSuperAdminAccessCode();
+
+    await db.query(
+      `INSERT INTO super_admin_access_codes
+       (id, access_code, name, mobile, status, created_by)
+       VALUES (?, ?, ?, ?, 'active', ?)
+       ON DUPLICATE KEY UPDATE
+         access_code = VALUES(access_code),
+         name = VALUES(name),
+         status = 'active',
+         created_by = VALUES(created_by)`,
+      [id, accessCode, name, mobile, createdBy],
+    );
+
+    return res.status(201).json({
+      success: true,
+      access: {
+        id,
+        accessCode,
+        name,
+        mobile,
+        status: "active",
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+app.patch("/api/super-admin/access-codes/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const status = String(req.body.status || "").trim();
+
+    if (!id || !["active", "revoked"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid id and status are required",
+      });
+    }
+
+    await db.query(
+      `UPDATE super_admin_access_codes
+       SET status = ?
+       WHERE id = ?`,
+      [status, id],
+    );
+
+    return res.json({
+      success: true,
+      id,
+      status,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+app.post("/api/auth/super-admin-access-login", async (req, res) => {
+  try {
+    const mobile = normalizeMobile(req.body.mobile);
+    const accessCode = normalizeAccessCode(req.body.accessCode || req.body.accessId);
+
+    if (mobile.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid mobile number is required",
+      });
+    }
+
+    if (mobile === "8554994735") {
+      const user = {
+        id: "SUPER_ADMIN_TEJASHREE",
+        name: "Tejashree Ma'am",
+        mobile,
+        role: "super_admin",
+        isSuperAdmin: true,
+        approvalStatus: "approved",
+      };
+
+      await db.query(
+        `INSERT INTO users
+         (id, name, mobile, role, is_super_admin, approval_status)
+         VALUES (?, ?, ?, 'super_admin', 1, 'approved')
+         ON DUPLICATE KEY UPDATE
+           name = VALUES(name),
+           role = 'super_admin',
+           is_super_admin = 1,
+           approval_status = 'approved'`,
+        [user.id, user.name, user.mobile],
+      );
+
+      return res.json({
+        success: true,
+        user,
+      });
+    }
+
+    if (!accessCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Unique access ID is required",
+      });
+    }
+
+    const [rows] = await db.query(
+      `SELECT *
+       FROM super_admin_access_codes
+       WHERE mobile = ?
+         AND access_code = ?
+         AND status = 'active'
+       LIMIT 1`,
+      [mobile, accessCode],
+    );
+
+    if (!rows.length) {
+      return res.status(403).json({
+        success: false,
+        message: "Invalid or revoked super admin access ID",
+      });
+    }
+
+    const access = rows[0];
+    const userId = `SAUSER_${mobile}`;
+
+    await db.query(
+      `INSERT INTO users
+       (id, name, mobile, role, is_super_admin, approval_status)
+       VALUES (?, ?, ?, 'super_admin', 1, 'approved')
+       ON DUPLICATE KEY UPDATE
+         name = VALUES(name),
+         role = 'super_admin',
+         is_super_admin = 1,
+         approval_status = 'approved'`,
+      [userId, access.name, mobile],
+    );
+
+    return res.json({
+      success: true,
+      user: {
+        id: userId,
+        name: access.name,
+        mobile,
+        role: "super_admin",
+        isSuperAdmin: true,
+        approvalStatus: "approved",
+        accessCode,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+
 /* NAGARSEVAK AUTH + APPROVAL */
 app.get("/api/auth/ward-check", async (req, res) => {
   try {
@@ -1367,6 +1575,15 @@ function normalizeApprovalStatus(value) {
 
 function makeNagarsevakId() {
   return `NS${Date.now()}`;
+}
+
+function generateSuperAdminAccessCode() {
+  const raw = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `SA-${raw}`;
+}
+
+function normalizeAccessCode(value) {
+  return String(value || "").trim().toUpperCase();
 }
 
 app.post("/api/auth/send-otp", async (req, res) => {
