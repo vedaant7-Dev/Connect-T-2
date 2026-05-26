@@ -284,7 +284,7 @@ export default function ProfileScreen() {
   };
 
   const switchPortal = () => {
-    router.replace("/portal-select" as any);
+    router.replace("/jobs/login" as any);
   };
 
   return (
