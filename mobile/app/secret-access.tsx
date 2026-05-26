@@ -79,7 +79,7 @@ export default function SecretAccessScreen() {
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.option}
-              onPress={() => router.push("/login?mode=login&admin=1" as any)}
+              onPress={() => router.push("/super-admin-login" as any)}
               activeOpacity={0.86}
             >
               <LinearGradient

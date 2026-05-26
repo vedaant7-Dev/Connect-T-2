@@ -144,6 +144,7 @@ function RootLayoutNav() {
       <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="portal-select" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="secret-access" options={{ headerShown: false, animation: "fade" }} />
+      <Stack.Screen name="super-admin-login" options={{ headerShown: false, animation: "fade" }} />
 
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="super-admin" options={{ headerShown: false, animation: "fade" }} />
