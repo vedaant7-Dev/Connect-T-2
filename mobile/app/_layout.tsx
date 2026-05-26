@@ -47,7 +47,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const root = segments[0];
+    const root = String(segments[0] ?? "");
     const currentTab = root === "(tabs)" ? segments[1] : undefined;
 
     const inIndex = !root || root === "index";
@@ -197,7 +197,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <StatusBar style="light" />
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>

@@ -221,7 +221,7 @@ export default function AdminScreen() {
   }
 
   const wardComplaints = user?.ward
-    ? complaints.filter((c) => wardMatchesNagarsevak(c.ward, user!.ward))
+    ? complaints.filter((c) => wardMatchesNagarsevak(c.ward, user?.ward || ""))
     : complaints;
   const filtered = filter === "all"
     ? wardComplaints

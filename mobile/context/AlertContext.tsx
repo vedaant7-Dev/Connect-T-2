@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type AlertType = "alert" | "news";
-export type AlertPriority = "normal" | "important" | "urgent";
+export type AlertType = "alert" | "news" | "emergency";
+export type AlertPriority = "normal" | "important" | "urgent" | "high";
 
 export interface AlertMedia {
   uri: string;
@@ -20,6 +20,7 @@ export interface AppAlert {
   category?: string;
   priority?: AlertPriority;
   location?: string;
+  validFrom?: string;
   validUntil?: string;
   expiresAt?: string;
   targetAudience?: string;
@@ -34,7 +35,7 @@ export type AlertDraft = Pick<AppAlert, "title" | "body" | "type"> & Partial<Pic
 
 interface AlertContextType {
   alerts: AppAlert[];
-  addAlert: (data: AlertDraft, postedBy: string, postedById?: string, ward?: string) => void;
+  addAlert: (data: AlertDraft, postedBy?: string, postedById?: string, ward?: string) => void;
   removeAlert: (id: string) => void;
   loading: boolean;
 }
@@ -102,7 +103,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
   };
 
-  const addAlert = (data: AlertDraft, postedBy: string, postedById?: string, ward?: string) => {
+  const addAlert = (data: AlertDraft, postedBy: string = "Super Admin", postedById?: string, ward?: string) => {
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + ALERT_ACTIVE_MS).toISOString();
     const newAlert: AppAlert = {

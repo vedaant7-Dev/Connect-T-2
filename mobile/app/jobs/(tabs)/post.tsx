@@ -186,28 +186,28 @@ export default function PostJobScreen() {
   const [openings, setOpenings] = useState("1");
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState("");
-  const [contactNo, setContactNo] = useState(jobsUser.whatsapp || jobsUser.phone || "");
+  const [contactNo, setContactNo] = useState(jobsUser?.whatsapp || jobsUser?.phone || "");
   const [submitting, setSubmitting] = useState(false);
   const [posted, setPosted] = useState(false);
   const [postedTitle, setPostedTitle] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
-  const companies = jobsUser.companies?.length
-    ? jobsUser.companies
-    : jobsUser.company
+  const companies = jobsUser?.companies?.length
+    ? jobsUser!.companies
+    : jobsUser?.company
       ? [{
           id: "primary",
-          name: jobsUser.company,
-          type: jobsUser.companyType,
-          size: jobsUser.companySize,
-          industry: jobsUser.industry,
-          website: jobsUser.website,
-          description: jobsUser.companyDescription,
-          address: jobsUser.address,
-          pincode: jobsUser.pincode,
-          whatsapp: jobsUser.whatsapp,
-          yearEstablished: jobsUser.yearEstablished,
-          contactPerson: jobsUser.contactPerson,
-          gstNo: jobsUser.gstNo,
+          name: jobsUser?.company,
+          type: jobsUser?.companyType,
+          size: jobsUser?.companySize,
+          industry: jobsUser?.industry,
+          website: jobsUser?.website,
+          description: jobsUser?.companyDescription,
+          address: jobsUser?.address,
+          pincode: jobsUser?.pincode,
+          whatsapp: jobsUser?.whatsapp,
+          yearEstablished: jobsUser?.yearEstablished,
+          contactPerson: jobsUser?.contactPerson,
+          gstNo: jobsUser?.gstNo,
         }]
       : [];
   const showCompanyPicker = companies.length > 1;
@@ -289,7 +289,7 @@ export default function PostJobScreen() {
         employerName: jobsUser.name,
         company: selectedCompany.name,
         employerPhone: jobsUser.phone,
-        employerWhatsApp: contactNo.trim() || jobsUser.whatsapp || jobsUser.phone,
+        employerWhatsApp: contactNo.trim() || jobsUser?.whatsapp || jobsUser.phone,
         title: title.trim(),
         category,
         type,

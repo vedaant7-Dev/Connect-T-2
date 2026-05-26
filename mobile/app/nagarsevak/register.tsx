@@ -131,7 +131,7 @@ export default function NagarsevakRegisterScreen() {
       const verRes = await fetch(getApiUrl("/api/auth/verify-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: phone?.trim?.().replace(/\D/g, "") || mobile?.trim?.().replace(/\D/g, ""), otp: otp.slice(0, 4), sessionToken }),
+        body: JSON.stringify({ mobile: mobile.trim().replace(/\D/g, ""), otp: otp.slice(0, 4), sessionToken }),
       });
       const verData = await verRes.json();
       if (!verData.success && !verData.valid) throw new Error(verData.error || verData.message || "Invalid OTP");
