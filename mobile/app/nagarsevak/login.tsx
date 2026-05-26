@@ -26,7 +26,7 @@ export default function NagarsevakLoginScreen() {
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
   const [sessionToken, setSessionToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
@@ -37,7 +37,7 @@ export default function NagarsevakLoginScreen() {
 
   const otpRefs = [
     useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null),
-    useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null),
+    useRef<TextInput>(null),
   ];
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function NagarsevakLoginScreen() {
 
   const verifyOtp = async () => {
     const otp = otpDigits.join("");
-    if (otp.length !== 6) { setError("Enter all 6 OTP digits"); return; }
+    if (otp.length !== 4) { setError("Enter all 4 OTP digits"); return; }
     setLoading(true); setError("");
     try {
       const verRes = await fetch(getApiUrl("/api/auth/verify-otp"), {
@@ -131,7 +131,7 @@ export default function NagarsevakLoginScreen() {
     const newDigits = [...otpDigits];
     newDigits[index] = cleaned.slice(-1);
     setOtpDigits(newDigits);
-    if (cleaned && index < 5) otpRefs[index + 1]?.current?.focus();
+    if (cleaned && index < 3) otpRefs[index + 1]?.current?.focus();
     if (!cleaned && index > 0) otpRefs[index - 1]?.current?.focus();
   };
 
