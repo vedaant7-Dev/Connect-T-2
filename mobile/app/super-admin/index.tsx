@@ -54,16 +54,30 @@ const StatCard = memo(function StatCard({
 }: {
   icon: string; label: string; value: string | number; color: string; bg: string; onPress?: () => void;
 }) {
-  const cw = (width - 48) / 4;
+  const cw = (width - 56) / 2;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.72 : 1}
-      style={{ width: cw, backgroundColor: "white", borderRadius: 14, padding: 10, margin: 4, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, alignItems: "center" }}
+      style={{
+        width: cw,
+        backgroundColor: "white",
+        borderRadius: 22,
+        padding: 16,
+        margin: 6,
+        shadowColor: "#0F172A",
+        shadowOpacity: 0.08,
+        shadowRadius: 13,
+        shadowOffset: { width: 0, height: 5 },
+        elevation: 5,
+        alignItems: "flex-start",
+        borderWidth: 1,
+        borderColor: "rgba(226,232,240,0.75)",
+      }}
     >
-      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: bg, alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
-        <Feather name={icon as any} size={15} color={color} />
+      <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: bg, alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+        <Feather name={icon as any} size={20} color={color} />
       </View>
-      <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 2 }}>{value}</Text>
-      <Text style={{ fontSize: 9, fontFamily: "Inter_400Regular", color: "#64748B", textAlign: "center" }}>{label}</Text>
+      <Text style={{ fontSize: 25, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 3, letterSpacing: -0.4 }}>{value}</Text>
+      <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#64748B" }}>{label}</Text>
       {onPress && (
         <View style={{ position: "absolute", top: 5, right: 5, width: 14, height: 14, borderRadius: 7, backgroundColor: color + "22", alignItems: "center", justifyContent: "center" }}>
           <Feather name="chevron-right" size={8} color={color} />
@@ -75,9 +89,9 @@ const StatCard = memo(function StatCard({
 
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <View style={{ marginBottom: 10, marginTop: 6 }}>
-      <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{title}</Text>
-      {sub && <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "#64748B" }}>{sub}</Text>}
+    <View style={{ marginBottom: 12, marginTop: 8 }}>
+      <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: "#0F172A", letterSpacing: -0.25 }}>{title}</Text>
+      {sub && <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "#64748B", marginTop: 2 }}>{sub}</Text>}
     </View>
   );
 }
@@ -86,18 +100,22 @@ const ComplaintRow = memo(function ComplaintRow({ c, onPress }: { c: Complaint; 
   const cat = categoryConfig[c.category] || categoryConfig.other;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}
-      style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#F1F5F9", flexDirection: "row", alignItems: "center" }}
+      style={{
+        paddingVertical: 14,
+        flexDirection: "row",
+        alignItems: "center",
+      }}
     >
-      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: cat.color + "18", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
-        <Feather name={cat.icon as any} size={15} color={cat.color} />
+      <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: cat.color + "18", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+        <Feather name={cat.icon as any} size={18} color={cat.color} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }} numberOfLines={1}>{c.title}</Text>
+        <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: "#0F172A", letterSpacing: -0.1 }} numberOfLines={1}>{c.title}</Text>
         <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" }}>
           {c.ward} · {c.userName || "Unknown"} · {timeAgo(c.createdAt)}
         </Text>
       </View>
-      <View style={{ backgroundColor: STATUS_BG[c.status] || "#F1F5F9", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
+      <View style={{ backgroundColor: STATUS_BG[c.status] || "#F1F5F9", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999 }}>
         <Text style={{ fontSize: 9, fontFamily: "Inter_600SemiBold", color: STATUS_COLOR[c.status] || "#64748B" }}>
           {STATUS_LABEL[c.status] || c.status}
         </Text>
@@ -168,7 +186,7 @@ function ComplaintDetail({ c, onBack, officers }: { c: Complaint; onBack: () => 
         </View>
       )}
 
-      <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+      <View style={{ backgroundColor: "white", borderRadius: 24, padding: 17, shadowColor: "#0F172A", shadowOpacity: 0.07, shadowRadius: 13, shadowOffset: { width: 0, height: 5 }, elevation: 4, borderWidth: 1, borderColor: "rgba(226,232,240,0.7)" }}>
         <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 12 }}>Status Timeline</Text>
         {c.timeline.map((t, idx) => (
           <View key={idx} style={{ flexDirection: "row", marginBottom: 10 }}>
@@ -311,7 +329,7 @@ export default function SuperAdminDashboard() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 8) + 92 }} showsVerticalScrollIndicator={false}>
         <SectionHeader title="Complaint Control Center" sub="Tap any card to view full data" />
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 }}>
           <StatCard icon="file-text" label="Total Complaints" value={stats.total} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("total", "All Complaints", `${stats.total} complaints`)} />
@@ -326,7 +344,7 @@ export default function SuperAdminDashboard() {
 
         <View style={{ marginTop: 16 }}>
           <SectionHeader title="Monthly Trends" sub="Complaint volume over 6 months" />
-          <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+          <View style={{ backgroundColor: "white", borderRadius: 24, padding: 17, shadowColor: "#0F172A", shadowOpacity: 0.07, shadowRadius: 13, shadowOffset: { width: 0, height: 5 }, elevation: 4, borderWidth: 1, borderColor: "rgba(226,232,240,0.7)" }}>
             <View style={{ flexDirection: "row", alignItems: "flex-end", height: 100, justifyContent: "space-around" }}>
               {monthlyData.map((m) => (
                 <View key={m.month} style={{ alignItems: "center", flex: 1 }}>
@@ -341,7 +359,7 @@ export default function SuperAdminDashboard() {
 
         <View style={{ marginTop: 16 }}>
           <SectionHeader title="Category Breakdown" sub="Complaints by type" />
-          <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+          <View style={{ backgroundColor: "white", borderRadius: 24, padding: 17, shadowColor: "#0F172A", shadowOpacity: 0.07, shadowRadius: 13, shadowOffset: { width: 0, height: 5 }, elevation: 4, borderWidth: 1, borderColor: "rgba(226,232,240,0.7)" }}>
             {categoryAnalytics.length === 0 ? (
               <Text style={{ color: "#94A3B8", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", paddingVertical: 16 }}>No complaints yet</Text>
             ) : (
@@ -369,7 +387,7 @@ export default function SuperAdminDashboard() {
 
         <View style={{ marginTop: 16 }}>
           <SectionHeader title="Recent Complaints" sub="Latest 5 across all wards" />
-          <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+          <View style={{ backgroundColor: "white", borderRadius: 24, padding: 17, shadowColor: "#0F172A", shadowOpacity: 0.07, shadowRadius: 13, shadowOffset: { width: 0, height: 5 }, elevation: 4, borderWidth: 1, borderColor: "rgba(226,232,240,0.7)" }}>
             {recentComplaints.length === 0 ? (
               <Text style={{ color: "#94A3B8", fontSize: 13, textAlign: "center", paddingVertical: 16, fontFamily: "Inter_400Regular" }}>No complaints yet</Text>
             ) : (
@@ -384,7 +402,7 @@ export default function SuperAdminDashboard() {
                         <Feather name={cat.icon as any} size={13} color={cat.color} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }} numberOfLines={1}>{c.title}</Text>
+                        <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: "#0F172A", letterSpacing: -0.1 }} numberOfLines={1}>{c.title}</Text>
                         <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: "#64748B" }}>{c.ward} · {timeAgo(c.createdAt)}</Text>
                       </View>
                       <View style={{ backgroundColor: STATUS_BG[c.status] || "#F1F5F9", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
@@ -401,16 +419,69 @@ export default function SuperAdminDashboard() {
 
       <Modal visible={!!modal} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
         {modal && (
-          <View style={{ flex: 1, backgroundColor: "#F0F4F8" }}>
-            <View style={{ backgroundColor: "white", paddingTop: 16, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#E2E8F0", flexDirection: "row", alignItems: "center" }}>
-              <TouchableOpacity onPress={closeModal} style={{ marginRight: 12, padding: 4 }}>
-                <Feather name="x" size={22} color="#64748B" />
-              </TouchableOpacity>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{modal.title}</Text>
-                <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" }}>{modal.sub}</Text>
+          <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+            <LinearGradient
+              colors={["#052E16", "#166534", "#16A34A"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingTop: Math.max(insets.top, 14) + 10,
+                paddingHorizontal: 18,
+                paddingBottom: 18,
+                borderBottomLeftRadius: 28,
+                borderBottomRightRadius: 28,
+                shadowColor: "#064E3B",
+                shadowOpacity: 0.16,
+                shadowRadius: 14,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 8,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <TouchableOpacity
+                  onPress={closeModal}
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 21,
+                    backgroundColor: "rgba(255,255,255,0.16)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 12,
+                  }}
+                  activeOpacity={0.84}
+                >
+                  <Feather name="x" size={22} color="white" />
+                </TouchableOpacity>
+
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    style={{
+                      fontSize: 21,
+                      fontFamily: "Inter_700Bold",
+                      color: "white",
+                      letterSpacing: -0.35,
+                    }}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {modal.title}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "Inter_400Regular",
+                      color: "rgba(255,255,255,0.75)",
+                      marginTop: 2,
+                    }}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {modal.sub}
+                  </Text>
+                </View>
               </View>
-            </View>
+            </LinearGradient>
 
             {selectedC ? (
               <ComplaintDetail c={selectedC} onBack={() => setSelectedC(null)} officers={allOfficers} />
@@ -418,7 +489,7 @@ export default function SuperAdminDashboard() {
               <FlatList
                 data={wardOfficers}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 8) + 56 }}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => (
                   <View style={{ backgroundColor: "white", borderRadius: 14, padding: 14, marginBottom: 8, flexDirection: "row", alignItems: "center", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}>
@@ -440,7 +511,7 @@ export default function SuperAdminDashboard() {
               <FlatList
                 data={wardAnalytics}
                 keyExtractor={([ward]) => ward}
-                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 8) + 56 }}
                 showsVerticalScrollIndicator={false}
                 ListHeaderComponent={
                   <View style={{ backgroundColor: "#16A34A", borderRadius: 16, padding: 16, marginBottom: 12, alignItems: "center" }}>
@@ -483,7 +554,7 @@ export default function SuperAdminDashboard() {
               <FlatList
                 data={wardAnalytics}
                 keyExtractor={([ward]) => ward}
-                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 8) + 56 }}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item: [ward, data], index }) => {
                   const d = data as any;
@@ -518,7 +589,7 @@ export default function SuperAdminDashboard() {
               <FlatList
                 data={getFilteredComplaints(modal.type)}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 8) + 56 }}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                   <View style={{ alignItems: "center", paddingVertical: 48 }}>
@@ -527,7 +598,7 @@ export default function SuperAdminDashboard() {
                   </View>
                 }
                 renderItem={({ item }) => (
-                  <View style={{ backgroundColor: "white", borderRadius: 14, marginBottom: 8, paddingHorizontal: 14, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}>
+                  <View style={{ backgroundColor: "white", borderRadius: 22, marginBottom: 12, paddingHorizontal: 15, shadowColor: "#0F172A", shadowOpacity: 0.07, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 4, borderWidth: 1, borderColor: "rgba(226,232,240,0.75)" }}>
                     <ComplaintRow c={item} onPress={() => setSelectedC(item)} />
                   </View>
                 )}
