@@ -9,14 +9,9 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { apiUrl } from "@/constants/api";
 
 const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
-
-function getApiUrl(path: string) {
-  if (API_BASE) return `${API_BASE}${path}`;
-  if (typeof window !== "undefined" && window.location?.origin) return `${window.location.origin}${path}`;
-  return path;
-}
 
 type Step = "phone" | "otp" | "pending" | "rejected";
 
@@ -61,7 +56,7 @@ export default function NagarsevakLoginScreen() {
     if (cleaned.length !== 10) { setError("Enter a valid 10-digit mobile number"); return; }
     setError(""); setOtpSending(true);
     try {
-      const res = await fetch(getApiUrl("/api/auth/send-otp"), {
+      const res = await fetch(apiUrl("/api/auth/send-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mobile: cleaned, purpose: "nagarsevak_login" }),
@@ -83,7 +78,7 @@ export default function NagarsevakLoginScreen() {
     if (otp.length !== 4) { setError("Enter all 4 OTP digits"); return; }
     setLoading(true); setError("");
     try {
-      const verRes = await fetch(getApiUrl("/api/auth/verify-otp"), {
+      const verRes = await fetch(apiUrl("/api/auth/verify-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mobile: phone.trim().replace(/\D/g, ""), otp, sessionToken }),
@@ -92,7 +87,7 @@ export default function NagarsevakLoginScreen() {
       if (!verData.success && !verData.valid) throw new Error(verData.error || verData.message || "Invalid OTP");
 
       const cleaned = phone.trim().replace(/\D/g, "");
-      const loginRes = await fetch(getApiUrl("/api/auth/nagarsevak-login"), {
+      const loginRes = await fetch(apiUrl("/api/auth/nagarsevak-login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mobile: cleaned }),

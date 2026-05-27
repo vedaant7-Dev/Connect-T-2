@@ -8,14 +8,9 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { NAGARSEVAK_WARDS } from "@/data/wards";
+import { apiUrl } from "@/constants/api";
 
 const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
-
-function getApiUrl(path: string) {
-  if (API_BASE) return `${API_BASE}${path}`;
-  if (typeof window !== "undefined" && window.location?.origin) return `${window.location.origin}${path}`;
-  return path;
-}
 
 type Step = "form" | "otp" | "success";
 
@@ -65,7 +60,7 @@ export default function NagarsevakRegisterScreen() {
   const checkWardAvailability = async (selectedWard: string) => {
     setCheckingWard(true);
     try {
-      const res = await fetch(getApiUrl(`/api/auth/ward-check?ward=${encodeURIComponent(selectedWard)}`));
+      const res = await fetch(apiUrl(`/api/auth/ward-check?ward=${encodeURIComponent(selectedWard)}`));
       const data = await res.json();
       setWardAvailable(data.available ?? false);
     } catch {
@@ -105,7 +100,7 @@ export default function NagarsevakRegisterScreen() {
 
     setOtpSending(true);
     try {
-      const res = await fetch(getApiUrl("/api/auth/send-otp"), {
+      const res = await fetch(apiUrl("/api/auth/send-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mobile: cleaned, purpose: "nagarsevak_auth" }),
@@ -128,7 +123,7 @@ export default function NagarsevakRegisterScreen() {
     if (otp.length < 4) { setError("Enter OTP code"); return; }
     setLoading(true); setError("");
     try {
-      const verRes = await fetch(getApiUrl("/api/auth/verify-otp"), {
+      const verRes = await fetch(apiUrl("/api/auth/verify-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mobile: mobile.trim().replace(/\D/g, ""), otp: otp.slice(0, 4), sessionToken }),
@@ -136,7 +131,7 @@ export default function NagarsevakRegisterScreen() {
       const verData = await verRes.json();
       if (!verData.success && !verData.valid) throw new Error(verData.error || verData.message || "Invalid OTP");
 
-      const regRes = await fetch(getApiUrl("/api/auth/nagarsevak-register"), {
+      const regRes = await fetch(apiUrl("/api/auth/nagarsevak-register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

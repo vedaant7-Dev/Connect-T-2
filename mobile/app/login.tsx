@@ -264,7 +264,7 @@ export default function LoginScreen() {
       }).start();
 
       setTimeout(() => {
-        router.replace("/select-service" as any);
+        router.replace("/(tabs)" as any);
       }, 1200);
     } catch (e: any) {
       setError(e.message ?? t("registrationFailed"));
