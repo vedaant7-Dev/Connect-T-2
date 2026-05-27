@@ -109,6 +109,10 @@ function getApiError(result: any, fallback: string) {
   return result?.message || result?.error || fallback;
 }
 
+function normalizeMobileValue(value?: string | null) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 async function readJsonResponse(response: Response) {
   const text = await response.text();
 
@@ -267,7 +271,35 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         throw new Error(getApiError(result, "Failed to load complaints"));
       }
 
-      setComplaints((result.complaints || []).map(normalizeComplaint));
+      const normalizedComplaints: Complaint[] = (result.complaints || []).map(normalizeComplaint);
+
+      const safeComplaints = normalizedComplaints.filter((complaint: Complaint) => {
+        if (user.role === "citizen") {
+          const userMobile = normalizeMobileValue(user.mobile);
+          const complaintMobile = normalizeMobileValue(complaint.userMobile);
+          const userId = String(user.id || "");
+          const complaintUserId = String(complaint.userId || "");
+
+          return (
+            (!!userMobile && complaintMobile === userMobile) ||
+            (!!userId && complaintUserId === userId)
+          );
+        }
+
+        if (user.role === "nagarsevak") {
+          if (user.wardCode) {
+            return String(complaint.wardCode || "").toLowerCase() === String(user.wardCode).toLowerCase();
+          }
+
+          if (user.ward) {
+            return String(complaint.ward || "").toLowerCase() === String(user.ward).toLowerCase();
+          }
+        }
+
+        return true;
+      });
+
+      setComplaints(safeComplaints);
     } catch (error) {
       console.error("Failed to load complaints", error);
       setComplaints([]);
@@ -294,7 +326,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       assigned_officer_id: data.assignedOfficerId || null,
       user_id: data.userId || user?.id || null,
       user_name: data.userName || user?.name || null,
-      user_mobile: data.userMobile || user?.mobile || null,
+      user_mobile: normalizeMobileValue(data.userMobile || user?.mobile) || null,
       user_address: data.userAddress || user?.address || null,
       user_age: data.userAge || user?.age || null,
       user_email: data.userEmail || user?.email || null,
