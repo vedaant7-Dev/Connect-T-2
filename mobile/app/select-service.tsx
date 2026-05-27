@@ -1,161 +1,33 @@
-import React from "react";
-import { View, Text, TouchableOpacity, SafeAreaView } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
+import React, { useEffect } from "react";
+import { View } from "react-native";
 import { useRouter } from "expo-router";
 
-export default function SelectServiceScreen() {
+import { useAuth } from "@/context/AuthContext";
+
+export default function SelectServiceRedirect() {
   const router = useRouter();
+  const { user, loading } = useAuth();
 
-  return (
-    <LinearGradient
-      colors={["#052E16", "#166534", "#16A34A"]}
-      style={{
-        flex: 1,
-      }}
-    >
-      <SafeAreaView
-        style={{
-          flex: 1,
-          paddingHorizontal: 24,
-          justifyContent: "center",
-        }}
-      >
-        <View
-          style={{
-            alignItems: "center",
-            marginBottom: 40,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 34,
-              color: "white",
-              fontFamily: "Inter_800ExtraBold",
-            }}
-          >
-            Connect T
-          </Text>
+  useEffect(() => {
+    if (loading) return;
 
-          <Text
-            style={{
-              color: "rgba(255,255,255,0.75)",
-              marginTop: 10,
-              fontSize: 15,
-              textAlign: "center",
-            }}
-          >
-            Choose your service
-          </Text>
-        </View>
+    if (user?.role === "super_admin" || user?.isSuperAdmin) {
+      router.replace("/super-admin" as any);
+      return;
+    }
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => router.replace("/(tabs)" as any)}
-          style={{
-            backgroundColor: "white",
-            borderRadius: 24,
-            padding: 22,
-            marginBottom: 18,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <View
-              style={{
-                width: 58,
-                height: 58,
-                borderRadius: 18,
-                backgroundColor: "#DCFCE7",
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 16,
-              }}
-            >
-              <Feather name="shield" size={28} color="#166534" />
-            </View>
+    if (user?.role === "nagarsevak") {
+      router.replace("/(tabs)/admin" as any);
+      return;
+    }
 
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 20,
-                  color: "#0F172A",
-                  fontFamily: "Inter_700Bold",
-                }}
-              >
-                Civic Services
-              </Text>
+    if (user) {
+      router.replace("/(tabs)" as any);
+      return;
+    }
 
-              <Text
-                style={{
-                  marginTop: 4,
-                  color: "#64748B",
-                  lineHeight: 20,
-                }}
-              >
-                Complaints, alerts, wards and public services
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+    router.replace("/portal-select" as any);
+  }, [user, loading, router]);
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => router.replace("/jobs" as any)}
-          style={{
-            backgroundColor: "white",
-            borderRadius: 24,
-            padding: 22,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <View
-              style={{
-                width: 58,
-                height: 58,
-                borderRadius: 18,
-                backgroundColor: "#DBEAFE",
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 16,
-              }}
-            >
-              <Feather name="briefcase" size={28} color="#2563EB" />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 20,
-                  color: "#0F172A",
-                  fontFamily: "Inter_700Bold",
-                }}
-              >
-                Local Jobs
-              </Text>
-
-              <Text
-                style={{
-                  marginTop: 4,
-                  color: "#64748B",
-                  lineHeight: 20,
-                }}
-              >
-                Find nearby jobs and employment opportunities
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </SafeAreaView>
-    </LinearGradient>
-  );
+  return <View style={{ flex: 1, backgroundColor: "#F8FAFC" }} />;
 }

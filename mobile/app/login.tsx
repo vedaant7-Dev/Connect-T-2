@@ -318,7 +318,7 @@ export default function LoginScreen() {
             ? ("/super-admin" as any)
             : user.role === "nagarsevak"
               ? ("/(tabs)/admin" as any)
-              : ("/portal-select" as any),
+              : ("/(tabs)" as any),
         );
       } else {
         setError(t("accountNotFound"));
