@@ -424,6 +424,22 @@ app.patch("/api/complaints/:id/status", async (req, res) => {
   }
 });
 
+
+app.delete("/api/alerts/:id", async (req, res) => {
+  try {
+    await ensureAlertsTable();
+
+    await db.query(
+      "UPDATE alerts SET is_active = 0 WHERE id = ?",
+      [req.params.id],
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /* ADMIN ANALYTICS */
 app.get("/api/admin/analytics", async (req, res) => {
   try {
