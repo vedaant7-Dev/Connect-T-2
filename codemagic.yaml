@@ -1,29 +1,71 @@
 workflows:
-  connect_t_android:
-    name: Connect T Android APK
-
-    max_build_duration: 60
+  connect-t-android-native:
+    name: Connect T Native Android Build
+    instance_type: linux_x2
+    max_build_duration: 120
 
     environment:
-      node: 20
-      java: 17
+      java: 21
+      node: 22
+      vars:
+        EXPO_PUBLIC_API_URL: "https://connect-t-2.onrender.com"
+
+    cache:
+      cache_paths:
+        - ~/.gradle/caches
+        - ~/.gradle/wrapper
+        - mobile/node_modules
 
     scripts:
-      - name: Install dependencies
+      - name: Install Node dependencies
         script: |
           cd mobile
-          npm install
+          npm ci || npm install
 
-      - name: Expo prebuild
+      - name: Check Android SDK
         script: |
-          cd mobile
-          npx expo prebuild --platform android --clean
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          java -version
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "build-tools;36.0.0" \
+            "ndk;27.0.12077973" \
+            "ndk;27.1.12297006"
+          yes | sdkmanager --licenses || true
 
-      - name: Build APK
+      - name: Create local.properties
+        script: |
+          cd mobile/android
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          cat local.properties
+
+      - name: TypeScript check
+        script: |
+          npx tsc --noEmit -p mobile/tsconfig.json
+
+      - name: Build release APK
         script: |
           cd mobile/android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+
+      - name: Build release AAB
+        script: |
+          cd mobile/android
+          ./gradlew :app:bundleRelease --no-daemon --max-workers=2 --stacktrace
+
+      - name: List build outputs
+        script: |
+          echo "=== APK ==="
+          find mobile/android/app/build/outputs/apk -type f -name "*.apk" -printf "%s %p\n" | sort -nr || true
+          echo "=== AAB ==="
+          find mobile/android/app/build/outputs/bundle -type f -name "*.aab" -printf "%s %p\n" | sort -nr || true
 
     artifacts:
-      - mobile/android/app/build/outputs/**/*.apk
+      - mobile/android/app/build/outputs/apk/**/*.apk
+      - mobile/android/app/build/outputs/bundle/**/*.aab
+      - mobile/android/app/build/outputs/mapping/release/mapping.txt
