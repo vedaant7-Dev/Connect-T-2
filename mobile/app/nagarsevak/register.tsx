@@ -10,8 +10,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { NAGARSEVAK_WARDS } from "@/data/wards";
 import { apiUrl } from "@/constants/api";
 
-const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
-
 type Step = "form" | "otp" | "success";
 
 export default function NagarsevakRegisterScreen() {
@@ -191,10 +189,19 @@ export default function NagarsevakRegisterScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 12}
+      >
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingBottom: Math.max(insets.bottom, 12) + 150 },
+          ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
@@ -478,15 +485,15 @@ const styles = StyleSheet.create({
   backBtn: { padding: 8 },
   topBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   topBadgeText: { fontSize: 12, color: "white", fontFamily: "Inter_600SemiBold" },
-  scroll: { padding: 20, paddingTop: 8 },
-  card: { backgroundColor: "white", borderRadius: 24, padding: 24, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 8 },
+  card: { backgroundColor: "white", borderRadius: 24, padding: 22, marginBottom: 28, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
   cardHeader: { alignItems: "center", marginBottom: 24 },
   headerIcon: { width: 64, height: 64, borderRadius: 20, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center", marginBottom: 12 },
   cardTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 6, textAlign: "center" },
   cardSub: { fontSize: 12, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
   errorText: { backgroundColor: "#FEE2E2", color: "#991B1B", fontSize: 12, fontFamily: "Inter_400Regular", padding: 10, borderRadius: 10, marginBottom: 14, textAlign: "center" },
   input: { borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular" },
-  textarea: { minHeight: 72, textAlignVertical: "top" },
+  textarea: { minHeight: 84, textAlignVertical: "top", paddingTop: 12 },
   phoneRow: { flexDirection: "row", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, overflow: "hidden" },
   countryCode: { backgroundColor: "#F8FAFC", paddingHorizontal: 14, justifyContent: "center", borderRightWidth: 1, borderRightColor: "#E2E8F0" },
   countryCodeText: { fontSize: 15, fontWeight: "600", color: "#475569", fontFamily: "Inter_600SemiBold" },
