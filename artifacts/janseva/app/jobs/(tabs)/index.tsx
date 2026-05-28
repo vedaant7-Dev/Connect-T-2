@@ -33,30 +33,85 @@ function statusLabel(status: string) {
   return "Active Jobs";
 }
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function getJobBadge(job: Job): { label: string; color: string; bg: string } | null {
+  const ageHours = (Date.now() - new Date(job.createdAt).getTime()) / 3600000;
+  if (ageHours < 24) return { label: "New", color: "#059669", bg: "#D1FAE5" };
+  if (job.applicants.length >= 5) return { label: "Hot 🔥", color: "#EA580C", bg: "#FFEDD5" };
+  return null;
+}
+
+const JOB_CATEGORIES = [
+  { label: "All Jobs", key: "",               icon: "grid"        as const },
+  { label: "Manufacturing", key: "manufact",  icon: "settings"    as const },
+  { label: "IT & Tech",  key: "it",           icon: "monitor"     as const },
+  { label: "Logistics",  key: "logistics",    icon: "truck"       as const },
+  { label: "Finance",    key: "finance",      icon: "trending-up" as const },
+  { label: "Healthcare", key: "health",       icon: "activity"    as const },
+  { label: "Sales",      key: "sales",        icon: "bar-chart-2" as const },
+  { label: "Construction", key: "construct",  icon: "tool"        as const },
+];
+
+// ─── Seeker stats grid ────────────────────────────────────────────────────────
+function SeekerStats({ applied, nearby, total, newJobs }: { applied: number; nearby: number; total: number; newJobs: number }) {
+  const stats = [
+    { label: "Applied", value: applied, icon: "check-circle" as const, color: "#EA580C", bg: "#FFEDD5" },
+    { label: "Nearby",  value: nearby,  icon: "map-pin"      as const, color: "#059669", bg: "#D1FAE5" },
+    { label: "Available", value: total, icon: "briefcase"    as const, color: "#7C3AED", bg: "#EDE9FE" },
+    { label: "New Today", value: newJobs, icon: "zap"        as const, color: "#0369A1", bg: "#E0F2FE" },
+  ];
+  return (
+    <View style={s.statsGrid}>
+      {stats.map((stat) => (
+        <View key={stat.label} style={[s.statCard, { backgroundColor: stat.bg }]}>
+          <View style={[s.statIconWrap, { backgroundColor: stat.color + "25" }]}>
+            <Feather name={stat.icon} size={15} color={stat.color} />
+          </View>
+          <Text style={[s.statValue, { color: stat.color }]}>{stat.value}</Text>
+          <Text style={s.statLabel}>{stat.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // ─── Seeker job card ─────────────────────────────────────────────────────────
 function JobCard({ job, onApply, applied, near, onOpen }: { job: Job; applied: boolean; onApply: () => void; onOpen: () => void; near?: boolean }) {
   const cat = categoryConfig[job.category];
   const type = typeConfig[job.type];
-  const [expanded, setExpanded] = useState(false);
+  const badge = getJobBadge(job);
+  const initials = job.company.split(" ").map((w: string) => w[0] || "").join("").slice(0, 2).toUpperCase() || "JB";
 
   return (
     <View style={s.card}>
-      {near && (
-        <View style={s.nearBadge}>
-          <Feather name="map-pin" size={10} color="#059669" />
-          <Text style={s.nearBadgeText}>Near You</Text>
-        </View>
-      )}
       <TouchableOpacity activeOpacity={0.75} onPress={onOpen} style={s.cardTappable}>
         <View style={s.cardHeader}>
-          <View style={[s.catIcon, { backgroundColor: cat.bg }]}>
-            <Feather name={cat.icon as any} size={18} color={cat.color} />
+          <View style={[s.catIcon, { backgroundColor: cat.color }]}>
+            <Text style={s.logoInitials}>{initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.cardTitle} numberOfLines={1}>{job.title}</Text>
             <Text style={s.cardCompany} numberOfLines={1}>{job.company}</Text>
           </View>
-          <Feather name="chevron-right" size={16} color="#94A3B8" />
+          <View style={{ alignItems: "flex-end", gap: 4 }}>
+            {badge && (
+              <View style={[s.jobBadge, { backgroundColor: badge.bg }]}>
+                <Text style={[s.jobBadgeText, { color: badge.color }]}>{badge.label}</Text>
+              </View>
+            )}
+            {near && !badge && (
+              <View style={s.nearBadge}>
+                <Feather name="map-pin" size={9} color="#059669" />
+                <Text style={s.nearBadgeText}>Near</Text>
+              </View>
+            )}
+          </View>
         </View>
         <View style={s.cardMeta}>
           <View style={s.metaChip}>
@@ -524,11 +579,21 @@ export default function JobsHomeScreen() {
   const { jobs, applyJob, hasApplied, toggleJobActive, shortlistApplicant, rejectApplicant, deleteJob } = useJobs();
   const router = useRouter();
   const [showNotifs, setShowNotifs] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("");
   const isEmployer = jobsUser?.role === "employer";
 
   const activeJobs = jobs.filter((j) => j.active);
+  const newTodayJobs = activeJobs.filter((j) => (Date.now() - new Date(j.createdAt).getTime()) < 86400000);
   const visibleJobs = activeJobs.filter((j) => !jobsUser || jobsUser.role !== "seeker" || !j.applicants.includes(jobsUser.id));
   const nearbyJobs = activeJobs.filter((j) => isNearby(j.location, jobsUser?.location));
+  const appliedCount = !isEmployer ? activeJobs.filter((j) => jobsUser && j.applicants.includes(jobsUser.id)).length : 0;
+
+  const filteredJobs = activeCategory
+    ? visibleJobs.filter((j) => j.category?.toLowerCase().includes(activeCategory) || j.title?.toLowerCase().includes(activeCategory))
+    : visibleJobs;
+  const filteredNearby = activeCategory
+    ? nearbyJobs.filter((j) => j.category?.toLowerCase().includes(activeCategory) || j.title?.toLowerCase().includes(activeCategory))
+    : nearbyJobs;
 
   const handleApply = (job: Job) => {
     if (!jobsUser) return;
@@ -547,11 +612,11 @@ export default function JobsHomeScreen() {
       >
         <View style={[s.headerRow, isEmployer && { marginBottom: 0 }]}>
           <View style={{ flex: 1 }}>
-            <Text style={s.headerTitle}>{isEmployer ? "Employer Dashboard" : "Connect T Jobs"}</Text>
+            <Text style={s.headerTitle}>
+              {isEmployer ? "Employer Dashboard" : `${getGreeting()}, ${jobsUser?.name?.split(" ")[0] || "there"} 👋`}
+            </Text>
             <Text style={s.headerSub}>
-              {isEmployer
-                ? (jobsUser?.company || jobsUser?.name)
-                : `Hello, ${jobsUser?.name?.split(" ")[0] || "there"} 👋`}
+              {isEmployer ? (jobsUser?.company || jobsUser?.name) : "Find your perfect job today"}
             </Text>
           </View>
           {!isEmployer && (
@@ -596,16 +661,37 @@ export default function JobsHomeScreen() {
             />
           ) : (
             <>
-              {nearbyJobs.filter((job) => !jobsUser || !hasApplied(job.id, jobsUser.id)).length > 0 && (
+              <SeekerStats
+                applied={appliedCount}
+                nearby={nearbyJobs.length}
+                total={activeJobs.length}
+                newJobs={newTodayJobs.length}
+              />
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.categoryScroll} contentContainerStyle={{ paddingVertical: 2 }}>
+                {JOB_CATEGORIES.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.key}
+                    style={[s.categoryPill, activeCategory === cat.key && s.categoryPillActive]}
+                    onPress={() => setActiveCategory(cat.key)}
+                    activeOpacity={0.75}
+                  >
+                    <Feather name={cat.icon} size={12} color={activeCategory === cat.key ? "white" : "#EA580C"} />
+                    <Text style={[s.categoryPillText, activeCategory === cat.key && s.categoryPillTextActive]}>{cat.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {filteredNearby.filter((job) => !jobsUser || !hasApplied(job.id, jobsUser.id)).length > 0 && (
                 <View style={s.section}>
                   <View style={s.sectionHeader}>
                     <Feather name="map-pin" size={15} color="#059669" />
                     <Text style={s.sectionTitle}>Jobs Near You</Text>
                     <View style={s.sectionBadge}>
-                      <Text style={s.sectionBadgeText}>{nearbyJobs.length}</Text>
+                      <Text style={s.sectionBadgeText}>{filteredNearby.length}</Text>
                     </View>
                   </View>
-              {nearbyJobs.filter((job) => !jobsUser || !hasApplied(job.id, jobsUser.id)).map((job) => (
+                  {filteredNearby.filter((job) => !jobsUser || !hasApplied(job.id, jobsUser.id)).map((job) => (
                     <JobCard
                       key={job.id}
                       job={job}
@@ -617,21 +703,24 @@ export default function JobsHomeScreen() {
                   ))}
                 </View>
               )}
+
               <View style={s.section}>
                 <View style={s.sectionHeader}>
                   <Feather name="briefcase" size={15} color="#EA580C" />
-                  <Text style={s.sectionTitle}>All Available Jobs</Text>
+                  <Text style={s.sectionTitle}>
+                    {activeCategory ? JOB_CATEGORIES.find((c) => c.key === activeCategory)?.label : "All Available Jobs"}
+                  </Text>
                   <View style={[s.sectionBadge, { backgroundColor: "#FFEDD5" }]}>
-                    <Text style={[s.sectionBadgeText, { color: "#EA580C" }]}>{activeJobs.length}</Text>
+                    <Text style={[s.sectionBadgeText, { color: "#EA580C" }]}>{filteredJobs.length}</Text>
                   </View>
                 </View>
-                {visibleJobs.length === 0 ? (
+                {filteredJobs.length === 0 ? (
                   <View style={s.empty}>
                     <Feather name="briefcase" size={44} color="#CBD5E1" />
-                    <Text style={s.emptyText}>No jobs available yet</Text>
+                    <Text style={s.emptyText}>{activeCategory ? "No jobs in this category" : "No jobs available yet"}</Text>
                   </View>
                 ) : (
-                  visibleJobs.map((job) => (
+                  filteredJobs.map((job) => (
                     <JobCard
                       key={job.id}
                       job={job}
@@ -740,13 +829,30 @@ const s = StyleSheet.create({
   activityDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#EA580C", marginTop: 5 },
   activityText: { fontSize: 12, color: "#334155", fontFamily: "Inter_400Regular", lineHeight: 17 },
 
+  // Stats grid
+  statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
+  statCard: { width: "47%", borderRadius: 14, padding: 12, gap: 4 },
+  statIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  statValue: { fontSize: 22, fontWeight: "800", fontFamily: "Inter_700Bold" },
+  statLabel: { fontSize: 11, color: "#475569", fontFamily: "Inter_400Regular" },
+
+  // Category pills
+  categoryScroll: { marginBottom: 14 },
+  categoryPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "white", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: "#E2E8F0", marginRight: 8 },
+  categoryPillActive: { backgroundColor: "#EA580C", borderColor: "#EA580C" },
+  categoryPillText: { fontSize: 12, fontWeight: "600", color: "#64748B", fontFamily: "Inter_600SemiBold" },
+  categoryPillTextActive: { color: "white", fontFamily: "Inter_700Bold" },
+
   // Seeker card
   card: { backgroundColor: "white", borderRadius: 18, shadowColor: "#EA580C", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3, marginBottom: 10, overflow: "hidden" },
   cardTappable: { padding: 14 },
-  nearBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#D1FAE5", paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start", margin: 10, marginBottom: 0, borderRadius: 8 },
+  nearBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#D1FAE5", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   nearBadgeText: { fontSize: 10, fontWeight: "700", color: "#059669", fontFamily: "Inter_700Bold" },
+  jobBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  jobBadgeText: { fontSize: 10, fontWeight: "700", fontFamily: "Inter_700Bold" },
   cardHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 10 },
-  catIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  catIcon: { width: 46, height: 46, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  logoInitials: { fontSize: 15, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
   cardTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
   cardCompany: { fontSize: 12, color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 2 },
   cardMeta: { flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 10 },

@@ -302,7 +302,6 @@ export default function JobsProfileScreen() {
   };
 
   const missingFields = getSeekerFields(jobsUser).filter((f) => { const val = jobsUser[f.key]; return !val || String(val).trim() === ""; });
-  const switchPortal = () => router.replace("/portal-select" as any);
 
   return (
     <View style={cs.root}>
@@ -342,11 +341,6 @@ export default function JobsProfileScreen() {
             <Feather name="edit-2" size={16} color="white" />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={cs.switchBtn} onPress={switchPortal} activeOpacity={0.85}>
-          <Feather name="refresh-cw" size={13} color="#EA580C" />
-          <Text style={cs.switchBtnText}>Switch to civic service</Text>
-        </TouchableOpacity>
-
         {!isEmployer && (
           <View style={cs.completionCard}>
             <View style={cs.completionTop}>
