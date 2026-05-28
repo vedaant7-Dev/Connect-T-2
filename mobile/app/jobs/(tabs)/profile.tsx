@@ -13,7 +13,7 @@ import { useJobs } from "@/context/JobsContext";
 
 const STATUS_OPTIONS: { id: CurrentStatus; label: string; icon: string; color: string }[] = [
   { id: "employed",   label: "Currently Employed",  icon: "briefcase", color: "#059669" },
-  { id: "unemployed", label: "Looking for Work",     icon: "search",    color: "#EA580C" },
+  { id: "unemployed", label: "Looking for Work",     icon: "search",    color: "#047857" },
   { id: "student",    label: "Student",              icon: "book-open", color: "#7C3AED" },
   { id: "fresher",    label: "Fresher (No Exp)",     icon: "star",      color: "#0369A1" },
 ];
@@ -49,8 +49,8 @@ function InfoRow({ icon, label, value, accent }: { icon: string; label: string; 
   if (!value) return null;
   return (
     <View style={cs.infoRow}>
-      <View style={[cs.infoIconWrap, accent && { backgroundColor: "#FFEDD5" }]}>
-        <Feather name={icon as any} size={14} color={accent ? "#EA580C" : "#64748B"} />
+      <View style={[cs.infoIconWrap, accent && { backgroundColor: "#ECFDF5" }]}>
+        <Feather name={icon as any} size={14} color={accent ? "#047857" : "#64748B"} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={cs.infoLabel}>{label}</Text>
@@ -65,7 +65,7 @@ function SectionCard({ title, icon, children }: { title: string; icon: string; c
     <View style={cs.sectionCard}>
       <View style={cs.sectionCardHeader}>
         <View style={cs.sectionIconWrap}>
-          <Feather name={icon as any} size={14} color="#EA580C" />
+          <Feather name={icon as any} size={14} color="#047857" />
         </View>
         <Text style={cs.sectionCardTitle}>{title}</Text>
       </View>
@@ -111,8 +111,8 @@ function SelectField({ label, value, options, onChange }: { label: string; value
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 280 }}>
               {options.map((opt) => (
                 <TouchableOpacity key={opt} style={[cs.selectItem, value === opt && cs.selectItemActive]} onPress={() => { onChange(opt); setOpen(false); }}>
-                  <Text style={[cs.selectItemText, value === opt && { color: "#EA580C", fontFamily: "Inter_600SemiBold" }]}>{opt}</Text>
-                  {value === opt && <Feather name="check" size={14} color="#EA580C" />}
+                  <Text style={[cs.selectItemText, value === opt && { color: "#047857", fontFamily: "Inter_600SemiBold" }]}>{opt}</Text>
+                  {value === opt && <Feather name="check" size={14} color="#047857" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -307,7 +307,7 @@ export default function JobsProfileScreen() {
   return (
     <View style={cs.root}>
       <LinearGradient
-        colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]}
+        colors={["#064E3B", "#047857", "#059669", "#10B981"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[cs.header, { paddingTop: topPad + 12 }]}
       >
@@ -330,7 +330,7 @@ export default function JobsProfileScreen() {
               <Text style={cs.headerSubName}>{jobsUser.name}</Text>
             )}
             <View style={cs.rolePill}>
-              <Feather name={isEmployer ? "briefcase" : "user"} size={10} color="#EA580C" />
+              <Feather name={isEmployer ? "briefcase" : "user"} size={10} color="#047857" />
               <Text style={cs.rolePillText}>{isEmployer ? "Employer Account" : "Job Seeker"}</Text>
             </View>
             {isEmployer && jobsUser.industry && (
@@ -343,7 +343,7 @@ export default function JobsProfileScreen() {
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={cs.switchBtn} onPress={switchPortal} activeOpacity={0.85}>
-          <Feather name="refresh-cw" size={13} color="#EA580C" />
+          <Feather name="refresh-cw" size={13} color="#047857" />
           <Text style={cs.switchBtnText}>Switch to civic service</Text>
         </TouchableOpacity>
 
@@ -400,7 +400,7 @@ export default function JobsProfileScreen() {
             ) : (
               <TouchableOpacity onPress={openDescriptionEdit} activeOpacity={0.8}>
                 <View style={[cs.sectionCard, cs.emptyCard]}>
-                  <Feather name="plus-circle" size={18} color="#EA580C" />
+                  <Feather name="plus-circle" size={18} color="#047857" />
                   <Text style={cs.emptyCardText}>Add company description</Text>
                 </View>
               </TouchableOpacity>
@@ -417,7 +417,7 @@ export default function JobsProfileScreen() {
                         {!!company.industry && <Text style={cs.companyMeta}>{company.industry}</Text>}
                       </View>
                       <TouchableOpacity onPress={() => openCompanyEditor(company.id)} style={cs.companyEditBtn}>
-                        <Feather name="edit-2" size={14} color="#EA580C" />
+                        <Feather name="edit-2" size={14} color="#047857" />
                       </TouchableOpacity>
                     </View>
                     <View style={cs.overviewGrid}>
@@ -428,7 +428,7 @@ export default function JobsProfileScreen() {
                   </View>
                 ))}
                 <TouchableOpacity onPress={() => openCompanyEditor()} style={cs.addCompanyCard} activeOpacity={0.85}>
-                  <Feather name="plus" size={18} color="#EA580C" />
+                  <Feather name="plus" size={18} color="#047857" />
                   <Text style={cs.addInfoText}>Add company</Text>
                 </TouchableOpacity>
               </ScrollView>
@@ -507,7 +507,7 @@ export default function JobsProfileScreen() {
         {/* ─── SEEKER PROFILE ─── */}
         {!isEmployer && completion < 100 && missingFields.length > 0 && (
           <View style={cs.missingCard}>
-            <Feather name="alert-circle" size={15} color="#EA580C" />
+            <Feather name="alert-circle" size={15} color="#047857" />
             <View style={{ flex: 1 }}>
               <Text style={cs.missingTitle}>Complete your profile</Text>
               <Text style={cs.missingText}>Missing: {missingFields.map(f => f.label).join(", ")}</Text>
@@ -593,7 +593,7 @@ export default function JobsProfileScreen() {
         )}
 
         <TouchableOpacity style={cs.switchBtn} onPress={() => router.replace("/(tabs)" as any)} activeOpacity={0.85}>
-          <Feather name="home" size={18} color="#EA580C" />
+          <Feather name="home" size={18} color="#047857" />
           <Text style={cs.switchBtnText}>Back</Text>
         </TouchableOpacity>
 
@@ -606,7 +606,7 @@ export default function JobsProfileScreen() {
       {/* Edit Modal */}
       <Modal visible={editing} animationType="slide" onRequestClose={() => setEditing(false)}>
         <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
-          <LinearGradient colors={["#C2410C", "#EA580C"]} style={[cs.editHeader, { paddingTop: (Platform.OS === "web" ? 44 : insets.top) + 12 }]}>
+          <LinearGradient colors={["#064E3B", "#047857", "#059669"]} style={[cs.editHeader, { paddingTop: (Platform.OS === "web" ? 44 : insets.top) + 12 }]}>
             <TouchableOpacity onPress={() => setEditing(false)} style={cs.editClose}>
               <Feather name="x" size={20} color="white" />
             </TouchableOpacity>
@@ -719,151 +719,917 @@ export default function JobsProfileScreen() {
 }
 
 const cs = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFF7ED" },
-  header: { paddingHorizontal: 20, paddingBottom: 22, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: "hidden", shadowColor: "#9A3412", shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 },
-  avatarWrap: { position: "relative" },
-  cameraBtn: { position: "absolute", bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: "#EA580C", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "white" },
-  headerName: { fontSize: 20, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  headerSubName: { fontSize: 12, color: "rgba(255,255,255,0.78)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  headerIndustry: { fontSize: 11, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  verifiedBadge: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#D1FAE5", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  verifiedText: { fontSize: 9, fontWeight: "700", color: "#059669", fontFamily: "Inter_700Bold" },
-  rolePill: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "white", paddingHorizontal: 11, paddingVertical: 5, borderRadius: 999, alignSelf: "flex-start", marginTop: 6 },
-  rolePillText: { fontSize: 11, fontWeight: "700", color: "#EA580C", fontFamily: "Inter_700Bold" },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 3 },
-  editBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  root: {
+    flex: 1,
+    backgroundColor: "#F6FAF8",
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+    borderBottomLeftRadius: 34,
+    borderBottomRightRadius: 34,
+    overflow: "hidden",
+    shadowColor: "#064E3B",
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 16,
+  },
+  avatarWrap: {
+    position: "relative",
+  },
+  cameraBtn: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#047857",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "white",
+  },
+  headerName: {
+    fontSize: 21,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+    letterSpacing: -0.35,
+  },
+  headerSubName: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.78)",
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  headerIndustry: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.68)",
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  verifiedText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#059669",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  rolePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "white",
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+    marginTop: 7,
+  },
+  rolePillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#047857",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  headerSub: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.68)",
+    fontFamily: "Inter_400Regular",
+    marginTop: 3,
+  },
+  editBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
 
-  completionCard: { backgroundColor: "rgba(255,255,255,0.16)", borderRadius: 20, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)" },
-  completionTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-  completionLabel: { fontSize: 13, fontWeight: "600", color: "white", fontFamily: "Inter_600SemiBold" },
-  resumeBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#059669", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10 },
-  resumeBtnText: { fontSize: 11, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  barWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
-  barTrack: { flex: 1, height: 8, backgroundColor: "rgba(255,255,255,0.3)", borderRadius: 4, overflow: "hidden" },
-  barFill: { height: "100%", borderRadius: 4 },
-  barLabel: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold", width: 36, textAlign: "right" },
-  completionHint: { fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginTop: 6 },
+  completionCard: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 22,
+    padding: 15,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+  },
+  completionTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 9,
+  },
+  completionLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  resumeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  resumeBtnText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  barWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  barTrack: {
+    flex: 1,
+    height: 8,
+    backgroundColor: "rgba(255,255,255,0.28)",
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  barFill: {
+    height: "100%",
+    borderRadius: 999,
+  },
+  barLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+    width: 38,
+    textAlign: "right",
+  },
+  completionHint: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.72)",
+    fontFamily: "Inter_400Regular",
+    marginTop: 7,
+  },
 
-  statsRow: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.16)", borderRadius: 20, padding: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)" },
-  statBox: { flex: 1, alignItems: "center" },
-  statDivider: { width: 1, backgroundColor: "rgba(255,255,255,0.25)" },
-  statNum: { fontSize: 18, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" },
-  statLabel: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginTop: 2 },
+  statsRow: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+  },
+  statBox: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "rgba(255,255,255,0.24)",
+  },
+  statNum: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  statLabel: {
+    fontSize: 10,
+    color: "rgba(255,255,255,0.72)",
+    fontFamily: "Inter_500Medium",
+    marginTop: 2,
+  },
 
-  content: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 12,
+  },
 
-  // Section card
-  sectionCard: { backgroundColor: "white", borderRadius: 24, padding: 17, shadowColor: "#9A3412", shadowOpacity: 0.07, shadowRadius: 13, shadowOffset: { width: 0, height: 5 }, elevation: 4, borderWidth: 1, borderColor: "rgba(254,215,170,0.5)" },
-  sectionCardHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 15 },
-  sectionIconWrap: { width: 36, height: 36, borderRadius: 13, backgroundColor: "#FFEDD5", alignItems: "center", justifyContent: "center" },
-  sectionCardTitle: { fontSize: 15, fontWeight: "900", color: "#0F172A", fontFamily: "Inter_700Bold", letterSpacing: -0.1 },
+  sectionCard: {
+    backgroundColor: "white",
+    borderRadius: 24,
+    padding: 17,
+    shadowColor: "#064E3B",
+    shadowOpacity: 0.065,
+    shadowRadius: 13,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(226,232,240,0.9)",
+  },
+  sectionCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 15,
+  },
+  sectionIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 15,
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionCardTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+    letterSpacing: -0.1,
+  },
 
-  // Info row
-  infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#F8FAFC" },
-  infoIconWrap: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center", marginTop: 2 },
-  infoLabel: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  infoValue: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_500Medium", marginTop: 1 },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  infoIconWrap: {
+    width: 35,
+    height: 35,
+    borderRadius: 13,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontFamily: "Inter_500Medium",
+  },
+  infoValue: {
+    fontSize: 13,
+    color: "#0F172A",
+    fontFamily: "Inter_600SemiBold",
+    marginTop: 1,
+  },
 
-  // Employer sections
-  overviewGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
-  overviewChip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFEDD5", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
-  overviewChipText: { fontSize: 12, fontWeight: "600", color: "#EA580C", fontFamily: "Inter_600SemiBold" },
-  companyRow: { gap: 10, paddingRight: 8 },
-  companyCard: { width: 220, backgroundColor: "#FFF7ED", borderRadius: 20, padding: 14, borderWidth: 1, borderColor: "#FED7AA" },
-  companyTop: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
-  companyName: { fontSize: 14, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  companyMeta: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 2 },
-  companyEditBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: "white", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FED7AA" },
-  addCompanyCard: { width: 150, minHeight: 104, backgroundColor: "white", borderRadius: 20, padding: 14, borderWidth: 1.5, borderColor: "#FED7AA", borderStyle: "dashed", alignItems: "center", justifyContent: "center", gap: 7 },
-  emptyCard: { flexDirection: "row", alignItems: "center", gap: 10, justifyContent: "center", paddingVertical: 20, borderWidth: 1.5, borderColor: "#FED7AA", borderStyle: "dashed" },
-  emptyCardText: { fontSize: 13, color: "#EA580C", fontFamily: "Inter_500Medium" },
-  addInfoBtn: { paddingVertical: 8 },
-  addInfoText: { fontSize: 12, color: "#EA580C", fontFamily: "Inter_500Medium" },
+  overviewGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  overviewChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  overviewChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#047857",
+    fontFamily: "Inter_700Bold",
+  },
+  companyRow: {
+    gap: 10,
+    paddingRight: 8,
+  },
+  companyCard: {
+    width: 224,
+    backgroundColor: "#F6FAF8",
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  companyTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 10,
+  },
+  companyName: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  companyMeta: {
+    fontSize: 11,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  companyEditBtn: {
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  addCompanyCard: {
+    width: 150,
+    minHeight: 104,
+    backgroundColor: "white",
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: "#A7F3D0",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  emptyCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    justifyContent: "center",
+    paddingVertical: 20,
+    borderWidth: 1.5,
+    borderColor: "#A7F3D0",
+    borderStyle: "dashed",
+  },
+  emptyCardText: {
+    fontSize: 13,
+    color: "#047857",
+    fontFamily: "Inter_700Bold",
+  },
+  addInfoBtn: {
+    paddingVertical: 8,
+  },
+  addInfoText: {
+    fontSize: 12,
+    color: "#047857",
+    fontFamily: "Inter_700Bold",
+  },
 
-  verifiedRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  verifiedIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center" },
-  verifiedLabel: { fontSize: 13, fontWeight: "600", color: "#0F172A", fontFamily: "Inter_600SemiBold" },
-  verifiedGst: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 2 },
-  verifiedPill: { backgroundColor: "#D1FAE5", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  verifiedPillText: { fontSize: 11, fontWeight: "700", color: "#059669", fontFamily: "Inter_700Bold" },
-  unverifiedRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  unverifiedTitle: { fontSize: 13, fontWeight: "600", color: "#92400E", fontFamily: "Inter_600SemiBold" },
-  unverifiedSub: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 2 },
+  verifiedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  verifiedIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    backgroundColor: "#D1FAE5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  verifiedLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  verifiedGst: {
+    fontSize: 11,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  verifiedPill: {
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  verifiedPillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#059669",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  unverifiedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  unverifiedTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#92400E",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  unverifiedSub: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
 
-  miniJobRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#F8FAFC" },
-  miniJobTitle: { fontSize: 13, fontWeight: "600", color: "#0F172A", fontFamily: "Inter_600SemiBold" },
-  miniJobSub: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  miniJobStat: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular" },
-  miniJobStatus: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  miniJobStatusText: { fontSize: 10, fontWeight: "700", fontFamily: "Inter_700Bold" },
+  miniJobRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  miniJobTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  miniJobSub: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+  },
+  miniJobStat: {
+    fontSize: 11,
+    color: "#64748B",
+    fontFamily: "Inter_500Medium",
+  },
+  miniJobStatus: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  miniJobStatusText: {
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: "Inter_800ExtraBold",
+  },
 
-  // Seeker sections
-  aboutText: { fontSize: 13, color: "#475569", fontFamily: "Inter_400Regular", lineHeight: 20 },
-  missingCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#FFF7ED", borderRadius: 20, padding: 15, borderWidth: 1, borderColor: "#FED7AA" },
-  missingTitle: { fontSize: 13, fontWeight: "700", color: "#92400E", fontFamily: "Inter_700Bold" },
-  missingText: { fontSize: 11, color: "#B45309", fontFamily: "Inter_400Regular", marginTop: 2 },
-  missingBtn: { backgroundColor: "#EA580C", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
-  missingBtnText: { fontSize: 12, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  statusPill: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF7ED", padding: 12, borderRadius: 12, alignSelf: "flex-start" },
-  statusPillText: { fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
-  emptyField: { backgroundColor: "#F1F5F9", padding: 12, borderRadius: 10, alignItems: "center" },
-  emptyFieldText: { fontSize: 13, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  skillsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  skillChip: { backgroundColor: "#FFEDD5", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  skillText: { fontSize: 12, fontWeight: "600", color: "#92400E", fontFamily: "Inter_600SemiBold" },
-  resumeCardBtn: { borderRadius: 22, overflow: "hidden", shadowColor: "#EA580C", shadowOpacity: 0.14, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
-  resumeCardGrad: { flexDirection: "row", alignItems: "center", gap: 14, padding: 18 },
-  resumeCardTitle: { fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  resumeCardSub: { fontSize: 11, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", marginTop: 2 },
+  aboutText: {
+    fontSize: 13,
+    color: "#475569",
+    fontFamily: "Inter_400Regular",
+    lineHeight: 20,
+  },
+  missingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#FFFBEB",
+    borderRadius: 22,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  missingTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#92400E",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  missingText: {
+    fontSize: 11,
+    color: "#B45309",
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  missingBtn: {
+    backgroundColor: "#047857",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  missingBtnText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+    borderRadius: 14,
+    alignSelf: "flex-start",
+  },
+  statusPillText: {
+    fontSize: 13,
+    fontWeight: "800",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  emptyField: {
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  emptyFieldText: {
+    fontSize: 13,
+    color: "#94A3B8",
+    fontFamily: "Inter_400Regular",
+  },
+  skillsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  skillChip: {
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  skillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#047857",
+    fontFamily: "Inter_700Bold",
+  },
+  resumeCardBtn: {
+    borderRadius: 24,
+    overflow: "hidden",
+    shadowColor: "#064E3B",
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+  },
+  resumeCardGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 18,
+  },
+  resumeCardTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  resumeCardSub: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.76)",
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
 
-  switchBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "white", padding: 15, borderRadius: 18, borderWidth: 1.5, borderColor: "#FED7AA", shadowColor: "#9A3412", shadowOpacity: 0.06, shadowRadius: 9, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  switchBtnText: { fontSize: 14, fontWeight: "900", color: "#EA580C", fontFamily: "Inter_700Bold" },
-  logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#FEF2F2", padding: 15, borderRadius: 18, borderWidth: 1, borderColor: "#FECACA" },
-  logoutBtnText: { fontSize: 14, fontWeight: "600", color: "#DC2626", fontFamily: "Inter_600SemiBold" },
+  switchBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#A7F3D0",
+    shadowColor: "#064E3B",
+    shadowOpacity: 0.055,
+    shadowRadius: 9,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  switchBtnText: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#047857",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#FEF2F2",
+    padding: 15,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  logoutBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#DC2626",
+    fontFamily: "Inter_700Bold",
+  },
 
-  // Edit modal
-  editHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingBottom: 18 },
-  editClose: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-  editHeaderTitle: { flex: 1, fontSize: 18, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", textAlign: "center" },
-  editSaveBtn: { backgroundColor: "rgba(255,255,255,0.25)", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-  editSaveBtnText: { fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  editScroll: { padding: 18, gap: 4, paddingBottom: 54 },
-  editSection: { fontSize: 12, fontWeight: "700", color: "#94A3B8", fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 0.8, marginTop: 16, marginBottom: 8 },
-  fieldWrap: { marginBottom: 15, backgroundColor: "white", borderRadius: 20, padding: 14, shadowColor: "#0F172A", shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  fieldLabel: { fontSize: 12, fontWeight: "900", color: "#334155", fontFamily: "Inter_700Bold", marginBottom: 8 },
-  fieldInput: { backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular", minHeight: 50 },
-  selectBtn: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 13, minHeight: 50 },
-  selectBtnText: { fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular" },
-  selectOverlay: { flex: 1, backgroundColor: "rgba(15,23,42,0.48)", justifyContent: "center", paddingHorizontal: 24 },
-  selectList: { backgroundColor: "white", borderRadius: 24, overflow: "hidden", paddingBottom: 8, shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 20, elevation: 10 },
-  selectListTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold", padding: 16, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
-  selectItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "#F8FAFC" },
-  selectItemActive: { backgroundColor: "#FFF7ED" },
-  selectItemText: { fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular" },
-  statusOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
-  statusOption: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "white" },
-  statusOptionText: { fontSize: 12, fontFamily: "Inter_500Medium", color: "#64748B" },
-  statusBanner: { borderRadius: 14, overflow: "hidden", marginTop: 6, marginBottom: 12 },
-  statusBannerGrad: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12 },
-  statusBannerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: "white", alignItems: "center", justifyContent: "center" },
-  statusBannerTitle: { fontSize: 13, fontWeight: "700", color: "#9A3412", fontFamily: "Inter_700Bold" },
-  statusBannerSub: { fontSize: 11, color: "#9A3412", opacity: 0.8, fontFamily: "Inter_400Regular", marginTop: 2 },
-  condBlock: { backgroundColor: "white", borderRadius: 14, padding: 12, marginTop: 4, marginBottom: 8, borderWidth: 1, borderColor: "#F1F5F9" },
-  condHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, alignSelf: "flex-start", marginBottom: 10 },
-  condHeaderText: { fontSize: 12, fontWeight: "700", fontFamily: "Inter_700Bold" },
-  saveBtnFull: { borderRadius: 20, overflow: "hidden", marginTop: 16, shadowColor: "#059669", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-  saveBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, gap: 10 },
-  saveBtnText: { fontSize: 16, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  editHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+  },
+  editClose: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editHeaderTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+    textAlign: "center",
+  },
+  editSaveBtn: {
+    backgroundColor: "rgba(255,255,255,0.24)",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
+  },
+  editSaveBtnText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  editScroll: {
+    padding: 18,
+    gap: 4,
+    paddingBottom: 54,
+  },
+  editSection: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#64748B",
+    fontFamily: "Inter_800ExtraBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  fieldWrap: {
+    marginBottom: 15,
+    backgroundColor: "white",
+    borderRadius: 22,
+    padding: 14,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "rgba(226,232,240,0.8)",
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#334155",
+    fontFamily: "Inter_800ExtraBold",
+    marginBottom: 8,
+  },
+  fieldInput: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: "#0F172A",
+    fontFamily: "Inter_400Regular",
+    minHeight: 50,
+  },
+  selectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    minHeight: 50,
+  },
+  selectBtnText: {
+    fontSize: 14,
+    color: "#0F172A",
+    fontFamily: "Inter_400Regular",
+  },
+  selectOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.48)",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  selectList: {
+    backgroundColor: "white",
+    borderRadius: 24,
+    overflow: "hidden",
+    paddingBottom: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  selectListTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  selectItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8FAFC",
+  },
+  selectItemActive: {
+    backgroundColor: "#ECFDF5",
+  },
+  selectItemText: {
+    fontSize: 14,
+    color: "#334155",
+    fontFamily: "Inter_400Regular",
+  },
+  statusOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  statusOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    backgroundColor: "white",
+  },
+  statusOptionText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: "#64748B",
+  },
+  statusBanner: {
+    borderRadius: 16,
+    overflow: "hidden",
+    marginTop: 6,
+    marginBottom: 12,
+  },
+  statusBannerGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+  },
+  statusBannerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusBannerTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#064E3B",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  statusBannerSub: {
+    fontSize: 11,
+    color: "#064E3B",
+    opacity: 0.8,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  condBlock: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  condHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+    marginBottom: 10,
+  },
+  condHeaderText: {
+    fontSize: 12,
+    fontWeight: "800",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  saveBtnFull: {
+    borderRadius: 22,
+    overflow: "hidden",
+    marginTop: 16,
+    shadowColor: "#059669",
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  saveBtnGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 10,
+  },
+  saveBtnText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+  },
 
-  // Logout modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(15,23,42,0.48)", justifyContent: "center", paddingHorizontal: 32 },
-  modalCard: { backgroundColor: "white", borderRadius: 24, padding: 24, gap: 10, shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 20, elevation: 10 },
-  modalTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  modalSub: { fontSize: 13, color: "#64748B", fontFamily: "Inter_400Regular" },
-  modalBtns: { flexDirection: "row", gap: 10, marginTop: 8 },
-  modalCancel: { flex: 1, backgroundColor: "#F1F5F9", padding: 13, borderRadius: 12, alignItems: "center" },
-  modalCancelText: { fontSize: 14, fontWeight: "600", color: "#64748B", fontFamily: "Inter_600SemiBold" },
-  modalConfirm: { flex: 1, backgroundColor: "#FEE2E2", padding: 13, borderRadius: 12, alignItems: "center" },
-  modalConfirmText: { fontSize: 14, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_700Bold" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.48)",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  modalCard: {
+    backgroundColor: "white",
+    borderRadius: 26,
+    padding: 24,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  modalSub: {
+    fontSize: 13,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+  },
+  modalBtns: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  modalCancel: {
+    flex: 1,
+    backgroundColor: "#F1F5F9",
+    padding: 13,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#64748B",
+    fontFamily: "Inter_700Bold",
+  },
+  modalConfirm: {
+    flex: 1,
+    backgroundColor: "#FEE2E2",
+    padding: 13,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#DC2626",
+    fontFamily: "Inter_800ExtraBold",
+  },
 });
