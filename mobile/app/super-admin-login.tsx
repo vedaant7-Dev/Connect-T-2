@@ -16,7 +16,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import TopShade from "@/components/TopShade";
 import { API_BASE_URL } from "@/constants/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -60,10 +59,10 @@ export default function SuperAdminLoginScreen() {
   const [accessId, setAccessId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const isMainSuperAdmin = cleanMobile(mobile) === MAIN_SUPER_ADMIN_MOBILE;
+  const finalMobile = cleanMobile(mobile);
+  const isMainSuperAdmin = finalMobile === MAIN_SUPER_ADMIN_MOBILE;
 
   const handleLogin = async () => {
-    const finalMobile = cleanMobile(mobile);
     const finalAccessId = cleanAccessId(accessId);
 
     if (finalMobile.length !== 10) {
@@ -149,12 +148,13 @@ export default function SuperAdminLoginScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={["#052E16", "#166534", "#16A34A"]}
-        locations={[0, 0.52, 1]}
+        colors={["#020617", "#052E16", "#064E3B", "#047857"]}
+        locations={[0, 0.38, 0.72, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      <TopShade height={220} />
+      <View style={styles.glowTop} />
+      <View style={styles.glowBottom} />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -165,100 +165,174 @@ export default function SuperAdminLoginScreen() {
           contentContainerStyle={[
             styles.content,
             {
-              paddingTop: insets.top + 16,
-              paddingBottom: insets.bottom + 32,
+              paddingTop: insets.top + 14,
+              paddingBottom: insets.bottom + 30,
             },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
+          <View style={styles.topBar}>
             <TouchableOpacity
               style={styles.backBtn}
               onPress={() => router.replace("/secret-access" as any)}
               activeOpacity={0.85}
             >
-              <Feather name="chevron-left" size={22} color="#16A34A" />
+              <Feather name="chevron-left" size={22} color="#ECFDF5" />
             </TouchableOpacity>
 
             <View style={styles.secureBadge}>
-              <Feather name="shield" size={11} color="#6EE7B7" />
-              <Text style={styles.secureBadgeText}>Secure Login</Text>
+              <View style={styles.liveDot} />
+              <Text style={styles.secureBadgeText}>ADMIN ACCESS</Text>
             </View>
           </View>
 
           <View style={styles.hero}>
-            <View style={styles.heroIcon}>
-              <Feather name="user-check" size={34} color="#16A34A" />
+            <View style={styles.adminMarkOuter}>
+              <View style={styles.adminMark}>
+                <Feather name="shield" size={34} color="#047857" />
+              </View>
             </View>
 
+            <Text style={styles.kicker}>Connect T Control Center</Text>
             <Text style={styles.title}>Super Admin Login</Text>
             <Text style={styles.subtitle}>
-              Main access is restricted to Tejashree Ma'am. Additional admins
-              require a unique ID.
+              Protected dashboard for city-wide access, officer control,
+              alerts, jobs and civic operations.
             </Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.label}>Mobile Number</Text>
-            <TextInput
-              value={mobile}
-              onChangeText={(value) => setMobile(cleanMobile(value))}
-              placeholder="Enter 10 digit mobile number"
-              placeholderTextColor="#94A3B8"
-              keyboardType="number-pad"
-              maxLength={10}
-              style={styles.input}
-            />
+          <View style={styles.securityPanel}>
+            <View style={styles.panelHeader}>
+              <View>
+                <Text style={styles.panelTitle}>Identity Verification</Text>
+                <Text style={styles.panelSub}>
+                  Enter authorized mobile number to continue.
+                </Text>
+              </View>
+              <View style={styles.panelIcon}>
+                <Feather name="lock" size={18} color="#047857" />
+              </View>
+            </View>
 
-            {!isMainSuperAdmin && (
-              <>
-                <Text style={styles.label}>Unique Access ID</Text>
+            <View style={styles.inputBlock}>
+              <Text style={styles.label}>Authorized Mobile Number</Text>
+              <View style={styles.inputShell}>
+                <View style={styles.inputPrefix}>
+                  <Text style={styles.inputPrefixText}>+91</Text>
+                </View>
                 <TextInput
-                  value={accessId}
-                  onChangeText={(value) => setAccessId(cleanAccessId(value))}
-                  placeholder="Example: SA-ABC123"
+                  value={mobile}
+                  onChangeText={(value) => setMobile(cleanMobile(value))}
+                  placeholder="8554994735"
                   placeholderTextColor="#94A3B8"
-                  autoCapitalize="characters"
+                  keyboardType="number-pad"
+                  maxLength={10}
                   style={styles.input}
                 />
-              </>
+                {finalMobile.length === 10 && (
+                  <Feather
+                    name={isMainSuperAdmin ? "check-circle" : "key"}
+                    size={18}
+                    color={isMainSuperAdmin ? "#059669" : "#D97706"}
+                  />
+                )}
+              </View>
+            </View>
+
+            {!isMainSuperAdmin && (
+              <View style={styles.inputBlock}>
+                <Text style={styles.label}>Unique Access ID</Text>
+                <View style={styles.inputShell}>
+                  <View style={styles.inputPrefix}>
+                    <Feather name="key" size={14} color="#64748B" />
+                  </View>
+                  <TextInput
+                    value={accessId}
+                    onChangeText={(value) => setAccessId(cleanAccessId(value))}
+                    placeholder="Example: SA-ABC123"
+                    placeholderTextColor="#94A3B8"
+                    autoCapitalize="characters"
+                    style={styles.input}
+                  />
+                </View>
+              </View>
             )}
 
-            {isMainSuperAdmin ? (
-              <View style={styles.infoBox}>
-                <Feather name="check-circle" size={16} color="#16A34A" />
-                <Text style={styles.infoText}>
-                  Main super admin number detected.
+            <View
+              style={[
+                styles.statusBox,
+                isMainSuperAdmin ? styles.statusBoxSuccess : styles.statusBoxNeutral,
+              ]}
+            >
+              <View
+                style={[
+                  styles.statusIcon,
+                  isMainSuperAdmin
+                    ? { backgroundColor: "#D1FAE5" }
+                    : { backgroundColor: "#FEF3C7" },
+                ]}
+              >
+                <Feather
+                  name={isMainSuperAdmin ? "user-check" : "key"}
+                  size={16}
+                  color={isMainSuperAdmin ? "#059669" : "#D97706"}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.statusTitle}>
+                  {isMainSuperAdmin
+                    ? "Main Super Admin detected"
+                    : "Access code required"}
+                </Text>
+                <Text style={styles.statusText}>
+                  {isMainSuperAdmin
+                    ? "This number is allowed to open the full Super Admin dashboard."
+                    : "Only users with a unique ID generated by the main super admin can continue."}
                 </Text>
               </View>
-            ) : (
-              <View style={styles.infoBox}>
-                <Feather name="key" size={16} color="#16A34A" />
-                <Text style={styles.infoText}>
-                  Enter the unique ID generated from Super Admin Settings.
-                </Text>
-              </View>
-            )}
+            </View>
 
             <TouchableOpacity
               style={[styles.primaryBtn, submitting && styles.disabledBtn]}
               onPress={handleLogin}
               disabled={submitting}
-              activeOpacity={0.86}
+              activeOpacity={0.88}
             >
-              {submitting ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <>
-                  <Feather name="log-in" size={17} color="white" />
-                  <Text style={styles.primaryBtnText}>Open Dashboard</Text>
-                </>
-              )}
+              <LinearGradient
+                colors={
+                  submitting
+                    ? ["#94A3B8", "#64748B"]
+                    : ["#047857", "#059669", "#10B981"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.primaryGradient}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <Feather name="log-in" size={17} color="white" />
+                    <Text style={styles.primaryBtnText}>Open Super Admin Dashboard</Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.footer}>CONNECT T SUPER ADMIN ACCESS</Text>
+          <View style={styles.rulesCard}>
+            <View style={styles.rulesHeader}>
+              <Feather name="alert-triangle" size={15} color="#FDE68A" />
+              <Text style={styles.rulesTitle}>Restricted Area</Text>
+            </View>
+            <Text style={styles.rulesText}>
+              This login is not for citizens or officers. Unauthorized access
+              attempts should be denied by backend verification.
+            </Text>
+          </View>
+
+          <Text style={styles.footer}>CONNECT T · SECURE ADMIN PORTAL</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -271,13 +345,31 @@ const styles = StyleSheet.create({
   },
   root: {
     flex: 1,
-    backgroundColor: "#16A34A",
+    backgroundColor: "#020617",
+  },
+  glowTop: {
+    position: "absolute",
+    top: -80,
+    right: -60,
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+    backgroundColor: "rgba(16,185,129,0.18)",
+  },
+  glowBottom: {
+    position: "absolute",
+    bottom: 50,
+    left: -90,
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    backgroundColor: "rgba(34,197,94,0.12)",
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 22,
+    paddingHorizontal: 20,
   },
-  header: {
+  topBar: {
     minHeight: 46,
     flexDirection: "row",
     alignItems: "center",
@@ -287,129 +379,267 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "white",
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
   secureBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.10)",
     borderRadius: 999,
     paddingHorizontal: 13,
     paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#6EE7B7",
   },
   secureBadgeText: {
-    fontSize: 11,
-    color: "white",
-    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#ECFDF5",
+    fontFamily: "Inter_800ExtraBold",
+    letterSpacing: 1,
   },
   hero: {
     alignItems: "center",
-    paddingTop: 52,
-    paddingBottom: 28,
+    paddingTop: 45,
+    paddingBottom: 24,
   },
-  heroIcon: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
+  adminMarkOuter: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    marginBottom: 18,
+  },
+  adminMark: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: "white",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 18,
     shadowColor: "#000",
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  title: {
-    fontSize: 29,
-    color: "white",
-    fontFamily: "Inter_700Bold",
-    fontWeight: "900",
-    letterSpacing: -0.5,
-    textAlign: "center",
-  },
-  subtitle: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "rgba(255,255,255,0.78)",
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    paddingHorizontal: 10,
-  },
-  card: {
-    backgroundColor: "white",
-    borderRadius: 24,
-    padding: 18,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.14,
+    shadowOpacity: 0.24,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 10,
   },
+  kicker: {
+    fontSize: 11,
+    color: "#A7F3D0",
+    fontFamily: "Inter_800ExtraBold",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 7,
+  },
+  title: {
+    fontSize: 30,
+    color: "white",
+    fontFamily: "Inter_800ExtraBold",
+    fontWeight: "900",
+    letterSpacing: -0.7,
+    textAlign: "center",
+  },
+  subtitle: {
+    marginTop: 9,
+    fontSize: 13,
+    lineHeight: 20,
+    color: "rgba(236,253,245,0.74)",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    paddingHorizontal: 6,
+  },
+  securityPanel: {
+    backgroundColor: "white",
+    borderRadius: 30,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
+  },
+  panelHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 18,
+  },
+  panelTitle: {
+    fontSize: 20,
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+    fontWeight: "900",
+    letterSpacing: -0.35,
+  },
+  panelSub: {
+    marginTop: 3,
+    fontSize: 12,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+  },
+  panelIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inputBlock: {
+    marginBottom: 14,
+  },
   label: {
     fontSize: 12,
-    color: "#475569",
-    fontFamily: "Inter_700Bold",
-    marginBottom: 7,
-    marginTop: 10,
+    color: "#334155",
+    fontFamily: "Inter_800ExtraBold",
+    marginBottom: 8,
   },
-  input: {
-    height: 50,
-    borderRadius: 17,
+  inputShell: {
+    minHeight: 54,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#F8FAFC",
-    paddingHorizontal: 14,
-    fontSize: 14,
-    color: "#0F172A",
-    fontFamily: "Inter_500Medium",
-  },
-  infoBox: {
-    marginTop: 14,
-    borderRadius: 16,
-    backgroundColor: "#F0FDF4",
-    padding: 12,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 9,
+    gap: 10,
   },
-  infoText: {
+  inputPrefix: {
+    minWidth: 36,
+    height: 30,
+    borderRadius: 12,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  inputPrefixText: {
+    fontSize: 12,
+    color: "#475569",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  input: {
     flex: 1,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "#166534",
+    fontSize: 15,
+    color: "#0F172A",
     fontFamily: "Inter_600SemiBold",
+    paddingVertical: 0,
+  },
+  statusBox: {
+    marginTop: 2,
+    borderRadius: 20,
+    padding: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    borderWidth: 1,
+  },
+  statusBoxSuccess: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#A7F3D0",
+  },
+  statusBoxNeutral: {
+    backgroundColor: "#FFFBEB",
+    borderColor: "#FDE68A",
+  },
+  statusIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusTitle: {
+    fontSize: 13,
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+    fontWeight: "900",
+  },
+  statusText: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+    lineHeight: 16,
   },
   primaryBtn: {
-    height: 52,
-    borderRadius: 18,
-    backgroundColor: "#16A34A",
+    marginTop: 18,
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#047857",
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  disabledBtn: {
+    opacity: 0.72,
+  },
+  primaryGradient: {
+    minHeight: 54,
+    borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 9,
-    marginTop: 18,
-  },
-  disabledBtn: {
-    opacity: 0.65,
+    paddingHorizontal: 16,
   },
   primaryBtnText: {
     color: "white",
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+    fontFamily: "Inter_800ExtraBold",
+    fontWeight: "900",
+  },
+  rulesCard: {
+    marginTop: 16,
+    borderRadius: 22,
+    padding: 15,
+    backgroundColor: "rgba(15,23,42,0.36)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  rulesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 7,
+  },
+  rulesTitle: {
+    fontSize: 12,
+    color: "#FEF3C7",
+    fontFamily: "Inter_800ExtraBold",
+    letterSpacing: 0.4,
+  },
+  rulesText: {
+    fontSize: 11,
+    lineHeight: 17,
+    color: "rgba(236,253,245,0.68)",
+    fontFamily: "Inter_400Regular",
   },
   footer: {
     marginTop: "auto",
     paddingTop: 28,
     textAlign: "center",
     fontSize: 10,
-    color: "rgba(255,255,255,0.4)",
-    fontFamily: "Inter_400Regular",
+    color: "rgba(236,253,245,0.42)",
+    fontFamily: "Inter_600SemiBold",
     letterSpacing: 2,
   },
 });
