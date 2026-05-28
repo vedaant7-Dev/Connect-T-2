@@ -54,10 +54,9 @@ const StatCard = memo(function StatCard({
 }: {
   icon: string; label: string; value: string | number; color: string; bg: string; onPress?: () => void;
 }) {
-  const cw = (width - 48) / 4;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.72 : 1}
-      style={{ width: cw, backgroundColor: "white", borderRadius: 14, padding: 10, margin: 4, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, alignItems: "center" }}
+      style={{ flex: 1, backgroundColor: "white", borderRadius: 14, padding: 10, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, alignItems: "center" }}
     >
       <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: bg, alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
         <Feather name={icon as any} size={15} color={color} />
@@ -313,15 +312,19 @@ export default function SuperAdminDashboard() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         <SectionHeader title="Complaint Control Center" sub="Tap any card to view full data" />
-        <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 }}>
-          <StatCard icon="file-text" label="Total Complaints" value={stats.total} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("total", "All Complaints", `${stats.total} complaints`)} />
-          <StatCard icon="clock" label="Pending" value={stats.pending} color="#D97706" bg="#FEF3C7" onPress={() => openModal("pending", "Pending Complaints", `${stats.pending} awaiting action`)} />
-          <StatCard icon="tool" label="In Progress" value={stats.inProgress} color="#7C3AED" bg="#EDE9FE" onPress={() => openModal("inProgress", "In Progress", `${stats.inProgress} active`)} />
-          <StatCard icon="check-circle" label="Resolved" value={stats.resolved} color="#059669" bg="#D1FAE5" onPress={() => openModal("resolved", "Resolved", `${stats.resolved} completed`)} />
-          <StatCard icon="x-circle" label="Rejected" value={stats.rejected} color="#DC2626" bg="#FEE2E2" onPress={() => openModal("rejected", "Rejected", `${stats.rejected} rejected`)} />
-          <StatCard icon="percent" label="Resolution %" value={`${stats.resolutionRate}%`} color="#0EA5E9" bg="#E0F2FE" onPress={() => openModal("resolution", "Resolution Rate", "Ward-wise analytics")} />
-          <StatCard icon="users" label="Officers" value={stats.totalOfficers} color="#8B5CF6" bg="#EDE9FE" onPress={() => openModal("officers", "Ward Officers", `${stats.totalOfficers} officers`)} />
-          <StatCard icon="map-pin" label="Wards Active" value={stats.totalWards} color="#16A34A" bg="#DCFCE7" onPress={() => openModal("wards", "Ward Breakdown", "All wards overview")} />
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <StatCard icon="file-text" label="Total Complaints" value={stats.total} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("total", "All Complaints", `${stats.total} complaints`)} />
+            <StatCard icon="clock" label="Pending" value={stats.pending} color="#D97706" bg="#FEF3C7" onPress={() => openModal("pending", "Pending Complaints", `${stats.pending} awaiting action`)} />
+            <StatCard icon="tool" label="In Progress" value={stats.inProgress} color="#7C3AED" bg="#EDE9FE" onPress={() => openModal("inProgress", "In Progress", `${stats.inProgress} active`)} />
+            <StatCard icon="check-circle" label="Resolved" value={stats.resolved} color="#059669" bg="#D1FAE5" onPress={() => openModal("resolved", "Resolved", `${stats.resolved} completed`)} />
+          </View>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <StatCard icon="x-circle" label="Rejected" value={stats.rejected} color="#DC2626" bg="#FEE2E2" onPress={() => openModal("rejected", "Rejected", `${stats.rejected} rejected`)} />
+            <StatCard icon="percent" label="Resolution %" value={`${stats.resolutionRate}%`} color="#0EA5E9" bg="#E0F2FE" onPress={() => openModal("resolution", "Resolution Rate", "Ward-wise analytics")} />
+            <StatCard icon="users" label="Officers" value={stats.totalOfficers} color="#8B5CF6" bg="#EDE9FE" onPress={() => openModal("officers", "Ward Officers", `${stats.totalOfficers} officers`)} />
+            <StatCard icon="map-pin" label="Wards Active" value={stats.totalWards} color="#16A34A" bg="#DCFCE7" onPress={() => openModal("wards", "Ward Breakdown", "All wards overview")} />
+          </View>
         </View>
 
         <View style={{ marginTop: 16 }}>
