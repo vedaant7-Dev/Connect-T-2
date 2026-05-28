@@ -10,19 +10,35 @@ workflows:
       vars:
         EXPO_PUBLIC_API_URL: "https://connect-t-2.onrender.com"
 
-    cache:
-      cache_paths:
-        - ~/.gradle/caches
-        - ~/.gradle/wrapper
-        - mobile/node_modules
-
     scripts:
+      - name: Show exact source commit
+        script: |
+          pwd
+          git branch --show-current || true
+          git rev-parse HEAD
+          git log --oneline -8
+
+      - name: Verify latest UI source is present
+        script: |
+          grep -R "Hiring Overview" -n "mobile/app/jobs/(tabs)/index.tsx"
+          grep -R "Find trusted local work" -n "mobile/app/jobs/(tabs)/index.tsx"
+          grep -R "Connect T Control Center" -n mobile/app/super-admin-login.tsx
+          grep -R "Open Super Admin Dashboard" -n mobile/app/super-admin-login.tsx
+
+      - name: Clean old build outputs
+        script: |
+          rm -rf mobile/node_modules
+          rm -rf mobile/android/app/build
+          rm -rf mobile/android/build
+          rm -rf mobile/android/.gradle
+          rm -rf ~/.gradle/caches ~/.gradle/daemon ~/.gradle/native
+
       - name: Install Node dependencies
         script: |
           cd mobile
           npm ci || npm install
 
-      - name: Check Android SDK
+      - name: Install Android SDK packages
         script: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
@@ -43,6 +59,16 @@ workflows:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
           cat local.properties
 
+      - name: Verify Gradle ABI split config
+        script: |
+          grep -n "splits\|abi\|universalApk\|abiFilters" mobile/android/app/build.gradle || true
+          grep -q "universalApk false" mobile/android/app/build.gradle
+          grep -q 'include "arm64-v8a"' mobile/android/app/build.gradle
+          if grep -q "abiFilters" mobile/android/app/build.gradle; then
+            echo "ERROR: abiFilters exists. Remove it."
+            exit 1
+          fi
+
       - name: TypeScript check
         script: |
           npx tsc --noEmit -p mobile/tsconfig.json
@@ -53,12 +79,39 @@ workflows:
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
 
+      - name: Inspect APK ABI and size
+        script: |
+          cd mobile
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+
+          apks = sorted(Path("android/app/build/outputs/apk").rglob("*.apk"))
+          if not apks:
+              raise SystemExit("No APK generated")
+
+          for apk in apks:
+              abis = set()
+              with zipfile.ZipFile(apk) as z:
+                  for name in z.namelist():
+                      if name.startswith("lib/") and name.endswith(".so"):
+                          abis.add(name.split("/")[1])
+
+              size_mb = apk.stat().st_size / 1024 / 1024
+              print(apk)
+              print("size_mb:", round(size_mb, 2))
+              print("abis:", sorted(abis))
+
+              if "x86" in abis or "x86_64" in abis or "armeabi-v7a" in abis:
+                  raise SystemExit("ERROR: universal/wrong ABI APK detected")
+          PY
+
       - name: Build release AAB
         script: |
           cd mobile/android
           ./gradlew :app:bundleRelease --no-daemon --max-workers=2 --stacktrace
 
-      - name: List build outputs
+      - name: List final outputs
         script: |
           echo "=== APK ==="
           find mobile/android/app/build/outputs/apk -type f -name "*.apk" -printf "%s %p\n" | sort -nr || true
