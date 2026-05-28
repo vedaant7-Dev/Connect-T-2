@@ -426,7 +426,7 @@ export default function ProfileScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>WARD</Text>
               <TouchableOpacity
-                style={[styles.fieldInput, { justifyContent: "center", flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, user.wardChanged && { backgroundColor: "#F1F5F9", borderColor: "#E2E8F0" }]}
+                style={[styles.fieldInput, { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, user.wardChanged && { backgroundColor: "#F1F5F9", borderColor: "#E2E8F0" }]}
                 onPress={() => { if (!user.wardChanged) setShowWardPicker(true); }}
                 activeOpacity={user.wardChanged ? 1 : 0.8}
                 disabled={!!user.wardChanged}

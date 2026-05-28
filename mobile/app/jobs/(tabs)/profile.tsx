@@ -812,9 +812,6 @@ const cs = StyleSheet.create({
   resumeCardGrad: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
   resumeCardTitle: { fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
   resumeCardSub: { fontSize: 11, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", marginTop: 2 },
-
-  switchBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "white", padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: "#FED7AA" },
-  switchBtnText: { fontSize: 14, fontWeight: "600", color: "#EA580C", fontFamily: "Inter_600SemiBold" },
   logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#FEF2F2", padding: 14, borderRadius: 14 },
   logoutBtnText: { fontSize: 14, fontWeight: "600", color: "#DC2626", fontFamily: "Inter_600SemiBold" },
 

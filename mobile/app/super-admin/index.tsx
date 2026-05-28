@@ -286,7 +286,7 @@ export default function SuperAdminDashboard() {
             <Text style={{ fontSize: 20, fontFamily: "Inter_700Bold", color: "white" }}>Tejashree's Dashboard</Text>
             <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.65)", marginTop: 2 }}>All Wards · AMC Ambernath · Live</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/super-admin/settings")}
+          <TouchableOpacity onPress={() => router.push("/super-admin/settings" as any)}
             style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" }}
             activeOpacity={0.8}
           >

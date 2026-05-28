@@ -260,7 +260,7 @@ export default function JobsAdminScreen() {
               {jobs.length} total posts · {stats.totalEmployers} employers
             </Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/super-admin/settings")}
+          <TouchableOpacity onPress={() => router.push("/super-admin/settings" as any)}
             style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" }}
             activeOpacity={0.8}
           >

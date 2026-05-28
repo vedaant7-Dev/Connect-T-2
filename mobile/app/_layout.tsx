@@ -43,7 +43,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const inTabs = segments[0] === "(tabs)";
     const inJobs = segments[0] === "jobs";
     const inPortalSelect = segments[0] === "portal-select";
-    const inSuperAdmin = segments[0] === "super-admin";
+    const inSuperAdmin = String(segments[0]) === "super-admin";
     const currentTab = inTabs ? segments[1] : undefined;
 
     if (inJobs) return;
@@ -58,7 +58,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       } else if (user.role === "nagarsevak") {
         router.replace("/(tabs)/admin" as any);
       } else {
-        router.replace("/(tabs)/");
+        router.replace("/(tabs)" as any);
       }
     } else if (user && isSuperAdminUser(user) && !inSuperAdmin) {
       router.replace("/super-admin" as any);
@@ -82,20 +82,20 @@ function AppShell({ children }: { children: React.ReactNode }) {
       } else if (user.role === "nagarsevak") {
         staticRouter.replace("/(tabs)/admin" as any);
       } else {
-        staticRouter.replace("/(tabs)/");
+        staticRouter.replace("/(tabs)" as any);
       }
     }
   }, [user, loading]);
 
   const handleFinish = async (portal: SplashPortal) => {
     setSplashDone(true);
-    if (portal === "super_admin") {
+    if ((portal as string) === "super_admin") {
       if (user && isSuperAdminUser(user)) {
         staticRouter.replace("/super-admin" as any);
       } else {
         staticRouter.replace("/super-admin-login" as any);
       }
-    } else if (portal === "nagarsevak") {
+    } else if ((portal as string) === "nagarsevak") {
       if (user && user.role === "nagarsevak" && !isSuperAdminUser(user)) {
         staticRouter.replace("/(tabs)/admin" as any);
       } else if (user && isSuperAdminUser(user)) {
@@ -110,7 +110,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         } else if (user.role === "nagarsevak") {
           staticRouter.replace("/(tabs)/admin" as any);
         } else {
-          staticRouter.replace("/(tabs)/");
+          staticRouter.replace("/(tabs)" as any);
         }
       } else {
         staticRouter.replace("/login");
@@ -170,7 +170,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <StatusBar style="light" />
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>
