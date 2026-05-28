@@ -90,7 +90,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const handleFinish = async (portal: SplashPortal) => {
     setSplashDone(true);
     if (portal === "super_admin") {
-      staticRouter.replace("/super-admin" as any);
+      if (user && isSuperAdminUser(user)) {
+        staticRouter.replace("/super-admin" as any);
+      } else {
+        staticRouter.replace("/super-admin-login" as any);
+      }
     } else if (portal === "nagarsevak") {
       if (user && user.role === "nagarsevak" && !isSuperAdminUser(user)) {
         staticRouter.replace("/(tabs)/admin" as any);
@@ -128,6 +132,7 @@ function RootLayoutNav() {
       <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="portal-select" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="super-admin-login" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="super-admin" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="jobs" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="nagarsevak" options={{ headerShown: false, animation: "fade" }} />

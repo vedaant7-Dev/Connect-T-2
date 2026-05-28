@@ -8,7 +8,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { NAGARSEVAK_WARDS } from "@/data/wards";
-import { apiUrl } from "@/constants/api";
+import { getApiUrl } from "@/utils/apiUrl";
 
 type Step = "form" | "otp" | "success";
 
@@ -58,7 +58,7 @@ export default function NagarsevakRegisterScreen() {
   const checkWardAvailability = async (selectedWard: string) => {
     setCheckingWard(true);
     try {
-      const res = await fetch(apiUrl(`/api/auth/ward-check?ward=${encodeURIComponent(selectedWard)}`));
+      const res = await fetch(getApiUrl(`/api/auth/ward-check?ward=${encodeURIComponent(selectedWard)}`));
       const data = await res.json();
       setWardAvailable(data.available ?? false);
     } catch {
@@ -79,11 +79,6 @@ export default function NagarsevakRegisterScreen() {
     w.toLowerCase().includes(wardSearch.toLowerCase())
   );
 
-  const extractWardCode = (value: string) => {
-    const match = value.toUpperCase().match(/(\d{1,2})\s*([ABC])/);
-    return match ? `${Number(match[1])}${match[2]}` : value;
-  };
-
   const sendOtp = async () => {
     setError("");
     if (!name.trim() || name.trim().length < 2) { setError("Enter your full name (min 2 chars)"); return; }
@@ -98,15 +93,15 @@ export default function NagarsevakRegisterScreen() {
 
     setOtpSending(true);
     try {
-      const res = await fetch(apiUrl("/api/auth/send-otp"), {
+      const res = await fetch(getApiUrl("/api/send-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: cleaned, purpose: "nagarsevak_auth" }),
+        body: JSON.stringify({ phone: cleaned }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? "Failed to send OTP");
       setMobile(cleaned);
-      setSessionToken(data.sessionToken || data.devOtp || "1234");
+      setSessionToken(data.sessionToken);
       setStep("otp");
       startCountdown();
     } catch (e: any) {
@@ -118,25 +113,25 @@ export default function NagarsevakRegisterScreen() {
 
   const verifyAndRegister = async () => {
     const otp = otpDigits.join("");
-    if (otp.length < 4) { setError("Enter OTP code"); return; }
+    if (otp.length !== 6) { setError("Enter all 6 OTP digits"); return; }
     setLoading(true); setError("");
     try {
-      const verRes = await fetch(apiUrl("/api/auth/verify-otp"), {
+      const verRes = await fetch(getApiUrl("/api/verify-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: mobile.trim().replace(/\D/g, ""), otp: otp.slice(0, 4), sessionToken }),
+        body: JSON.stringify({ otp, sessionToken }),
       });
       const verData = await verRes.json();
-      if (!verData.success && !verData.valid) throw new Error(verData.error || verData.message || "Invalid OTP");
+      if (!verData.valid) throw new Error(verData.error ?? "Invalid OTP");
 
-      const regRes = await fetch(apiUrl("/api/auth/nagarsevak-register"), {
+      const regRes = await fetch(getApiUrl("/api/auth/nagarsevak-register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
           mobile,
           ward,
-          wardCode: extractWardCode(ward),
+          wardCode: ward,
           address,
           officeAddress,
           contactNumber: contactNumber.trim().replace(/\D/g, ""),
@@ -189,19 +184,10 @@ export default function NagarsevakRegisterScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 12}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingBottom: Math.max(insets.bottom, 12) + 150 },
-          ]}
+          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
@@ -411,7 +397,7 @@ export default function NagarsevakRegisterScreen() {
                     <Text style={styles.successDetailText}>+91 {mobile}</Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.doneBtn} onPress={() => router.replace("/secret-access" as any)} activeOpacity={0.85}>
+                <TouchableOpacity style={styles.doneBtn} onPress={() => router.replace("/" as any)} activeOpacity={0.85}>
                   <LinearGradient colors={["#059669", "#10B981"]} style={styles.btnGrad}>
                     <Feather name="home" size={17} color="white" />
                     <Text style={styles.btnText}>Back to Home</Text>
@@ -485,15 +471,15 @@ const styles = StyleSheet.create({
   backBtn: { padding: 8 },
   topBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   topBadgeText: { fontSize: 12, color: "white", fontFamily: "Inter_600SemiBold" },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 8 },
-  card: { backgroundColor: "white", borderRadius: 24, padding: 22, marginBottom: 28, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+  scroll: { padding: 20, paddingTop: 8 },
+  card: { backgroundColor: "white", borderRadius: 24, padding: 24, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
   cardHeader: { alignItems: "center", marginBottom: 24 },
   headerIcon: { width: 64, height: 64, borderRadius: 20, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center", marginBottom: 12 },
   cardTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 6, textAlign: "center" },
   cardSub: { fontSize: 12, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
   errorText: { backgroundColor: "#FEE2E2", color: "#991B1B", fontSize: 12, fontFamily: "Inter_400Regular", padding: 10, borderRadius: 10, marginBottom: 14, textAlign: "center" },
   input: { borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular" },
-  textarea: { minHeight: 84, textAlignVertical: "top", paddingTop: 12 },
+  textarea: { minHeight: 72, textAlignVertical: "top" },
   phoneRow: { flexDirection: "row", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, overflow: "hidden" },
   countryCode: { backgroundColor: "#F8FAFC", paddingHorizontal: 14, justifyContent: "center", borderRightWidth: 1, borderRightColor: "#E2E8F0" },
   countryCodeText: { fontSize: 15, fontWeight: "600", color: "#475569", fontFamily: "Inter_600SemiBold" },
