@@ -39,7 +39,6 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-image",
       "expo-status-bar",
       "expo-build-properties",
       "./plugins/withAndroidAbiSplits"
@@ -56,13 +55,6 @@
         "projectId": "1dbe66ec-03ef-4507-b632-399a0d1e1bfd"
       }
     },
-    "updates": {
-      "url": "https://u.expo.dev/1dbe66ec-03ef-4507-b632-399a0d1e1bfd",
-      "checkAutomatically": "ON_LOAD"
-    },
-    "owner": "vedantt7",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    }
+    "owner": "vedantt7"
   }
 }

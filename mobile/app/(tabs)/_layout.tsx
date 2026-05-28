@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import React from "react";
 import { Platform, StyleSheet, View, Text, useColorScheme, TouchableOpacity } from "react-native";
 import Animated from "react-native-reanimated";
@@ -37,7 +36,7 @@ function AnimatedTabBar(props: any) {
     >
       <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflow: "hidden", borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
         {isIOS ? (
-          <BlurView intensity={100} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+          <View style={StyleSheet.absoluteFill} />
         ) : (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: "#FFFFFF" }]} />
         )}
