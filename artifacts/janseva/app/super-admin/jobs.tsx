@@ -49,10 +49,9 @@ const StatCard = memo(function StatCard({
 }: {
   icon: string; label: string; value: string | number; color: string; bg: string; onPress?: () => void;
 }) {
-  const cw = (width - 48) / 4;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.72 : 1}
-      style={{ width: cw, backgroundColor: "white", borderRadius: 14, padding: 10, margin: 4, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, alignItems: "center" }}
+      style={{ flex: 1, backgroundColor: "white", borderRadius: 14, padding: 10, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, alignItems: "center" }}
     >
       <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: bg, alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
         <Feather name={icon as any} size={15} color={color} />
@@ -300,15 +299,19 @@ export default function JobsAdminScreen() {
         {activeTab === "overview" && (
           <>
             <SectionHeader title="Job Portal Overview" sub="Tap any card to view full data" />
-            <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 }}>
-              <StatCard icon="briefcase" label="Total Job Posts" value={jobs.length} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("totalJobs", "All Job Posts", `${jobs.length} total`)} />
-              <StatCard icon="check-circle" label="Active Jobs" value={stats.activeJobs.length} color="#059669" bg="#D1FAE5" onPress={() => openModal("activeJobs", "Active Jobs", `${stats.activeJobs.length} currently active`)} />
-              <StatCard icon="x-circle" label="Expired/Paused" value={stats.expiredJobs.length} color="#DC2626" bg="#FEE2E2" onPress={() => openModal("expiredJobs", "Expired / Paused", `${stats.expiredJobs.length} inactive`)} />
-              <StatCard icon="users" label="Total Employers" value={stats.totalEmployers} color="#D97706" bg="#FEF3C7" onPress={() => openModal("employers", "Employers", `${stats.totalEmployers} employers`)} />
-              <StatCard icon="user" label="Job Seekers" value={stats.totalSeekers} color="#7C3AED" bg="#EDE9FE" onPress={() => openModal("seekers", "Job Seekers", `${stats.totalSeekers} unique applicants`)} />
-              <StatCard icon="send" label="Applications" value={stats.totalApplications} color="#0EA5E9" bg="#E0F2FE" onPress={() => openModal("applications", "Applications", `${stats.totalApplications} total applications`)} />
-              <StatCard icon="award" label="People Hired" value={stats.totalHired} color="#059669" bg="#D1FAE5" onPress={() => openModal("hired", "People Hired", `${stats.totalHired} successfully hired`)} />
-              <StatCard icon="percent" label="Placement Rate" value={`${stats.placementRate}%`} color="#D97706" bg="#FEF3C7" onPress={() => openModal("placement", "Placement Rate", "Job placement analytics")} />
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <StatCard icon="briefcase" label="Total Job Posts" value={jobs.length} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("totalJobs", "All Job Posts", `${jobs.length} total`)} />
+                <StatCard icon="check-circle" label="Active Jobs" value={stats.activeJobs.length} color="#059669" bg="#D1FAE5" onPress={() => openModal("activeJobs", "Active Jobs", `${stats.activeJobs.length} currently active`)} />
+                <StatCard icon="x-circle" label="Expired/Paused" value={stats.expiredJobs.length} color="#DC2626" bg="#FEE2E2" onPress={() => openModal("expiredJobs", "Expired / Paused", `${stats.expiredJobs.length} inactive`)} />
+                <StatCard icon="users" label="Total Employers" value={stats.totalEmployers} color="#D97706" bg="#FEF3C7" onPress={() => openModal("employers", "Employers", `${stats.totalEmployers} employers`)} />
+              </View>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <StatCard icon="user" label="Job Seekers" value={stats.totalSeekers} color="#7C3AED" bg="#EDE9FE" onPress={() => openModal("seekers", "Job Seekers", `${stats.totalSeekers} unique applicants`)} />
+                <StatCard icon="send" label="Applications" value={stats.totalApplications} color="#0EA5E9" bg="#E0F2FE" onPress={() => openModal("applications", "Applications", `${stats.totalApplications} total applications`)} />
+                <StatCard icon="award" label="People Hired" value={stats.totalHired} color="#059669" bg="#D1FAE5" onPress={() => openModal("hired", "People Hired", `${stats.totalHired} successfully hired`)} />
+                <StatCard icon="percent" label="Placement Rate" value={`${stats.placementRate}%`} color="#D97706" bg="#FEF3C7" onPress={() => openModal("placement", "Placement Rate", "Job placement analytics")} />
+              </View>
             </View>
 
             <View style={{ marginTop: 16 }}>

@@ -60,7 +60,7 @@ export default function LoginScreen() {
         .then((r) => r.json())
         .then(async (userInfo) => {
           await loginWithGoogle(userInfo);
-          router.replace("/portal-select" as any);
+          router.replace("/(tabs)/" as any);
         })
         .catch(() => {
           setError("Google sign-in failed. Please try again.");
@@ -256,7 +256,7 @@ export default function LoginScreen() {
         useNativeDriver: true,
       }).start();
       setTimeout(() => {
-        router.replace("/portal-select" as any);
+        router.replace("/(tabs)/" as any);
       }, 1200);
     } catch (e: any) {
       setError(e.message ?? t("registrationFailed"));
@@ -298,7 +298,7 @@ export default function LoginScreen() {
       const phone = loginPhone.trim().replace(/\D/g, "");
       const user = await loginWithPhone(phone);
       if (user) {
-        router.replace(user.role === "nagarsevak" ? "/(tabs)/admin" as any : "/portal-select" as any);
+        router.replace(user.role === "nagarsevak" ? "/(tabs)/admin" as any : "/(tabs)/" as any);
       } else {
         setError(t("accountNotFound"));
         setLoginStep("form");
@@ -717,7 +717,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={s.backPill}
-            onPress={() => router.replace("/portal-select" as any)}
+            onPress={() => router.replace("/(tabs)/" as any)}
             activeOpacity={0.8}
           >
             <Feather name="arrow-left" size={14} color="#EA580C" />

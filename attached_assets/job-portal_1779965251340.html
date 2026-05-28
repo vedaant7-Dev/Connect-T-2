@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobConnect – MIDC Job Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --orange: #F47B20;
+  --orange2: #FF9F45;
+  --orange-dark: #D4620A;
+  --green: #27AE60;
+  --green2: #2ECC71;
+  --blue: #2980B9;
+  --blue2: #3498DB;
+  --yellow: #F1C40F;
+  --red: #E74C3C;
+  --purple: #8E44AD;
+  --bg: #F0F2F8;
+  --white: #FFFFFF;
+  --card: #FFFFFF;
+  --text: #1A1A2E;
+  --text2: #555577;
+  --text3: #888899;
+  --border: #E2E6F0;
+  --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow2: 0 8px 32px rgba(244,123,32,0.18);
+  --radius: 18px;
+  --radius2: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 15px; }
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== LAYOUT ===== */
+#app { max-width: 480px; margin: 0 auto; position: relative; min-height: 100vh; background: var(--bg); padding-bottom: 80px; }
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(135deg, var(--orange-dark) 0%, var(--orange) 50%, var(--orange2) 100%);
+  padding: 22px 20px 28px;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: 30px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+}
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.header-greeting { color: #fff; }
+.header-greeting h2 { font-size: 1.4rem; font-weight: 800; }
+.header-greeting p { font-size: 0.85rem; opacity: 0.85; margin-top: 2px; }
+.header-role-badge {
+  background: rgba(255,255,255,0.22);
+  border: 1.5px solid rgba(255,255,255,0.4);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.header-bell {
+  background: rgba(255,255,255,0.22);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  width: 42px; height: 42px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.header-bell svg { width: 20px; height: 20px; stroke: #fff; }
+.notif-dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 8px; height: 8px;
+  background: var(--yellow);
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+/* Search bar */
+.search-bar {
+  margin: 16px 20px 0;
+  position: relative;
+  z-index: 1;
+}
+.search-bar input {
+  width: 100%;
+  padding: 13px 50px 13px 18px;
+  border-radius: 14px;
+  border: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  background: rgba(255,255,255,0.95);
+  color: var(--text);
+  outline: none;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.search-bar input::placeholder { color: var(--text3); }
+.search-bar .s-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--orange);
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.search-bar .s-icon svg { width: 16px; height: 16px; stroke: #fff; }
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 3px;
+}
+.nav-item svg { width: 22px; height: 22px; stroke: var(--text3); fill: none; transition: all 0.2s; }
+.nav-item span { font-size: 0.67rem; font-weight: 700; color: var(--text3); transition: all 0.2s; }
+.nav-item.active svg { stroke: var(--orange); }
+.nav-item.active span { color: var(--orange); }
+.nav-item .nav-notif {
+  position: relative;
+}
+.nav-item .nav-notif .badge {
+  position: absolute;
+  top: -4px; right: -6px;
+  width: 16px; height: 16px;
+  background: var(--red);
+  border-radius: 50%;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ===== SCREENS ===== */
+.screen { display: none; animation: fadeIn 0.3s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== SECTION TITLES ===== */
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 10px;
+}
+.section-head h3 { font-size: 1rem; font-weight: 800; color: var(--text); }
+.section-head a { font-size: 0.8rem; font-weight: 700; color: var(--orange); cursor: pointer; }
+
+/* ===== CATEGORY PILLS ===== */
+.categories {
+  display: flex;
+  gap: 10px;
+  padding: 0 20px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.categories::-webkit-scrollbar { display: none; }
+.cat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.cat-icon {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  transition: transform 0.2s;
+}
+.cat-pill:hover .cat-icon { transform: scale(1.08); }
+.cat-pill span { font-size: 0.68rem; font-weight: 700; color: var(--text2); text-align: center; }
+
+/* ===== JOB CARDS ===== */
+.jobs-list { padding: 0 20px; display: flex; flex-direction: column; gap: 14px; }
+.job-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all 0.25s;
+  border: 1.5px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+.job-card:hover { border-color: var(--orange); transform: translateY(-2px); box-shadow: var(--shadow2); }
+.job-card-top { display: flex; align-items: flex-start; gap: 12px; }
+.company-logo {
+  width: 50px; height: 50px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #fff;
+}
+.job-info { flex: 1; }
+.job-info h4 { font-size: 0.95rem; font-weight: 800; color: var(--text); line-height: 1.3; }
+.job-info p { font-size: 0.78rem; color: var(--text2); margin-top: 2px; font-weight: 600; }
+.job-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.badge-new { background: #E8F8EE; color: var(--green); }
+.badge-hot { background: #FFF0E6; color: var(--orange); }
+.badge-urgent { background: #FDECEA; color: var(--red); }
+.job-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.job-tag {
+  background: var(--bg);
+  color: var(--text2);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: flex; align-items: center; gap: 4px;
+}
+.job-tag svg { width: 11px; height: 11px; stroke: var(--text3); }
+.job-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.job-salary { font-size: 0.88rem; font-weight: 800; color: var(--orange); }
+.apply-btn {
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 7px 18px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.apply-btn:hover { transform: scale(1.05); }
+.apply-btn.applied { background: linear-gradient(135deg, var(--green), var(--green2)); }
+
+/* ===== STATS CARDS ===== */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 20px 20px; }
+.stat-card {
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: -20px; right: -20px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+}
+.stat-card .stat-icon { font-size: 1.6rem; margin-bottom: 8px; }
+.stat-card .stat-num { font-size: 1.5rem; font-weight: 900; }
+.stat-card .stat-label { font-size: 0.72rem; font-weight: 700; opacity: 0.85; margin-top: 2px; }
+.stat-card .stat-sub { font-size: 0.65rem; opacity: 0.7; margin-top: 4px; }
+.s-blue { background: linear-gradient(135deg, #2980B9, #3498DB); }
+.s-green { background: linear-gradient(135deg, #27AE60, #2ECC71); }
+.s-orange { background: linear-gradient(135deg, var(--orange-dark), var(--orange2)); }
+.s-purple { background: linear-gradient(135deg, #8E44AD, #9B59B6); }
+
+/* ===== MODAL / DETAIL ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  background: var(--white);
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 0 0 80px;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle {
+  width: 40px; height: 4px;
+  background: var(--border);
+  border-radius: 4px;
+  margin: 12px auto 0;
+}
+.modal-header-img {
+  height: 100px;
+  background: linear-gradient(135deg, var(--orange-dark), var(--orange2));
+  border-radius: 0;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.modal-company-logo {
+  width: 64px; height: 64px;
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+  background: rgba(255,255,255,0.2);
+  border: 3px solid rgba(255,255,255,0.4);
+  color: #fff;
+  font-weight: 900;
+}
+.modal-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: rgba(255,255,255,0.22);
+  border: none;
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 1.1rem;
+}
+.modal-body { padding: 16px 20px; }
+.modal-title { font-size: 1.15rem; font-weight: 900; color: var(--text); }
+.modal-company { font-size: 0.85rem; font-weight: 700; color: var(--text2); margin-top: 3px; }
+.detail-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.detail-tag {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text2);
+  display: flex; align-items: center; gap: 5px;
+}
+.detail-tag svg { width: 13px; height: 13px; }
+.section-label { font-size: 0.82rem; font-weight: 800; color: var(--text); margin: 16px 0 8px; }
+.desc-text { font-size: 0.82rem; color: var(--text2); line-height: 1.7; }
+.skill-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.skill-chip {
+  background: #FFF0E6;
+  color: var(--orange);
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.apply-full-btn {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius2);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.2s;
+}
+.apply-full-btn:hover { transform: scale(1.02); box-shadow: var(--shadow2); }
+.apply-full-btn.applied { background: linear-gradient(135deg, var(--green), var(--green2)); }
+
+/* ===== EMPLOYER DASHBOARD ===== */
+.employer-header {
+  background: linear-gradient(135deg, #1A237E 0%, #283593 50%, #3949AB 100%);
+  padding: 22px 20px 28px;
+  position: relative;
+  overflow: hidden;
+}
+.employer-header::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+.employer-header .header-greeting h2 { color: #fff; }
+.employer-header .header-greeting p { color: rgba(255,255,255,0.8); }
+.employer-header .header-role-badge { background: rgba(255,255,255,0.18); }
+.employer-header .header-bell { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.3); }
+.post-job-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius2);
+  padding: 12px 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  width: calc(100% - 40px);
+  margin: 16px 20px 0;
+  justify-content: center;
+  box-shadow: var(--shadow2);
+  transition: all 0.2s;
+}
+.post-job-btn:hover { transform: scale(1.02); }
+.post-job-btn svg { width: 18px; height: 18px; stroke: #fff; }
+
+/* Applicant cards */
+.applicant-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1.5px solid transparent;
+}
+.applicant-card:hover { border-color: var(--blue); transform: translateY(-1px); }
+.applicant-avatar {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+.applicant-info { flex: 1; }
+.applicant-info h4 { font-size: 0.88rem; font-weight: 800; }
+.applicant-info p { font-size: 0.73rem; color: var(--text2); margin-top: 2px; }
+.applicant-status {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.status-new { background: #E8F8EE; color: var(--green); }
+.status-review { background: #FFF0E6; color: var(--orange); }
+.status-reject { background: #FDECEA; color: var(--red); }
+.status-hired { background: #E8EAF6; color: #3949AB; }
+
+/* ===== MESSAGES ===== */
+.msg-contact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid var(--border);
+}
+.msg-contact:hover { background: var(--bg); }
+.msg-avatar {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  position: relative;
+}
+.msg-online {
+  position: absolute;
+  bottom: 1px; right: 1px;
+  width: 12px; height: 12px;
+  background: var(--green2);
+  border-radius: 50%;
+  border: 2px solid var(--white);
+}
+.msg-info { flex: 1; min-width: 0; }
+.msg-info h4 { font-size: 0.88rem; font-weight: 800; }
+.msg-info p { font-size: 0.75rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.msg-meta { text-align: right; }
+.msg-time { font-size: 0.67rem; color: var(--text3); }
+.msg-unread {
+  background: var(--orange);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 4px;
+  margin-left: auto;
+}
+
+/* Chat window */
+.chat-window { display: flex; flex-direction: column; height: calc(100vh - 80px); }
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.chat-back { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; }
+.chat-back svg { width: 20px; height: 20px; stroke: var(--text); }
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+}
+.msg-bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  position: relative;
+}
+.msg-bubble.sent {
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  color: #fff;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+.msg-bubble.recv {
+  background: var(--white);
+  color: var(--text);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.msg-bubble .msg-time-small {
+  font-size: 0.6rem;
+  opacity: 0.7;
+  margin-top: 4px;
+  text-align: right;
+}
+.chat-input-bar {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  align-items: center;
+}
+.chat-input-bar input {
+  flex: 1;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  outline: none;
+  background: var(--bg);
+}
+.chat-input-bar input:focus { border-color: var(--orange); }
+.send-btn {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.send-btn:hover { transform: scale(1.08); }
+.send-btn svg { width: 18px; height: 18px; stroke: #fff; }
+
+/* ===== RESUME BUILDER ===== */
+.resume-section {
+  background: var(--white);
+  border-radius: var(--radius);
+  margin: 0 20px 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.resume-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: var(--white);
+}
+.resume-section-head h4 { font-size: 0.88rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.resume-section-head .expand-icon { font-size: 0.8rem; color: var(--text3); transition: transform 0.2s; }
+.resume-section-head.expanded .expand-icon { transform: rotate(180deg); }
+.resume-section-body { padding: 0 16px 16px; border-top: 1px solid var(--border); display: none; }
+.resume-section-body.open { display: block; padding-top: 12px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { font-size: 0.75rem; font-weight: 800; color: var(--text2); display: block; margin-bottom: 5px; }
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.83rem;
+  color: var(--text);
+  outline: none;
+  background: var(--bg);
+  transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--orange); background: #fff; }
+.form-group textarea { resize: vertical; min-height: 80px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.add-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px dashed var(--orange);
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--orange);
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+.add-item-btn:hover { background: #FFF0E6; }
+.entry-card {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.entry-card-info h5 { font-size: 0.82rem; font-weight: 800; }
+.entry-card-info p { font-size: 0.72rem; color: var(--text2); margin-top: 2px; }
+.entry-delete { background: #FDECEA; border: none; border-radius: 8px; padding: 5px 8px; cursor: pointer; color: var(--red); font-size: 0.7rem; font-weight: 700; }
+.skills-container { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.skill-remove {
+  display: flex; align-items: center; gap: 5px;
+  background: #FFF0E6;
+  border: 1.5px solid #FFDFC4;
+  color: var(--orange);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.skill-remove span { font-size: 0.9rem; }
+.generate-btn {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 0 20px 20px;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--green), var(--green2));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius2);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 15px rgba(39,174,96,0.3);
+  transition: all 0.2s;
+}
+.generate-btn:hover { transform: scale(1.02); }
+.generate-btn svg { width: 20px; height: 20px; stroke: #fff; }
+
+/* Resume Preview */
+.resume-preview {
+  background: var(--white);
+  border-radius: var(--radius);
+  margin: 0 20px 20px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  font-family: 'Poppins', sans-serif;
+  display: none;
+}
+.resume-preview.show { display: block; animation: fadeIn 0.4s; }
+.rp-header { border-bottom: 3px solid var(--orange); padding-bottom: 14px; margin-bottom: 14px; }
+.rp-name { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+.rp-title { font-size: 0.8rem; color: var(--orange); font-weight: 600; }
+.rp-contact { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.rp-contact span { font-size: 0.68rem; color: var(--text2); background: var(--bg); padding: 3px 9px; border-radius: 6px; }
+.rp-section { margin-bottom: 14px; }
+.rp-section h3 { font-size: 0.78rem; font-weight: 700; color: var(--orange); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 8px; }
+.rp-item { margin-bottom: 8px; }
+.rp-item h4 { font-size: 0.78rem; font-weight: 600; }
+.rp-item p { font-size: 0.7rem; color: var(--text2); }
+.rp-skills-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.rp-skill { background: #FFF0E6; color: var(--orange); border-radius: 6px; padding: 3px 9px; font-size: 0.68rem; font-weight: 600; }
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #2980B9, #3498DB);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 14px;
+  width: 100%;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.download-btn:hover { transform: scale(1.02); }
+
+/* ===== PROFILE ===== */
+.profile-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  margin: 16px 20px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.profile-avatar {
+  width: 72px; height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
+  margin: 0 auto 12px;
+}
+.profile-name { font-size: 1.1rem; font-weight: 900; }
+.profile-role { font-size: 0.78rem; color: var(--text2); margin-top: 3px; }
+.profile-stats { display: flex; justify-content: space-around; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.profile-stat { text-align: center; }
+.profile-stat strong { font-size: 1.1rem; font-weight: 900; color: var(--orange); display: block; }
+.profile-stat span { font-size: 0.68rem; color: var(--text2); font-weight: 600; }
+.menu-list { margin: 0 20px; }
+.menu-item {
+  background: var(--white);
+  border-radius: var(--radius2);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  transition: all 0.2s;
+}
+.menu-item:hover { transform: translateX(4px); }
+.menu-icon {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.menu-item h4 { font-size: 0.85rem; font-weight: 800; flex: 1; }
+.menu-item svg { width: 16px; height: 16px; stroke: var(--text3); }
+
+/* ===== POST JOB FORM ===== */
+.post-job-form {
+  padding: 0 20px;
+  display: none;
+}
+.post-job-form.show { display: block; animation: fadeIn 0.3s; }
+.form-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.form-card h3 { font-size: 0.9rem; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+/* ===== ROLE SWITCH ===== */
+.role-switch-screen {
+  min-height: 100vh;
+  background: linear-gradient(160deg, var(--orange-dark) 0%, var(--orange) 40%, #FF9F45 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 30px;
+  text-align: center;
+}
+.role-logo { font-size: 3rem; margin-bottom: 16px; }
+.role-switch-screen h1 { font-size: 1.8rem; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.role-switch-screen p { font-size: 0.9rem; color: rgba(255,255,255,0.85); margin-bottom: 36px; }
+.role-card {
+  background: var(--white);
+  border-radius: 22px;
+  padding: 24px;
+  width: 100%;
+  margin-bottom: 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+.role-card:hover { transform: translateY(-4px) scale(1.02); }
+.role-card-icon { font-size: 2.2rem; flex-shrink: 0; }
+.role-card h3 { font-size: 1rem; font-weight: 900; color: var(--text); }
+.role-card p { font-size: 0.78rem; color: var(--text2); margin-top: 3px; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text);
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 30px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+  z-index: 999;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Tabs */
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 16px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: var(--white);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn.active { background: linear-gradient(135deg, var(--orange), var(--orange2)); border-color: var(--orange); color: #fff; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 40px 20px; }
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state h3 { font-size: 1rem; font-weight: 800; color: var(--text2); }
+.empty-state p { font-size: 0.8rem; color: var(--text3); margin-top: 4px; }
+
+.messaging-disabled {
+  background: var(--bg);
+  border: 1.5px dashed var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  margin: 20px;
+}
+.messaging-disabled p { font-size: 0.82rem; color: var(--text2); margin-bottom: 12px; }
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.toggle-row label { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+.toggle-row p { font-size: 0.72rem; color: var(--text2); margin-top: 2px; }
+.toggle {
+  width: 48px; height: 26px;
+  background: var(--border);
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--green); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px; left: 3px;
+  transition: left 0.3s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.toggle.on::after { left: 25px; }
+</style>
+</head>
+<body>
+
+<!-- ROLE SELECTION -->
+<div id="roleScreen" class="role-switch-screen">
+  <div class="role-logo">💼</div>
+  <h1>JobConnect</h1>
+  <p>MIDC's #1 Job Portal<br>Find your next opportunity or top talent</p>
+  <div class="role-card" onclick="setRole('seeker')">
+    <div class="role-card-icon">🔍</div>
+    <div>
+      <h3>I'm a Job Seeker</h3>
+      <p>Browse jobs, build resume, connect with employers</p>
+    </div>
+  </div>
+  <div class="role-card" onclick="setRole('employer')">
+    <div class="role-card-icon">🏢</div>
+    <div>
+      <h3>I'm an Employer</h3>
+      <p>Post jobs, review applications, hire talent</p>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+
+  <!-- ===== SEEKER HOME ===== -->
+  <div id="screen-home" class="screen active">
+    <div class="header">
+      <div class="header-top">
+        <div class="header-greeting">
+          <h2>Good Morning, Rahul 👋</h2>
+          <p>Find your dream job today</p>
+          <span class="header-role-badge">👤 Job Seeker &nbsp;·&nbsp; MIDC Area</span>
+        </div>
+        <div class="header-bell" onclick="showToast('No new notifications')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="notif-dot"></div>
+        </div>
+      </div>
+      <div class="search-bar">
+        <input type="text" placeholder="Search jobs, companies, skills..." id="searchInput">
+        <div class="s-icon" onclick="filterJobs()">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="section-head"><h3>Your Activity</h3><a onclick="showToast('View all stats')">See All</a></div>
+    <div class="stats-grid">
+      <div class="stat-card s-blue">
+        <div class="stat-icon">📋</div>
+        <div class="stat-num" id="appliedCount">4</div>
+        <div class="stat-label">Applied Jobs</div>
+        <div class="stat-sub">+2 this week</div>
+      </div>
+      <div class="stat-card s-green">
+        <div class="stat-icon">👁️</div>
+        <div class="stat-num">12</div>
+        <div class="stat-label">Profile Views</div>
+        <div class="stat-sub">+5 today</div>
+      </div>
+      <div class="stat-card s-orange">
+        <div class="stat-icon">❤️</div>
+        <div class="stat-num" id="savedCount">3</div>
+        <div class="stat-label">Saved Jobs</div>
+        <div class="stat-sub">Review them</div>
+      </div>
+      <div class="stat-card s-purple">
+        <div class="stat-icon">💬</div>
+        <div class="stat-num">2</div>
+        <div class="stat-label">Messages</div>
+        <div class="stat-sub">1 unread</div>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="section-head"><h3>Browse by Category</h3></div>
+    <div class="categories">
+      <div class="cat-pill" onclick="filterByCategory('Manufacturing')">
+        <div class="cat-icon" style="background:#E8F4FD;">⚙️</div><span>Manufacturing</span>
+      </div>
+      <div class="cat-pill" onclick="filterByCategory('IT')">
+        <div class="cat-icon" style="background:#E8F8EE;">💻</div><span>IT & Tech</span>
+      </div>
+      <div class="cat-pill" onclick="filterByCategory('Logistics')">
+        <div class="cat-icon" style="background:#FFF0E6;">🚛</div><span>Logistics</span>
+      </div>
+      <div class="cat-pill" onclick="filterByCategory('Finance')">
+        <div class="cat-icon" style="background:#F3E8FD;">💰</div><span>Finance</span>
+      </div>
+      <div class="cat-pill" onclick="filterByCategory('Sales')">
+        <div class="cat-icon" style="background:#FDECEA;">📈</div><span>Sales</span>
+      </div>
+      <div class="cat-pill" onclick="filterByCategory('Electrical')">
+        <div class="cat-icon" style="background:#FFFDE7;">⚡</div><span>Electrical</span>
+      </div>
+      <div class="cat-pill" onclick="filterByCategory('')">
+        <div class="cat-icon" style="background:#F0F2F8;">🔄</div><span>All Jobs</span>
+      </div>
+    </div>
+
+    <!-- Jobs -->
+    <div class="section-head"><h3>Latest Jobs</h3><a onclick="showToast('Showing all jobs')">All Jobs</a></div>
+    <div class="jobs-list" id="jobsList"></div>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- ===== EMPLOYER DASHBOARD ===== -->
+  <div id="screen-employer" class="screen">
+    <div class="employer-header">
+      <div class="header-top">
+        <div class="header-greeting">
+          <h2>Hello, TechCorp MIDC 🏢</h2>
+          <p>Manage your job postings</p>
+          <span class="header-role-badge" style="background:rgba(255,255,255,0.18);">🏢 Employer &nbsp;·&nbsp; MIDC Ambernath</span>
+        </div>
+        <div class="header-bell" onclick="showToast('3 new applicants')">
+          <svg viewBox="0 0 24 24" fill="none" style="stroke:#fff;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="notif-dot"></div>
+        </div>
+      </div>
+    </div>
+    <button class="post-job-btn" onclick="showPostJobForm()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Post a New Job
+    </button>
+
+    <!-- Stats -->
+    <div class="section-head" style="margin-top:16px;"><h3>Dashboard Overview</h3></div>
+    <div class="stats-grid">
+      <div class="stat-card" style="background:linear-gradient(135deg,#1A237E,#3949AB);">
+        <div class="stat-icon">📢</div>
+        <div class="stat-num">5</div>
+        <div class="stat-label">Active Jobs</div>
+        <div class="stat-sub">2 expiring soon</div>
+      </div>
+      <div class="stat-card s-orange">
+        <div class="stat-icon">👥</div>
+        <div class="stat-num">34</div>
+        <div class="stat-label">Total Applicants</div>
+        <div class="stat-sub">+8 this week</div>
+      </div>
+      <div class="stat-card s-green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-num">3</div>
+        <div class="stat-label">Hired</div>
+        <div class="stat-sub">This month</div>
+      </div>
+      <div class="stat-card s-purple">
+        <div class="stat-icon">💬</div>
+        <div class="stat-num">7</div>
+        <div class="stat-label">Messages</div>
+        <div class="stat-sub">3 unread</div>
+      </div>
+    </div>
+
+    <!-- Post Job Form -->
+    <div id="postJobForm" class="post-job-form">
+      <div class="form-card">
+        <h3>📋 Job Details</h3>
+        <div class="form-group"><label>Job Title *</label><input type="text" id="pj-title" placeholder="e.g. CNC Operator, Software Engineer"></div>
+        <div class="form-group"><label>Department</label>
+          <select id="pj-dept">
+            <option>Manufacturing</option><option>IT & Tech</option><option>Logistics</option>
+            <option>Finance</option><option>Sales</option><option>Electrical</option><option>HR</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Experience (Years)</label><input type="number" id="pj-exp" placeholder="2" min="0"></div>
+          <div class="form-group"><label>Vacancies</label><input type="number" id="pj-vac" placeholder="5" min="1"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Min Salary (₹/mo)</label><input type="text" id="pj-sal-min" placeholder="20000"></div>
+          <div class="form-group"><label>Max Salary (₹/mo)</label><input type="text" id="pj-sal-max" placeholder="40000"></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <h3>📍 Location & Type</h3>
+        <div class="form-group"><label>Location</label><input type="text" id="pj-loc" placeholder="MIDC Ambernath, Maharashtra"></div>
+        <div class="form-group"><label>Job Type</label>
+          <select id="pj-type"><option>Full Time</option><option>Part Time</option><option>Contract</option><option>Internship</option></select>
+        </div>
+      </div>
+      <div class="form-card">
+        <h3>📝 Description & Settings</h3>
+        <div class="form-group"><label>Job Description</label><textarea id="pj-desc" placeholder="Describe the role, responsibilities, requirements..."></textarea></div>
+        <div class="toggle-row">
+          <div>
+            <label>Allow Messaging</label>
+            <p>Let applicants message you directly</p>
+          </div>
+          <div class="toggle on" id="msgToggle" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+      <button class="apply-full-btn" style="margin:0 0 14px;" onclick="submitJobPost()">🚀 Publish Job Post</button>
+    </div>
+
+    <!-- Applicants -->
+    <div class="section-head"><h3>Recent Applicants</h3><a onclick="showToast('Viewing all applicants')">See All</a></div>
+    <div class="jobs-list">
+      <div class="applicant-card" onclick="openChat('Rahul Sharma','👨‍💼','#E74C3C')">
+        <div class="applicant-avatar" style="background:linear-gradient(135deg,#E74C3C,#C0392B);">RS</div>
+        <div class="applicant-info"><h4>Rahul Sharma</h4><p>Applied: CNC Operator · 3 yrs exp</p></div>
+        <span class="applicant-status status-new">New</span>
+      </div>
+      <div class="applicant-card" onclick="openChat('Priya Patil','👩‍💻','#8E44AD')">
+        <div class="applicant-avatar" style="background:linear-gradient(135deg,#8E44AD,#9B59B6);">PP</div>
+        <div class="applicant-info"><h4>Priya Patil</h4><p>Applied: Software Developer · 2 yrs exp</p></div>
+        <span class="applicant-status status-review">Review</span>
+      </div>
+      <div class="applicant-card" onclick="openApplicantDetail()">
+        <div class="applicant-avatar" style="background:linear-gradient(135deg,#27AE60,#2ECC71);">AK</div>
+        <div class="applicant-info"><h4>Amit Kumar</h4><p>Applied: Electrician · 5 yrs exp</p></div>
+        <span class="applicant-status status-hired">Hired ✓</span>
+      </div>
+      <div class="applicant-card" onclick="openChat('Sneha More','👩','#2980B9')">
+        <div class="applicant-avatar" style="background:linear-gradient(135deg,#2980B9,#3498DB);">SM</div>
+        <div class="applicant-info"><h4>Sneha More</h4><p>Applied: Accounts Executive · 1 yr exp</p></div>
+        <span class="applicant-status status-reject">Rejected</span>
+      </div>
+    </div>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- ===== MESSAGES ===== -->
+  <div id="screen-messages" class="screen">
+    <div class="header" id="msgHeader">
+      <div class="header-top">
+        <div class="header-greeting"><h2>Messages 💬</h2><p>Chat with employers</p></div>
+        <div class="header-bell"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      </div>
+    </div>
+    <div id="msgList">
+      <div class="msg-contact" onclick="openChat('TechCorp MIDC','🏢','#3949AB')">
+        <div class="msg-avatar" style="background:linear-gradient(135deg,#1A237E,#3949AB);">TC<div class="msg-online"></div></div>
+        <div class="msg-info"><h4>TechCorp MIDC</h4><p>Your application is under review. We'll...</p></div>
+        <div class="msg-meta"><div class="msg-time">10:32 AM</div><div class="msg-unread">1</div></div>
+      </div>
+      <div class="msg-contact" onclick="openChat('Bharat Industries','🏭','#27AE60')">
+        <div class="msg-avatar" style="background:linear-gradient(135deg,#27AE60,#2ECC71);">BI</div>
+        <div class="msg-info"><h4>Bharat Industries</h4><p>Can you come for an interview on Monday?</p></div>
+        <div class="msg-meta"><div class="msg-time">Yesterday</div></div>
+      </div>
+      <div class="msg-contact" onclick="openChat('Apex Manufacturing','⚙️','#F47B20')">
+        <div class="msg-avatar" style="background:linear-gradient(135deg,#D4620A,#F47B20);">AM</div>
+        <div class="msg-info"><h4>Apex Manufacturing</h4><p>Thank you for applying. We will get back...</p></div>
+        <div class="msg-meta"><div class="msg-time">Mon</div></div>
+      </div>
+      <div class="messaging-disabled">
+        <p>🔒 Some employers have messaging disabled.<br>You can message them once they enable it or shortlist you.</p>
+      </div>
+    </div>
+    <!-- Chat Window -->
+    <div id="chatWindow" style="display:none;" class="chat-window">
+      <div class="chat-header">
+        <button class="chat-back" onclick="closeChat()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <div class="msg-avatar" id="chatAvatar" style="background:linear-gradient(135deg,#1A237E,#3949AB);width:40px;height:40px;border-radius:12px;font-size:0.9rem;">TC</div>
+        <div style="flex:1;margin-left:10px;"><h4 id="chatName" style="font-size:0.9rem;font-weight:800;">TechCorp MIDC</h4><p style="font-size:0.7rem;color:var(--green);font-weight:700;">Online</p></div>
+        <div onclick="showToast('Options')" style="cursor:pointer;padding:6px;">⋮</div>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-bar">
+        <input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMsg()">
+        <button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RESUME BUILDER ===== -->
+  <div id="screen-resume" class="screen">
+    <div class="header" style="background:linear-gradient(135deg,#27AE60,#2ECC71);">
+      <div class="header-top">
+        <div class="header-greeting"><h2>Resume Builder 📄</h2><p>Create a professional resume</p></div>
+        <div class="header-bell" onclick="generateResume()">
+          <svg viewBox="0 0 24 24" fill="none" style="stroke:#fff;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div style="padding:16px 20px 4px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:0.78rem;font-weight:800;color:var(--text2);">Resume Completion</span>
+        <span style="font-size:0.78rem;font-weight:800;color:var(--green);" id="progressPct">60%</span>
+      </div>
+      <div style="background:var(--border);border-radius:10px;height:7px;">
+        <div id="progressBar" style="width:60%;background:linear-gradient(90deg,var(--green),var(--green2));height:100%;border-radius:10px;transition:width 0.5s;"></div>
+      </div>
+    </div>
+
+    <!-- Personal Info -->
+    <div class="resume-section">
+      <div class="resume-section-head expanded" onclick="toggleSection(this)">
+        <h4>👤 Personal Information</h4><span class="expand-icon">▼</span>
+      </div>
+      <div class="resume-section-body open">
+        <div class="form-row"><div class="form-group"><label>Full Name</label><input type="text" id="r-name" placeholder="Rahul Sharma"></div><div class="form-group"><label>Job Title</label><input type="text" id="r-title" placeholder="CNC Operator"></div></div>
+        <div class="form-row"><div class="form-group"><label>Phone</label><input type="tel" id="r-phone" placeholder="9876543210"></div><div class="form-group"><label>Email</label><input type="email" id="r-email" placeholder="rahul@email.com"></div></div>
+        <div class="form-group"><label>Location</label><input type="text" id="r-location" placeholder="Ambernath, Maharashtra"></div>
+        <div class="form-group"><label>Professional Summary</label><textarea id="r-summary" placeholder="Write a short summary about yourself and your expertise..."></textarea></div>
+      </div>
+    </div>
+
+    <!-- Experience -->
+    <div class="resume-section">
+      <div class="resume-section-head" onclick="toggleSection(this)">
+        <h4>💼 Work Experience</h4><span class="expand-icon">▼</span>
+      </div>
+      <div class="resume-section-body">
+        <div id="exp-list"></div>
+        <div id="exp-form">
+          <div class="form-row"><div class="form-group"><label>Company</label><input type="text" id="re-company" placeholder="ABC Industries"></div><div class="form-group"><label>Role</label><input type="text" id="re-role" placeholder="Machine Operator"></div></div>
+          <div class="form-row"><div class="form-group"><label>From</label><input type="month" id="re-from"></div><div class="form-group"><label>To</label><input type="month" id="re-to"></div></div>
+          <div class="form-group"><label>Description</label><textarea id="re-desc" placeholder="Key responsibilities and achievements..."></textarea></div>
+          <button class="add-item-btn" onclick="addExperience()">+ Add Experience</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Education -->
+    <div class="resume-section">
+      <div class="resume-section-head" onclick="toggleSection(this)">
+        <h4>🎓 Education</h4><span class="expand-icon">▼</span>
+      </div>
+      <div class="resume-section-body">
+        <div id="edu-list"></div>
+        <div class="form-row"><div class="form-group"><label>Institute</label><input type="text" id="re-inst" placeholder="MIDC Polytechnic"></div><div class="form-group"><label>Degree</label><input type="text" id="re-deg" placeholder="ITI / Diploma / B.E."></div></div>
+        <div class="form-row"><div class="form-group"><label>Year</label><input type="text" id="re-year" placeholder="2019"></div><div class="form-group"><label>Score/Grade</label><input type="text" id="re-score" placeholder="75%"></div></div>
+        <button class="add-item-btn" onclick="addEducation()">+ Add Education</button>
+      </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="resume-section">
+      <div class="resume-section-head" onclick="toggleSection(this)">
+        <h4>⚡ Skills</h4><span class="expand-icon">▼</span>
+      </div>
+      <div class="resume-section-body">
+        <div class="skills-container" id="skills-container"></div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="skill-input" placeholder="e.g. CNC Machining, AutoCAD..." style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;font-family:'Nunito',sans-serif;font-size:0.83rem;outline:none;background:var(--bg);" onkeydown="if(event.key==='Enter')addSkill()">
+          <button onclick="addSkill()" style="background:linear-gradient(135deg,var(--orange),var(--orange2));border:none;border-radius:10px;padding:9px 16px;color:#fff;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;font-size:0.85rem;">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Certifications -->
+    <div class="resume-section">
+      <div class="resume-section-head" onclick="toggleSection(this)">
+        <h4>🏆 Certifications</h4><span class="expand-icon">▼</span>
+      </div>
+      <div class="resume-section-body">
+        <div id="cert-list"></div>
+        <div class="form-row"><div class="form-group"><label>Certification</label><input type="text" id="rc-name" placeholder="Safety Training Certificate"></div><div class="form-group"><label>Issuing Body</label><input type="text" id="rc-org" placeholder="NSDC / ITI"></div></div>
+        <div class="form-group"><label>Year</label><input type="text" id="rc-year" placeholder="2022"></div>
+        <button class="add-item-btn" onclick="addCert()">+ Add Certification</button>
+      </div>
+    </div>
+
+    <button class="generate-btn" onclick="generateResume()">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Generate Resume Preview
+    </button>
+
+    <!-- Preview -->
+    <div id="resumePreview" class="resume-preview">
+      <div id="rp-content"></div>
+      <button class="download-btn" onclick="showToast('📥 Resume downloaded as PDF!')">
+        📥 Download as PDF
+      </button>
+    </div>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- ===== PROFILE ===== -->
+  <div id="screen-profile" class="screen">
+    <div class="header">
+      <div class="header-top">
+        <div class="header-greeting"><h2>My Profile 👤</h2><p>Manage your account</p></div>
+        <div class="header-bell" onclick="switchRole()">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H3"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="profile-card">
+      <div class="profile-avatar">RS</div>
+      <div class="profile-name">Rahul Sharma</div>
+      <div class="profile-role">CNC Operator · Ambernath, MH</div>
+      <div class="profile-stats">
+        <div class="profile-stat"><strong>4</strong><span>Applied</span></div>
+        <div class="profile-stat"><strong>3</strong><span>Saved</span></div>
+        <div class="profile-stat"><strong>12</strong><span>Views</span></div>
+        <div class="profile-stat"><strong>2</strong><span>Offers</span></div>
+      </div>
+    </div>
+    <div class="menu-list">
+      <div class="menu-item" onclick="navTo('resume')">
+        <div class="menu-icon" style="background:#E8F8EE;">📄</div>
+        <h4>My Resume</h4>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="menu-item" onclick="navTo('messages')">
+        <div class="menu-icon" style="background:#FFF0E6;">💬</div>
+        <h4>Messages</h4>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="menu-item" onclick="showToast('Saved jobs: 3')">
+        <div class="menu-icon" style="background:#FDECEA;">❤️</div>
+        <h4>Saved Jobs</h4>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="menu-item" onclick="showToast('Notifications settings')">
+        <div class="menu-icon" style="background:#E8EAF6;">🔔</div>
+        <h4>Notifications</h4>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="menu-item" onclick="showToast('Privacy settings')">
+        <div class="menu-icon" style="background:#F3E8FD;">🔒</div>
+        <h4>Privacy & Settings</h4>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="menu-item" onclick="switchRole()" style="border:2px solid var(--orange);">
+        <div class="menu-icon" style="background:#FFF0E6;">🔄</div>
+        <h4>Switch to Employer</h4>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="nav-item active" id="nav-home" onclick="navTo('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </div>
+    <div class="nav-item" id="nav-messages" onclick="navTo('messages')">
+      <div class="nav-notif">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="badge">1</span>
+      </div>
+      <span>Messages</span>
+    </div>
+    <div class="nav-item" id="nav-resume" onclick="navTo('resume')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>Resume</span>
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="navTo('profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Profile</span>
+    </div>
+  </nav>
+
+  <!-- Job Detail Modal -->
+  <div class="modal-overlay" id="jobModal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-sheet" id="jobModalSheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header-img" id="modalHeaderImg">
+        <div class="modal-company-logo" id="modalLogo">TC</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="modalContent"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== DATA =====
+const jobs = [
+  { id:1, title:'CNC Machine Operator', company:'Apex Manufacturing', cat:'Manufacturing', loc:'MIDC Ambernath', type:'Full Time', exp:'2-4 yrs', sal:'₹22,000 – ₹32,000/mo', logo:'AM', color:'#F47B20', badge:'hot', skills:['CNC Machining','AutoCAD','Blueprint Reading','Lathe Operation'], desc:'We are looking for an experienced CNC Operator to join our manufacturing team at MIDC Ambernath. You will be responsible for setting up and operating CNC machines to produce precision parts.', applied:false, saved:false },
+  { id:2, title:'Software Developer (React)', company:'TechCorp MIDC', cat:'IT', loc:'MIDC Dombivli', type:'Full Time', exp:'1-3 yrs', sal:'₹35,000 – ₹55,000/mo', logo:'TC', color:'#3949AB', badge:'new', skills:['React.js','Node.js','MySQL','REST APIs'], desc:'Join our growing tech team to build enterprise web applications for manufacturing clients across the MIDC belt.', applied:false, saved:false },
+  { id:3, title:'Electrician (ITI)', company:'Bharat Industries', cat:'Electrical', loc:'MIDC Ulhasnagar', type:'Full Time', exp:'0-2 yrs', sal:'₹18,000 – ₹25,000/mo', logo:'BI', color:'#27AE60', badge:'urgent', skills:['Wiring','Panel Work','Safety','PLC Basics'], desc:'Looking for ITI-certified electricians for our plant at MIDC Ulhasnagar. Immediate joining preferred.', applied:false, saved:false },
+  { id:4, title:'Logistics Coordinator', company:'Swift Logistics', cat:'Logistics', loc:'MIDC Badlapur', type:'Full Time', exp:'2-5 yrs', sal:'₹28,000 – ₹40,000/mo', logo:'SL', color:'#8E44AD', badge:'new', skills:['Supply Chain','SAP','MS Excel','Vendor Management'], desc:'Manage end-to-end logistics operations for FMCG and industrial goods distribution across Maharashtra.', applied:false, saved:false },
+  { id:5, title:'Accounts Executive', company:'Finance Partners Ltd', cat:'Finance', loc:'MIDC Ambernath', type:'Full Time', exp:'1-3 yrs', sal:'₹20,000 – ₹30,000/mo', logo:'FP', color:'#2980B9', badge:'hot', skills:['Tally','GST Filing','MS Excel','Accounts Payable'], desc:'Handle day-to-day accounting, GST returns, bank reconciliation, and financial reporting for our manufacturing unit.', applied:false, saved:false },
+  { id:6, title:'Sales Executive (B2B)', company:'Industrial Supplies Co.', cat:'Sales', loc:'MIDC Kalyan', type:'Full Time', exp:'1-4 yrs', sal:'₹18,000 + Commission', logo:'IS', color:'#E74C3C', badge:'new', skills:['B2B Sales','Negotiation','CRM','Product Demo'], desc:'Drive B2B sales for industrial tools and safety equipment. Must have own two-wheeler. Excellent incentive structure.', applied:false, saved:false },
+];
+
+let currentRole = '';
+let appliedJobs = [];
+let savedJobs = [];
+let experiences = [];
+let education = [];
+let certs = [];
+let skills = ['CNC Machining', 'AutoCAD', 'MS Excel'];
+let currentChat = null;
+let chatHistories = {};
+
+// ===== ROLE SELECTION =====
+function setRole(role) {
+  currentRole = role;
+  document.getElementById('roleScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  if (role === 'employer') {
+    document.getElementById('bottomNav').innerHTML = `
+      <div class="nav-item active" id="nav-employer" onclick="navToEmployer('employer')">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" id="nav-emp-msgs" onclick="navTo('messages')">
+        <div class="nav-notif"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="badge">3</span></div>
+        <span>Messages</span>
+      </div>
+      <div class="nav-item" id="nav-emp-profile" onclick="switchRole()">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H3"/></svg>
+        <span>Switch</span>
+      </div>`;
+    showEmployer();
+  } else {
+    renderJobs(jobs);
+    navTo('home');
+    initSkills();
+  }
+}
+
+function showEmployer() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-employer').classList.add('active');
+}
+
+function navToEmployer(tab) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-employer').classList.add('active');
+  showEmployer();
+}
+
+function switchRole() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('roleScreen').style.display = 'flex';
+}
+
+// ===== NAV =====
+function navTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  
+  const s = document.getElementById('screen-' + screen) || document.getElementById('screen-home');
+  if (s) s.classList.add('active');
+  const n = document.getElementById('nav-' + screen);
+  if (n) n.classList.add('active');
+  
+  // Hide chat when going back to messages list
+  if (screen === 'messages') {
+    document.getElementById('chatWindow').style.display = 'none';
+    document.getElementById('msgList').style.display = 'block';
+  }
+}
+
+// ===== JOBS =====
+function renderJobs(list) {
+  const container = document.getElementById('jobsList');
+  if (!list.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>No jobs found</h3><p>Try different search terms</p></div>';
+    return;
+  }
+  container.innerHTML = list.map(j => `
+    <div class="job-card" onclick="openJob(${j.id})">
+      <div class="job-card-top">
+        <div class="company-logo" style="background:linear-gradient(135deg,${j.color}cc,${j.color})">${j.logo}</div>
+        <div class="job-info">
+          <h4>${j.title}</h4>
+          <p>${j.company}</p>
+        </div>
+        <span class="job-badge badge-${j.badge}">${j.badge === 'hot' ? '🔥 Hot' : j.badge === 'new' ? '✨ New' : '⚡ Urgent'}</span>
+      </div>
+      <div class="job-tags">
+        <span class="job-tag"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${j.loc}</span>
+        <span class="job-tag"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${j.exp}</span>
+        <span class="job-tag">💼 ${j.type}</span>
+      </div>
+      <div class="job-footer">
+        <span class="job-salary">${j.sal}</span>
+        <button class="apply-btn ${j.applied?'applied':''}" onclick="event.stopPropagation();applyJob(${j.id},this)">${j.applied ? '✓ Applied' : 'Apply Now'}</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openJob(id) {
+  const j = jobs.find(x => x.id === id);
+  if (!j) return;
+  document.getElementById('modalHeaderImg').style.background = `linear-gradient(135deg,${j.color}cc,${j.color})`;
+  document.getElementById('modalLogo').textContent = j.logo;
+  document.getElementById('modalContent').innerHTML = `
+    <div class="modal-title">${j.title}</div>
+    <div class="modal-company">${j.company}</div>
+    <div class="detail-tags">
+      <span class="detail-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${j.loc}</span>
+      <span class="detail-tag">💼 ${j.type}</span>
+      <span class="detail-tag">⏱ ${j.exp}</span>
+      <span class="detail-tag" style="color:var(--orange);">💰 ${j.sal}</span>
+    </div>
+    <div class="section-label">About the Role</div>
+    <div class="desc-text">${j.desc}</div>
+    <div class="section-label">Skills Required</div>
+    <div class="skill-chips">${j.skills.map(s => `<span class="skill-chip">${s}</span>`).join('')}</div>
+    <button class="apply-full-btn ${j.applied?'applied':''}" onclick="applyJob(${j.id},this);this.textContent='✓ Application Sent!'">${j.applied?'✓ Already Applied':'Apply for this Job'}</button>
+    <button onclick="saveJob(${j.id})" style="display:block;width:100%;padding:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius2);font-family:'Nunito',sans-serif;font-size:0.88rem;font-weight:800;color:var(--text2);cursor:pointer;margin-top:10px;">${j.saved?'❤️ Saved':'🤍 Save Job'}</button>
+  `;
+  document.getElementById('jobModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('jobModal').classList.remove('open'); }
+
+function applyJob(id, btn) {
+  const j = jobs.find(x => x.id === id);
+  if (!j || j.applied) return;
+  j.applied = true;
+  appliedJobs.push(id);
+  btn.textContent = '✓ Applied';
+  btn.classList.add('applied');
+  document.getElementById('appliedCount').textContent = appliedJobs.length + 4;
+  renderJobs(jobs);
+  showToast('🎉 Application sent successfully!');
+}
+
+function saveJob(id) {
+  const j = jobs.find(x => x.id === id);
+  if (!j) return;
+  j.saved = !j.saved;
+  savedJobs = jobs.filter(x => x.saved).map(x => x.id);
+  document.getElementById('savedCount').textContent = savedJobs.length + 3;
+  showToast(j.saved ? '❤️ Job saved!' : '🗑 Job removed from saved');
+}
+
+function filterJobs() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  renderJobs(jobs.filter(j => j.title.toLowerCase().includes(q) || j.company.toLowerCase().includes(q) || j.skills.some(s => s.toLowerCase().includes(q))));
+}
+
+function filterByCategory(cat) {
+  renderJobs(cat ? jobs.filter(j => j.cat === cat || j.cat.includes(cat)) : jobs);
+}
+
+// ===== EMPLOYER POST JOB =====
+function showPostJobForm() {
+  const f = document.getElementById('postJobForm');
+  f.classList.toggle('show');
+}
+
+function submitJobPost() {
+  const title = document.getElementById('pj-title').value;
+  if (!title) { showToast('⚠️ Please enter a job title'); return; }
+  showToast('🚀 Job "' + title + '" published successfully!');
+  document.getElementById('postJobForm').classList.remove('show');
+  document.getElementById('pj-title').value = '';
+}
+
+// ===== MESSAGES / CHAT =====
+const defaultChats = {
+  'TechCorp MIDC': [
+    { text: 'Hello! We received your application for Software Developer.', sent: false, time: '10:30 AM' },
+    { text: 'Thank you! I am very interested in this role.', sent: true, time: '10:31 AM' },
+    { text: 'Your application is under review. We\'ll get back to you within 2 business days.', sent: false, time: '10:32 AM' },
+  ],
+  'Bharat Industries': [
+    { text: 'Hi, we reviewed your profile. Can you come for an interview on Monday at 10 AM?', sent: false, time: 'Yesterday' },
+    { text: 'Yes, I will be there! Please send the address.', sent: true, time: 'Yesterday' },
+  ],
+  'Apex Manufacturing': [
+    { text: 'Thank you for applying to the CNC Operator position.', sent: false, time: 'Mon' },
+  ],
+};
+
+function openChat(name, icon, color) {
+  currentChat = name;
+  if (!chatHistories[name]) chatHistories[name] = defaultChats[name] || [];
+  
+  document.getElementById('chatAvatar').textContent = name.substring(0, 2).toUpperCase();
+  document.getElementById('chatAvatar').style.background = `linear-gradient(135deg, ${color}cc, ${color})`;
+  document.getElementById('chatName').textContent = name;
+  
+  renderChatMessages();
+  document.getElementById('msgList').style.display = 'none';
+  document.getElementById('chatWindow').style.display = 'flex';
+}
+
+function closeChat() {
+  document.getElementById('chatWindow').style.display = 'none';
+  document.getElementById('msgList').style.display = 'block';
+}
+
+function renderChatMessages() {
+  const msgs = chatHistories[currentChat] || [];
+  document.getElementById('chatMessages').innerHTML = msgs.map(m => `
+    <div class="msg-bubble ${m.sent ? 'sent' : 'recv'}">
+      ${m.text}
+      <div class="msg-time-small">${m.time}</div>
+    </div>
+  `).join('');
+  const c = document.getElementById('chatMessages');
+  c.scrollTop = c.scrollHeight;
+}
+
+function sendMsg() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!chatHistories[currentChat]) chatHistories[currentChat] = [];
+  const now = new Date();
+  const time = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+  chatHistories[currentChat].push({ text, sent: true, time });
+  input.value = '';
+  renderChatMessages();
+  // Auto-reply
+  setTimeout(() => {
+    const replies = [
+      'Thanks for your message! We\'ll review and get back to you.',
+      'Noted! Our HR team will contact you shortly.',
+      'Thank you! Please check your email for next steps.',
+    ];
+    chatHistories[currentChat].push({ text: replies[Math.floor(Math.random()*replies.length)], sent: false, time: time });
+    renderChatMessages();
+  }, 1200);
+}
+
+function openApplicantDetail() {
+  showToast('✅ Amit Kumar - Hired! Resume on file.');
+}
+
+// ===== RESUME BUILDER =====
+function toggleSection(head) {
+  head.classList.toggle('expanded');
+  const body = head.nextElementSibling;
+  body.classList.toggle('open');
+  updateProgress();
+}
+
+function initSkills() {
+  renderSkills();
+}
+
+function renderSkills() {
+  document.getElementById('skills-container').innerHTML = skills.map((s,i) => `
+    <div class="skill-remove" onclick="removeSkill(${i})">${s} <span>×</span></div>
+  `).join('');
+}
+
+function addSkill() {
+  const inp = document.getElementById('skill-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  skills.push(val);
+  inp.value = '';
+  renderSkills();
+  updateProgress();
+}
+
+function removeSkill(i) {
+  skills.splice(i, 1);
+  renderSkills();
+}
+
+function addExperience() {
+  const co = document.getElementById('re-company').value.trim();
+  const ro = document.getElementById('re-role').value.trim();
+  const fr = document.getElementById('re-from').value;
+  const to = document.getElementById('re-to').value;
+  const de = document.getElementById('re-desc').value.trim();
+  if (!co || !ro) { showToast('⚠️ Company and Role are required'); return; }
+  experiences.push({ co, ro, fr, to, de });
+  renderExperiences();
+  document.getElementById('re-company').value = '';
+  document.getElementById('re-role').value = '';
+  document.getElementById('re-desc').value = '';
+  updateProgress();
+  showToast('✅ Experience added!');
+}
+
+function renderExperiences() {
+  document.getElementById('exp-list').innerHTML = experiences.map((e,i) => `
+    <div class="entry-card">
+      <div class="entry-card-info">
+        <h5>${e.ro} at ${e.co}</h5>
+        <p>${e.fr || 'N/A'} – ${e.to || 'Present'}</p>
+      </div>
+      <button class="entry-delete" onclick="experiences.splice(${i},1);renderExperiences()">✕</button>
+    </div>
+  `).join('');
+}
+
+function addEducation() {
+  const inst = document.getElementById('re-inst').value.trim();
+  const deg = document.getElementById('re-deg').value.trim();
+  const yr = document.getElementById('re-year').value;
+  const sc = document.getElementById('re-score').value;
+  if (!inst || !deg) { showToast('⚠️ Institute and Degree are required'); return; }
+  education.push({ inst, deg, yr, sc });
+  renderEducation();
+  document.getElementById('re-inst').value = '';
+  document.getElementById('re-deg').value = '';
+  document.getElementById('re-year').value = '';
+  document.getElementById('re-score').value = '';
+  updateProgress();
+  showToast('✅ Education added!');
+}
+
+function renderEducation() {
+  document.getElementById('edu-list').innerHTML = education.map((e,i) => `
+    <div class="entry-card">
+      <div class="entry-card-info">
+        <h5>${e.deg}</h5>
+        <p>${e.inst} · ${e.yr || ''} ${e.sc ? '· '+e.sc : ''}</p>
+      </div>
+      <button class="entry-delete" onclick="education.splice(${i},1);renderEducation()">✕</button>
+    </div>
+  `).join('');
+}
+
+function addCert() {
+  const nm = document.getElementById('rc-name').value.trim();
+  const org = document.getElementById('rc-org').value.trim();
+  const yr = document.getElementById('rc-year').value;
+  if (!nm) { showToast('⚠️ Certification name is required'); return; }
+  certs.push({ nm, org, yr });
+  renderCerts();
+  document.getElementById('rc-name').value = '';
+  document.getElementById('rc-org').value = '';
+  document.getElementById('rc-year').value = '';
+  updateProgress();
+  showToast('✅ Certification added!');
+}
+
+function renderCerts() {
+  document.getElementById('cert-list').innerHTML = certs.map((c,i) => `
+    <div class="entry-card">
+      <div class="entry-card-info">
+        <h5>${c.nm}</h5>
+        <p>${c.org || ''} ${c.yr ? '· '+c.yr : ''}</p>
+      </div>
+      <button class="entry-delete" onclick="certs.splice(${i},1);renderCerts()">✕</button>
+    </div>
+  `).join('');
+}
+
+function updateProgress() {
+  const name = document.getElementById('r-name').value;
+  const summary = document.getElementById('r-summary').value;
+  let score = 0;
+  if (name) score += 20;
+  if (summary) score += 15;
+  if (experiences.length) score += 25;
+  if (education.length) score += 20;
+  if (skills.length >= 3) score += 20;
+  document.getElementById('progressPct').textContent = score + '%';
+  document.getElementById('progressBar').style.width = score + '%';
+}
+
+function generateResume() {
+  const name = document.getElementById('r-name').value || 'Your Name';
+  const title = document.getElementById('r-title').value || 'Job Title';
+  const phone = document.getElementById('r-phone').value || 'N/A';
+  const email = document.getElementById('r-email').value || 'N/A';
+  const location = document.getElementById('r-location').value || 'Maharashtra, India';
+  const summary = document.getElementById('r-summary').value || 'Dedicated professional with hands-on experience in the field. Seeking growth opportunities in the MIDC industrial sector.';
+
+  let expHTML = experiences.length ? experiences.map(e => `<div class="rp-item"><h4>${e.ro} – ${e.co}</h4><p>${e.fr||''} – ${e.to||'Present'}</p>${e.de ? `<p style="margin-top:3px;">${e.de}</p>` : ''}</div>`).join('') : '<div class="rp-item"><p>Add work experience above</p></div>';
+  let eduHTML = education.length ? education.map(e => `<div class="rp-item"><h4>${e.deg} – ${e.inst}</h4><p>${e.yr||''} ${e.sc ? '· Score: '+e.sc : ''}</p></div>`).join('') : '<div class="rp-item"><p>Add education above</p></div>';
+  let certHTML = certs.length ? certs.map(c => `<div class="rp-item"><h4>${c.nm}</h4><p>${c.org||''} ${c.yr ? '· '+c.yr : ''}</p></div>`).join('') : '';
+
+  document.getElementById('rp-content').innerHTML = `
+    <div class="rp-header">
+      <div class="rp-name">${name}</div>
+      <div class="rp-title">${title}</div>
+      <div class="rp-contact">
+        <span>📞 ${phone}</span><span>✉️ ${email}</span><span>📍 ${location}</span>
+      </div>
+    </div>
+    ${summary ? `<div class="rp-section"><h3>Professional Summary</h3><div class="rp-item"><p>${summary}</p></div></div>` : ''}
+    <div class="rp-section"><h3>Work Experience</h3>${expHTML}</div>
+    <div class="rp-section"><h3>Education</h3>${eduHTML}</div>
+    <div class="rp-section"><h3>Skills</h3><div class="rp-skills-list">${skills.map(s=>`<span class="rp-skill">${s}</span>`).join('')}</div></div>
+    ${certs.length ? `<div class="rp-section"><h3>Certifications</h3>${certHTML}</div>` : ''}
+  `;
+  document.getElementById('resumePreview').classList.add('show');
+  document.getElementById('resumePreview').scrollIntoView({ behavior: 'smooth' });
+  showToast('✅ Resume generated!');
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Init
+document.getElementById('r-name').addEventListener('input', updateProgress);
+document.getElementById('r-summary').addEventListener('input', updateProgress);
+</script>
+</body>
+</html>

@@ -12,13 +12,18 @@ function JobsTabBar() {
   const { jobsUser } = useJobsAuth();
   const TAB_H = Platform.OS === "web" ? 64 : 56 + Math.max(insets.bottom, 8);
 
-  const TABS = [
-    { name: "index",   label: "Jobs",     icon: "home"   as const, path: "/jobs/(tabs)" },
-    ...(jobsUser?.role === "employer"
-      ? [{ name: "post", label: "Post Job", icon: "plus-circle" as const, path: "/jobs/(tabs)/post" }]
-      : [{ name: "applied", label: "Applied",  icon: "check-circle" as const, path: "/jobs/(tabs)/applied" }]),
-    { name: "profile", label: "Profile",  icon: "user"        as const, path: "/jobs/(tabs)/profile" },
-  ];
+  const TABS = jobsUser?.role === "employer"
+    ? [
+        { name: "index",   label: "Jobs",     icon: "home"         as const, path: "/jobs/(tabs)" },
+        { name: "post",    label: "Post Job",  icon: "plus-circle"  as const, path: "/jobs/(tabs)/post" },
+        { name: "profile", label: "Profile",   icon: "user"         as const, path: "/jobs/(tabs)/profile" },
+      ]
+    : [
+        { name: "index",    label: "Home",     icon: "home"         as const, path: "/jobs/(tabs)" },
+        { name: "messages", label: "Messages", icon: "message-circle" as const, path: "/jobs/(tabs)/messages" },
+        { name: "resume",   label: "Resume",   icon: "file-text"    as const, path: "/jobs/(tabs)/resume" },
+        { name: "profile",  label: "Profile",  icon: "user"         as const, path: "/jobs/(tabs)/profile" },
+      ];
 
   return (
     <View style={[styles.tabBar, { height: TAB_H, paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -54,6 +59,8 @@ export default function JobsTabLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="post" />
       <Tabs.Screen name="applied" />
+      <Tabs.Screen name="messages" />
+      <Tabs.Screen name="resume" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

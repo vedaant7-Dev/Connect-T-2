@@ -9,14 +9,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-
-const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
-
-function getApiUrl(path: string) {
-  if (API_BASE) return `${API_BASE}${path}`;
-  if (typeof window !== "undefined" && window.location?.origin) return `${window.location.origin}${path}`;
-  return path;
-}
+import { getApiUrl } from "@/utils/apiUrl";
 
 type Step = "phone" | "otp" | "pending" | "rejected";
 

@@ -160,7 +160,7 @@ export default function ProfileScreen() {
   };
 
   const switchPortal = () => {
-    router.replace("/portal-select" as any);
+    router.replace("/(tabs)/" as any);
   };
 
   return (

@@ -424,6 +424,52 @@ app.patch("/api/complaints/:id/status", async (req, res) => {
   }
 });
 
+
+
+async function ensureAlertsTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS alerts (
+      id VARCHAR(80) PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      body TEXT NOT NULL,
+      type VARCHAR(30) NOT NULL DEFAULT 'alert',
+      category VARCHAR(80) NULL,
+      priority VARCHAR(30) NULL DEFAULT 'normal',
+      location VARCHAR(255) NULL,
+      valid_until VARCHAR(80) NULL,
+      expires_at VARCHAR(80) NULL,
+      target_audience VARCHAR(80) NULL,
+      media_uri TEXT NULL,
+      media_type VARCHAR(30) NULL,
+      media_file_name VARCHAR(255) NULL,
+      media_mime_type VARCHAR(120) NULL,
+      media_duration INT NULL,
+      posted_by VARCHAR(120) NOT NULL DEFAULT 'Connect-T',
+      posted_by_id VARCHAR(80) NULL,
+      ward VARCHAR(80) NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+app.delete("/api/alerts/:id", async (req, res) => {
+  try {
+    await ensureAlertsTable();
+    await ensureAlertsTable();
+
+    await db.query(
+      "UPDATE alerts SET is_active = 0 WHERE id = ?",
+      [req.params.id],
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /* ADMIN ANALYTICS */
 app.get("/api/admin/analytics", async (req, res) => {
   try {
@@ -481,9 +527,10 @@ app.get("/api/admin/analytics", async (req, res) => {
 /* ALERTS */
 app.get("/api/alerts", async (req, res) => {
   try {
+    await ensureAlertsTable();
     const { type, ward } = req.query;
 
-    let sql = "SELECT * FROM alerts WHERE 1=1";
+    let sql = "SELECT * FROM alerts WHERE is_active = 1";
     const params = [];
 
     if (type) {
@@ -507,6 +554,7 @@ app.get("/api/alerts", async (req, res) => {
 
 app.post("/api/alerts", async (req, res) => {
   try {
+    await ensureAlertsTable();
     const id = req.body.id || createId("alert");
 
     const {

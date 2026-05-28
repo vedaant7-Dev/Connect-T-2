@@ -311,12 +311,35 @@ export default function PostJobScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: topPad + 12 }]}
+        colors={["#9A3412", "#C2410C", "#EA580C", "#F97316", "#FB923C"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: topPad + 14 }]}
       >
-        <Text style={styles.headerTitle}>Post a Job</Text>
-        <Text style={styles.headerSub}>Fill in the details to attract candidates</Text>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            style={styles.headerBack}
+            onPress={() => router.replace("/jobs/(tabs)" as any)}
+            activeOpacity={0.84}
+          >
+            <Feather name="chevron-left" size={22} color="white" />
+          </TouchableOpacity>
+
+          <View style={styles.headerBadge}>
+            <Feather name="briefcase" size={11} color="#FED7AA" />
+            <Text style={styles.headerBadgeText}>Employer</Text>
+          </View>
+        </View>
+
+        <View style={styles.headerHero}>
+          <View style={styles.headerIcon}>
+            <Feather name="upload-cloud" size={26} color="#EA580C" />
+          </View>
+          <Text style={styles.headerTitle}>Post a Job</Text>
+          <Text style={styles.headerSub}>
+            Create a clean listing and reach local candidates faster
+          </Text>
+        </View>
       </LinearGradient>
 
       {showCompanyPicker && (
@@ -328,7 +351,14 @@ export default function PostJobScreen() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.form, { paddingTop: showCompanyPicker ? 4 : 12, paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
+        contentContainerStyle={[
+          styles.form,
+          {
+            paddingTop: showCompanyPicker ? 6 : 18,
+            paddingBottom: Math.max(insets.bottom, 8) + 100,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.field}>
@@ -454,52 +484,380 @@ export default function PostJobScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFF7ED" },
-  header: { paddingHorizontal: 16, paddingBottom: 18, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginTop: 4 },
-  form: { padding: 16, gap: 4 },
-  field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: "600", color: "#475569", fontFamily: "Inter_600SemiBold", marginBottom: 8 },
-  companySelectRow: { gap: 8, paddingRight: 8 },
-  companySelectChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1.5, borderColor: "#FED7AA", backgroundColor: "white" },
-  companySelectChipActive: { backgroundColor: "#EA580C", borderColor: "#EA580C" },
-  companySelectText: { fontSize: 13, color: "#92400E", fontFamily: "Inter_500Medium" },
-  companySelectTextActive: { color: "white" },
-  input: { backgroundColor: "white", borderWidth: 1.5, borderColor: "#FED7AA", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular" },
-  textarea: { minHeight: 90, paddingTop: 12 },
-  row: { flexDirection: "row", gap: 10 },
-  typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  typeChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: "#FED7AA", backgroundColor: "white" },
-  typeChipText: { fontSize: 13, fontFamily: "Inter_500Medium", color: "#92400E" },
-  submitBtn: { borderRadius: 14, overflow: "hidden", marginTop: 8 },
-  submitGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 15, gap: 10 },
-  submitText: { fontSize: 16, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  restricted: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: "#FFF7ED" },
-  restrictedTitle: { fontSize: 20, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  restrictedSub: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular" },
+  root: {
+    flex: 1,
+    backgroundColor: "#FFF7ED",
+  },
 
-  successScreen: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7ED", paddingHorizontal: 32, gap: 16 },
-  successIconWrap: { width: 100, height: 100, borderRadius: 50, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  successTitle: { fontSize: 26, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", textAlign: "center" },
-  successSub: { fontSize: 15, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
-  successBtn: { borderRadius: 14, overflow: "hidden", width: "100%", marginTop: 8 },
-  successBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 15, gap: 10 },
-  successBtnText: { fontSize: 16, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  successSecondaryBtn: { paddingVertical: 12, paddingHorizontal: 24 },
-  successSecondaryText: { fontSize: 14, color: "#EA580C", fontFamily: "Inter_600SemiBold", textDecorationLine: "underline" },
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 38,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    overflow: "hidden",
+    shadowColor: "#9A3412",
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  headerTop: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerBack: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  headerBadgeText: {
+    fontSize: 11,
+    color: "white",
+    fontFamily: "Inter_700Bold",
+  },
+  headerHero: {
+    alignItems: "center",
+    paddingTop: 24,
+  },
+  headerIcon: {
+    width: 74,
+    height: 74,
+    borderRadius: 26,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
+    textAlign: "center",
+  },
+  headerSub: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.78)",
+    fontFamily: "Inter_400Regular",
+    marginTop: 7,
+    textAlign: "center",
+    lineHeight: 19,
+    paddingHorizontal: 8,
+  },
 
-  // Dropdown
-  dropdownBtn: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "white", borderWidth: 1.5, borderColor: "#FED7AA", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, minHeight: 48, width: "100%" },
-  dropdownIcon: { width: 24, height: 24, borderRadius: 8, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  dropdownBtnText: { flex: 1, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", paddingHorizontal: 16 },
-  dropdownList: { backgroundColor: "white", borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
-  dropdownListHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
-  dropdownListTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  dropdownClose: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
-  dropdownItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "#F8FAFC" },
-  dropdownItemActive: { backgroundColor: "#FFF7ED" },
-  dropdownItemIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  dropdownItemText: { flex: 1, fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular" },
+  form: {
+    paddingHorizontal: 16,
+  },
+  field: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: "white",
+    borderRadius: 22,
+    padding: 15,
+    shadowColor: "#9A3412",
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(254,215,170,0.5)",
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#334155",
+    fontFamily: "Inter_700Bold",
+    marginBottom: 9,
+    letterSpacing: 0.1,
+  },
+
+  companySelectRow: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  companySelectChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: "#FED7AA",
+    backgroundColor: "white",
+  },
+  companySelectChipActive: {
+    backgroundColor: "#EA580C",
+    borderColor: "#EA580C",
+  },
+  companySelectText: {
+    fontSize: 13,
+    color: "#92400E",
+    fontFamily: "Inter_500Medium",
+  },
+  companySelectTextActive: {
+    color: "white",
+  },
+
+  input: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: "#0F172A",
+    fontFamily: "Inter_400Regular",
+    minHeight: 50,
+  },
+  textarea: {
+    minHeight: 106,
+    paddingTop: 13,
+    lineHeight: 19,
+  },
+  row: {
+    flexDirection: "row",
+    gap: 12,
+    marginHorizontal: 16,
+  },
+  typeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 9,
+  },
+  typeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: "#FED7AA",
+    backgroundColor: "#FFF7ED",
+  },
+  typeChipText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#92400E",
+  },
+
+  submitBtn: {
+    borderRadius: 20,
+    overflow: "hidden",
+    marginTop: 4,
+    marginHorizontal: 16,
+    shadowColor: "#EA580C",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  submitGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 10,
+  },
+  submitText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_700Bold",
+  },
+
+  restricted: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    backgroundColor: "#FFF7ED",
+    paddingHorizontal: 26,
+  },
+  restrictedTitle: {
+    fontSize: 21,
+    fontWeight: "900",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+  },
+  restrictedSub: {
+    fontSize: 14,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+
+  successScreen: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF7ED",
+    paddingHorizontal: 32,
+    gap: 16,
+  },
+  successIconWrap: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    shadowColor: "#059669",
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  successTitle: {
+    fontSize: 27,
+    fontWeight: "900",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+  },
+  successSub: {
+    fontSize: 15,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  successBtn: {
+    borderRadius: 18,
+    overflow: "hidden",
+    width: "100%",
+    marginTop: 8,
+  },
+  successBtnGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+    gap: 10,
+  },
+  successBtnText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "white",
+    fontFamily: "Inter_700Bold",
+  },
+  successSecondaryBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  successSecondaryText: {
+    fontSize: 14,
+    color: "#EA580C",
+    fontFamily: "Inter_700Bold",
+    textDecorationLine: "underline",
+  },
+
+  dropdownBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    minHeight: 50,
+    width: "100%",
+  },
+  dropdownIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  dropdownBtnText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#0F172A",
+    fontFamily: "Inter_400Regular",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.48)",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  dropdownList: {
+    backgroundColor: "white",
+    borderRadius: 24,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  dropdownListHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  dropdownListTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#0F172A",
+    fontFamily: "Inter_700Bold",
+  },
+  dropdownClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8FAFC",
+  },
+  dropdownItemActive: {
+    backgroundColor: "#FFF7ED",
+  },
+  dropdownItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dropdownItemText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#334155",
+    fontFamily: "Inter_500Medium",
+  },
 });

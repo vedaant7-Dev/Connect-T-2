@@ -4,7 +4,6 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { VideoView, useVideoPlayer } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -51,17 +50,26 @@ function getRoleLabelKey(role?: string) {
 }
 
 function InlineVideo({ uri, style }: { uri: string; style: any }) {
-  const player = useVideoPlayer(uri, (videoPlayer) => {
-    videoPlayer.loop = false;
-  });
-
   return (
-    <VideoView
-      style={style}
-      player={player}
-      nativeControls
-      contentFit="cover"
-    />
+    <TouchableOpacity
+      style={[
+        style,
+        {
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#FFF7ED",
+          borderWidth: 1,
+          borderColor: "#FED7AA",
+        },
+      ]}
+      activeOpacity={0.85}
+      onPress={() => Linking.openURL(uri).catch(() => {})}
+    >
+      <Feather name="play-circle" size={30} color="#EA580C" />
+      <Text style={{ marginTop: 6, fontSize: 11, color: "#EA580C", fontFamily: "Inter_700Bold" }}>
+        Video attached
+      </Text>
+    </TouchableOpacity>
   );
 }
 

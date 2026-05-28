@@ -8,14 +8,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { NAGARSEVAK_WARDS } from "@/data/wards";
-
-const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
-
-function getApiUrl(path: string) {
-  if (API_BASE) return `${API_BASE}${path}`;
-  if (typeof window !== "undefined" && window.location?.origin) return `${window.location.origin}${path}`;
-  return path;
-}
+import { getApiUrl } from "@/utils/apiUrl";
 
 type Step = "form" | "otp" | "success";
 
@@ -86,11 +79,6 @@ export default function NagarsevakRegisterScreen() {
     w.toLowerCase().includes(wardSearch.toLowerCase())
   );
 
-  const extractWardCode = (value: string) => {
-    const match = value.toUpperCase().match(/(\d{1,2})\s*([ABC])/);
-    return match ? `${Number(match[1])}${match[2]}` : value;
-  };
-
   const sendOtp = async () => {
     setError("");
     if (!name.trim() || name.trim().length < 2) { setError("Enter your full name (min 2 chars)"); return; }
@@ -105,15 +93,15 @@ export default function NagarsevakRegisterScreen() {
 
     setOtpSending(true);
     try {
-      const res = await fetch(getApiUrl("/api/auth/send-otp"), {
+      const res = await fetch(getApiUrl("/api/send-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: cleaned, purpose: "nagarsevak_auth" }),
+        body: JSON.stringify({ phone: cleaned }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? "Failed to send OTP");
       setMobile(cleaned);
-      setSessionToken(data.sessionToken || data.devOtp || "1234");
+      setSessionToken(data.sessionToken);
       setStep("otp");
       startCountdown();
     } catch (e: any) {
@@ -125,16 +113,16 @@ export default function NagarsevakRegisterScreen() {
 
   const verifyAndRegister = async () => {
     const otp = otpDigits.join("");
-    if (otp.length < 4) { setError("Enter OTP code"); return; }
+    if (otp.length !== 6) { setError("Enter all 6 OTP digits"); return; }
     setLoading(true); setError("");
     try {
-      const verRes = await fetch(getApiUrl("/api/auth/verify-otp"), {
+      const verRes = await fetch(getApiUrl("/api/verify-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: mobile.trim().replace(/\D/g, ""), otp: otp.slice(0, 4), sessionToken }),
+        body: JSON.stringify({ otp, sessionToken }),
       });
       const verData = await verRes.json();
-      if (!verData.success && !verData.valid) throw new Error(verData.error || verData.message || "Invalid OTP");
+      if (!verData.valid) throw new Error(verData.error ?? "Invalid OTP");
 
       const regRes = await fetch(getApiUrl("/api/auth/nagarsevak-register"), {
         method: "POST",
@@ -143,7 +131,7 @@ export default function NagarsevakRegisterScreen() {
           name: name.trim(),
           mobile,
           ward,
-          wardCode: extractWardCode(ward),
+          wardCode: ward,
           address,
           officeAddress,
           contactNumber: contactNumber.trim().replace(/\D/g, ""),
@@ -409,7 +397,7 @@ export default function NagarsevakRegisterScreen() {
                     <Text style={styles.successDetailText}>+91 {mobile}</Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.doneBtn} onPress={() => router.replace("/secret-access" as any)} activeOpacity={0.85}>
+                <TouchableOpacity style={styles.doneBtn} onPress={() => router.replace("/" as any)} activeOpacity={0.85}>
                   <LinearGradient colors={["#059669", "#10B981"]} style={styles.btnGrad}>
                     <Feather name="home" size={17} color="white" />
                     <Text style={styles.btnText}>Back to Home</Text>

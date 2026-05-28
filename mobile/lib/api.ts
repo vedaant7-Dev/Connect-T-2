@@ -1,45 +1,42 @@
-const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+import { apiUrl } from "@/constants/api";
 
-export async function apiPost(path: string, body: unknown) {
-  const url = `${API_BASE}${path}`;
-  const res = await fetch(url, {
+export async function apiGet<T = any>(path: string): Promise<T> {
+  const res = await fetch(apiUrl(path));
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `GET ${path} failed with ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function apiPost<T = any>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(apiUrl(path), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
-  let data: any;
-  try {
-    data = await res.json();
-  } catch {
-    data = { success: false, message: "Invalid server response" };
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `POST ${path} failed with ${res.status}`);
   }
-  return { ok: res.ok, status: res.status, data };
+
+  return res.json();
 }
 
-export async function apiGet(path: string) {
-  const url = `${API_BASE}${path}`;
-  const res = await fetch(url);
-  let data: any;
-  try {
-    data = await res.json();
-  } catch {
-    data = { success: false, message: "Invalid server response" };
-  }
-  return { ok: res.ok, status: res.status, data };
-}
-
-export async function apiPatch(path: string, body: unknown) {
-  const url = `${API_BASE}${path}`;
-  const res = await fetch(url, {
-    method: "PATCH",
+export async function apiPut<T = any>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(apiUrl(path), {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
-  let data: any;
-  try {
-    data = await res.json();
-  } catch {
-    data = { success: false, message: "Invalid server response" };
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `PUT ${path} failed with ${res.status}`);
   }
-  return { ok: res.ok, status: res.status, data };
+
+  return res.json();
 }
