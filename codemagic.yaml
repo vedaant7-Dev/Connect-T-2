@@ -70,7 +70,8 @@ workflows:
 
       - name: TypeScript check
         script: |
-          npx tsc --noEmit -p mobile/tsconfig.json
+          cd mobile
+          npx tsc --noEmit -p tsconfig.json
 
       - name: Build release APK
         script: |
