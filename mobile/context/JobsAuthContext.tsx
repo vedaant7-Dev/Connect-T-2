@@ -140,7 +140,7 @@ interface JobsAuthContextType {
 const JobsAuthContext = createContext<JobsAuthContextType | null>(null);
 
 const SESSION_KEY = "connectt_jobs_session_v2";
-const COLORS = ["#C2410C", "#EA580C", "#D97706", "#92400E", "#7C3AED", "#059669", "#0369A1"];
+const COLORS = ["#047857", "#059669", "#10B981", "#065F46", "#16A34A", "#EA580C", "#0369A1"];
 
 export function randomColor() {
   return COLORS[Math.floor(Math.random() * COLORS.length)];
@@ -170,21 +170,28 @@ function normalizeDob(value?: string) {
 
 function normalizeUser(raw: any): JobsUser {
   const companyName = raw.company || raw.companyName || "";
+  const companyType = raw.companyType || raw.company_type;
+  const companySize = raw.companySize || raw.company_size;
+  const yearEstablished = raw.yearEstablished || raw.year_established;
+  const contactPerson = raw.contactPerson || raw.contact_person;
+  const gstNo = raw.gstNo || raw.gst_no;
+  const companyDescription = raw.companyDescription || raw.company_description;
+
   const company: CompanyProfile | null = companyName
     ? {
         id: "primary",
         name: companyName,
-        type: raw.companyType,
-        size: raw.companySize,
+        type: companyType,
+        size: companySize,
         industry: raw.industry,
         website: raw.website,
-        description: raw.companyDescription,
+        description: companyDescription,
         address: raw.address,
         pincode: raw.pincode,
         whatsapp: raw.whatsapp,
-        yearEstablished: raw.yearEstablished,
-        contactPerson: raw.contactPerson,
-        gstNo: raw.gstNo,
+        yearEstablished,
+        contactPerson,
+        gstNo,
       }
     : null;
 
@@ -215,17 +222,17 @@ function normalizeUser(raw: any): JobsUser {
     profilePhoto: raw.profilePhoto || raw.profile_photo || undefined,
 
     company: raw.company || undefined,
-    gstNo: raw.gstNo || raw.gst_no || undefined,
-    companyType: raw.companyType || raw.company_type || undefined,
-    companySize: raw.companySize || raw.company_size || undefined,
+    gstNo: gstNo || undefined,
+    companyType: companyType || undefined,
+    companySize: companySize || undefined,
     industry: raw.industry || undefined,
     website: raw.website || undefined,
-    companyDescription: raw.companyDescription || raw.company_description || undefined,
+    companyDescription: companyDescription || undefined,
     address: raw.address || undefined,
     pincode: raw.pincode || undefined,
     whatsapp: cleanPhone(raw.whatsapp || raw.phone),
-    yearEstablished: raw.yearEstablished || raw.year_established || undefined,
-    contactPerson: raw.contactPerson || raw.contact_person || undefined,
+    yearEstablished: yearEstablished || undefined,
+    contactPerson: contactPerson || undefined,
     companies: raw.companies || (company ? [company] : []),
   };
 }
