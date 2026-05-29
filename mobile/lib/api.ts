@@ -1,42 +1,54 @@
 import { apiUrl } from "@/constants/api";
 
-export async function apiGet<T = any>(path: string): Promise<T> {
-  const res = await fetch(apiUrl(path));
+async function readError(res: Response, fallback: string) {
+  const text = await res.text().catch(() => "");
+  if (!text) return fallback;
+
+  try {
+    const parsed = JSON.parse(text);
+    return parsed?.error || parsed?.message || text;
+  } catch {
+    return text;
+  }
+}
+
+async function request<T = any>(
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const res = await fetch(apiUrl(path), {
+    method,
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `GET ${path} failed with ${res.status}`);
+    throw new Error(await readError(res, `${method} ${path} failed with ${res.status}`));
   }
 
-  return res.json();
+  if (res.status === 204) return {} as T;
+
+  const text = await res.text().catch(() => "");
+  return (text ? JSON.parse(text) : {}) as T;
+}
+
+export async function apiGet<T = any>(path: string): Promise<T> {
+  return request<T>("GET", path);
 }
 
 export async function apiPost<T = any>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(apiUrl(path), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `POST ${path} failed with ${res.status}`);
-  }
-
-  return res.json();
+  return request<T>("POST", path, body);
 }
 
 export async function apiPut<T = any>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(apiUrl(path), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  return request<T>("PUT", path, body);
+}
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `PUT ${path} failed with ${res.status}`);
-  }
+export async function apiPatch<T = any>(path: string, body?: unknown): Promise<T> {
+  return request<T>("PATCH", path, body);
+}
 
-  return res.json();
+export async function apiDelete<T = any>(path: string): Promise<T> {
+  return request<T>("DELETE", path);
 }

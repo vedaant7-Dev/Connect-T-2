@@ -1,52 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 
 export type JobsUserRole = "seeker" | "employer";
 export type CurrentStatus = "employed" | "unemployed" | "student" | "fresher";
-
-export interface JobsUser {
-  id: string;
-  name: string;
-  phone: string;
-  role: JobsUserRole;
-  avatarColor: string;
-  createdAt: string;
-  // Seeker profile
-  dob?: string;
-  age?: string; // legacy only
-  qualification?: string;
-  skills?: string;
-  email?: string;
-  about?: string;
-  currentStatus?: CurrentStatus;
-  currentCompany?: string;
-  currentRole?: string;
-  experience?: string;
-  previousCompany?: string;
-  previousRole?: string;
-  collegeName?: string;
-  fieldOfStudy?: string;
-  location?: string;
-  languages?: string;
-  profilePhoto?: string;
-  // Employer profile
-  company?: string;
-  gstNo?: string;
-  companyType?: string;
-  companySize?: string;
-  industry?: string;
-  website?: string;
-  companyDescription?: string;
-  address?: string;
-  pincode?: string;
-  whatsapp?: string;
-  yearEstablished?: string;
-  contactPerson?: string;
-  companies?: CompanyProfile[];
-}
-
-type JobsUserStore = Record<string, JobsUser>;
-type CurrentUserState = { currentKey?: string; users?: JobsUserStore };
 
 export interface CompanyProfile {
   id: string;
@@ -62,6 +20,47 @@ export interface CompanyProfile {
   yearEstablished?: string;
   contactPerson?: string;
   gstNo?: string;
+}
+
+export interface JobsUser {
+  id: string;
+  name: string;
+  phone: string;
+  role: JobsUserRole;
+  avatarColor: string;
+  createdAt: string;
+
+  dob?: string;
+  age?: string;
+  qualification?: string;
+  skills?: string;
+  email?: string;
+  about?: string;
+  currentStatus?: CurrentStatus;
+  currentCompany?: string;
+  currentRole?: string;
+  experience?: string;
+  previousCompany?: string;
+  previousRole?: string;
+  collegeName?: string;
+  fieldOfStudy?: string;
+  location?: string;
+  languages?: string;
+  profilePhoto?: string;
+
+  company?: string;
+  gstNo?: string;
+  companyType?: string;
+  companySize?: string;
+  industry?: string;
+  website?: string;
+  companyDescription?: string;
+  address?: string;
+  pincode?: string;
+  whatsapp?: string;
+  yearEstablished?: string;
+  contactPerson?: string;
+  companies?: CompanyProfile[];
 }
 
 export interface ProfileField {
@@ -87,6 +86,7 @@ export const SEEKER_PROFILE_FIELDS: ProfileField[] = [
 
 export function getSeekerFields(user: JobsUser): ProfileField[] {
   const base = SEEKER_PROFILE_FIELDS.slice();
+
   if (user.currentStatus === "employed") {
     base.push(
       { key: "currentCompany", label: "Current Company", weight: 1 },
@@ -94,23 +94,27 @@ export function getSeekerFields(user: JobsUser): ProfileField[] {
     );
   } else if (user.currentStatus === "student") {
     base.push(
-      { key: "collegeName",  label: "College Name",    weight: 1 },
-      { key: "fieldOfStudy", label: "Field of Study",  weight: 1 },
+      { key: "collegeName",  label: "College Name",   weight: 1 },
+      { key: "fieldOfStudy", label: "Field of Study", weight: 1 },
     );
   }
+
   if (user.currentStatus === "fresher") {
     return base.filter((f) => f.key !== "experience");
   }
+
   return base;
 }
 
 export function calcProfileCompletion(user: JobsUser): number {
   if (user.role !== "seeker") return 100;
+
   const fields = getSeekerFields(user);
   const filled = fields.filter((f) => {
     const val = user[f.key];
     return val !== undefined && val !== null && String(val).trim() !== "";
   });
+
   return Math.round((filled.length / fields.length) * 100);
 }
 
@@ -134,20 +138,108 @@ interface JobsAuthContextType {
 }
 
 const JobsAuthContext = createContext<JobsAuthContextType | null>(null);
-const STORAGE_KEY = "janseva_jobs_users_v1";
-const SESSION_KEY = "janseva_jobs_current_v1";
+
+const SESSION_KEY = "connectt_jobs_session_v2";
 const COLORS = ["#C2410C", "#EA580C", "#D97706", "#92400E", "#7C3AED", "#059669", "#0369A1"];
 
 export function randomColor() {
   return COLORS[Math.floor(Math.random() * COLORS.length)];
 }
 
-function generateId() {
-  return "JU" + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase();
+function cleanPhone(value?: string) {
+  return String(value || "").replace(/\D/g, "").slice(-10);
 }
 
-function generateCompanyId() {
-  return "CO" + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase();
+function normalizeDob(value?: string) {
+  const raw = String(value || "").trim();
+  if (!raw) return undefined;
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return raw;
+
+  const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    const dd = slash[1].padStart(2, "0");
+    const mm = slash[2].padStart(2, "0");
+    const yyyy = slash[3];
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return raw;
+}
+
+function normalizeUser(raw: any): JobsUser {
+  const companyName = raw.company || raw.companyName || "";
+  const company: CompanyProfile | null = companyName
+    ? {
+        id: "primary",
+        name: companyName,
+        type: raw.companyType,
+        size: raw.companySize,
+        industry: raw.industry,
+        website: raw.website,
+        description: raw.companyDescription,
+        address: raw.address,
+        pincode: raw.pincode,
+        whatsapp: raw.whatsapp,
+        yearEstablished: raw.yearEstablished,
+        contactPerson: raw.contactPerson,
+        gstNo: raw.gstNo,
+      }
+    : null;
+
+  return {
+    id: String(raw.id),
+    role: raw.role,
+    name: raw.name || "",
+    phone: cleanPhone(raw.phone),
+    avatarColor: raw.avatarColor || raw.avatar_color || randomColor(),
+    createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+
+    dob: raw.dob || undefined,
+    age: raw.age || undefined,
+    qualification: raw.qualification || undefined,
+    skills: raw.skills || undefined,
+    email: raw.email || undefined,
+    about: raw.about || undefined,
+    currentStatus: raw.currentStatus || raw.current_status || undefined,
+    currentCompany: raw.currentCompany || raw.current_company || undefined,
+    currentRole: raw.currentRole || raw.current_role || undefined,
+    experience: raw.experience || undefined,
+    previousCompany: raw.previousCompany || raw.previous_company || undefined,
+    previousRole: raw.previousRole || raw.previous_role || undefined,
+    collegeName: raw.collegeName || raw.college_name || undefined,
+    fieldOfStudy: raw.fieldOfStudy || raw.field_of_study || undefined,
+    location: raw.location || undefined,
+    languages: raw.languages || undefined,
+    profilePhoto: raw.profilePhoto || raw.profile_photo || undefined,
+
+    company: raw.company || undefined,
+    gstNo: raw.gstNo || raw.gst_no || undefined,
+    companyType: raw.companyType || raw.company_type || undefined,
+    companySize: raw.companySize || raw.company_size || undefined,
+    industry: raw.industry || undefined,
+    website: raw.website || undefined,
+    companyDescription: raw.companyDescription || raw.company_description || undefined,
+    address: raw.address || undefined,
+    pincode: raw.pincode || undefined,
+    whatsapp: cleanPhone(raw.whatsapp || raw.phone),
+    yearEstablished: raw.yearEstablished || raw.year_established || undefined,
+    contactPerson: raw.contactPerson || raw.contact_person || undefined,
+    companies: raw.companies || (company ? [company] : []),
+  };
+}
+
+async function saveSession(user: JobsUser | null) {
+  if (!user) {
+    await AsyncStorage.removeItem(SESSION_KEY);
+    return;
+  }
+
+  await AsyncStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ id: user.id, role: user.role, phone: user.phone }),
+  );
 }
 
 export function JobsAuthProvider({ children }: { children: ReactNode }) {
@@ -155,109 +247,174 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([AsyncStorage.getItem(STORAGE_KEY), AsyncStorage.getItem(SESSION_KEY)]).then(([usersRaw, sessionRaw]) => {
+    let mounted = true;
+
+    async function boot() {
       try {
-        const users = usersRaw ? (JSON.parse(usersRaw) as JobsUserStore) : {};
-        const session = sessionRaw ? (JSON.parse(sessionRaw) as CurrentUserState) : {};
-        const current = session.currentKey ? users[session.currentKey] : null;
-        if (current) setJobsUser(current);
-      } catch {}
-    }).finally(() => setLoading(false));
+        const raw = await AsyncStorage.getItem(SESSION_KEY);
+        const session = raw ? JSON.parse(raw) : null;
+
+        if (session?.id) {
+          const res = await apiGet<{ success: boolean; user: any }>(`/api/job-portal/users/${session.id}`);
+          if (mounted && res?.user) {
+            setJobsUser(normalizeUser(res.user));
+          }
+        }
+      } catch {
+        await AsyncStorage.removeItem(SESSION_KEY);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    boot();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const save = async (user: JobsUser | null) => {
-    setJobsUser(user);
-    if (!user) {
-      await AsyncStorage.removeItem(SESSION_KEY);
-      return;
-    }
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    const existing = raw ? (JSON.parse(raw) as JobsUserStore) : {};
-    const key = `${user.phone}:${user.role}`;
-    existing[key] = user;
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ currentKey: key }));
-  };
-
   const registerJobs = async (data: Omit<JobsUser, "id" | "createdAt">) => {
-    const user = { ...data, id: generateId(), createdAt: new Date().toISOString(), companies: data.companies?.map((c) => ({ ...c, id: c.id || generateCompanyId() })) };
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    const existing = raw ? (JSON.parse(raw) as JobsUserStore) : {};
-    const key = `${user.phone}:${user.role}`;
-    existing[key] = user;
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ currentKey: key }));
-    setJobsUser(user);
-  };
+    const phone = cleanPhone(data.phone);
 
-  const loginJobs = async (phone: string, role: JobsUserRole): Promise<boolean> => {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const existing = JSON.parse(raw) as JobsUserStore;
-        const user = existing[`${phone}:${role}`];
-        if (user) {
-          setJobsUser(user);
-          await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ currentKey: `${phone}:${role}` }));
-          return true;
-        }
-      } catch {}
-    }
-    return false;
-  };
-
-  const loginWithGoogleJobs = async (googleUser: GoogleJobsUserInfo, role: JobsUserRole): Promise<void> => {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    const existing = raw ? (JSON.parse(raw) as JobsUserStore) : {};
-    const emailKey = `${googleUser.email}:${role}`;
-    if (existing[emailKey]) {
-      const user = { ...existing[emailKey], name: googleUser.name, profilePhoto: googleUser.picture, email: googleUser.email };
-      existing[emailKey] = user;
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ currentKey: emailKey }));
-      setJobsUser(user);
-      return;
-    }
-    const newUser: JobsUser = {
-      id: "GJ_" + googleUser.sub,
-      name: googleUser.name,
-      phone: "",
-      email: googleUser.email,
-      role,
-      profilePhoto: googleUser.picture,
-      avatarColor: randomColor(),
-      createdAt: new Date().toISOString(),
+    const payload = {
+      ...data,
+      phone,
+      dob: normalizeDob(data.dob),
+      avatarColor: data.avatarColor || randomColor(),
+      whatsapp: cleanPhone(data.whatsapp || data.phone),
+      contactPerson: data.contactPerson || data.name,
+      address: data.address || data.location || data.company,
+      companyDescription: data.companyDescription || data.about,
     };
-    existing[emailKey] = newUser;
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ currentKey: emailKey }));
-    setJobsUser(newUser);
+
+    const res = await apiPost<{ success: boolean; user: any }>("/api/job-portal/register", payload);
+    const user = normalizeUser(res.user);
+
+    setJobsUser(user);
+    await saveSession(user);
   };
 
-  const logoutJobs = async () => save(null);
+  const loginJobs = async (phoneInput: string, role: JobsUserRole): Promise<boolean> => {
+    const phone = cleanPhone(phoneInput);
+
+    const res = await apiPost<{ success: boolean; user: any }>("/api/job-portal/login", {
+      phone,
+      role,
+    });
+
+    if (!res?.user) return false;
+
+    const user = normalizeUser(res.user);
+    setJobsUser(user);
+    await saveSession(user);
+
+    return true;
+  };
+
+  const loginWithGoogleJobs = async (_googleUser: GoogleJobsUserInfo, _role: JobsUserRole): Promise<void> => {
+    throw new Error("Please register/login with mobile number first. Google Job login will be enabled after Client ID setup.");
+  };
+
+  const logoutJobs = async () => {
+    setJobsUser(null);
+    await saveSession(null);
+  };
 
   const updateJobsUser = async (data: Partial<JobsUser>) => {
     if (!jobsUser) return;
-    await save({ ...jobsUser, ...data });
+
+    const payload = {
+      ...data,
+      phone: undefined,
+      role: undefined,
+      id: undefined,
+      createdAt: undefined,
+      dob: data.dob ? normalizeDob(data.dob) : data.dob,
+    };
+
+    const res = await apiPatch<{ success: boolean; user: any }>(
+      `/api/job-portal/users/${jobsUser.id}`,
+      payload,
+    );
+
+    const next = normalizeUser(res.user || { ...jobsUser, ...data });
+    setJobsUser(next);
+    await saveSession(next);
   };
 
   const addCompany = async (company: Omit<CompanyProfile, "id">) => {
-    if (!jobsUser) return;
-    const next = { ...company, id: generateCompanyId() };
-    await save({ ...jobsUser, companies: [...(jobsUser.companies || []), next] });
-    return next.id;
+    if (!jobsUser) return undefined;
+
+    const companyId = "primary";
+
+    await updateJobsUser({
+      company: company.name,
+      companyType: company.type,
+      companySize: company.size,
+      industry: company.industry,
+      website: company.website,
+      companyDescription: company.description,
+      address: company.address,
+      pincode: company.pincode,
+      whatsapp: company.whatsapp,
+      yearEstablished: company.yearEstablished,
+      contactPerson: company.contactPerson,
+      gstNo: company.gstNo,
+      companies: [{ ...company, id: companyId }],
+    });
+
+    return companyId;
   };
 
-  const updateCompany = async (companyId: string, company: Partial<CompanyProfile>) => {
+  const updateCompany = async (_companyId: string, company: Partial<CompanyProfile>) => {
     if (!jobsUser) return;
-    await save({
-      ...jobsUser,
-      companies: (jobsUser.companies || []).map((c) => (c.id === companyId ? { ...c, ...company } : c)),
+
+    await updateJobsUser({
+      company: company.name || jobsUser.company,
+      companyType: company.type || jobsUser.companyType,
+      companySize: company.size || jobsUser.companySize,
+      industry: company.industry || jobsUser.industry,
+      website: company.website || jobsUser.website,
+      companyDescription: company.description || jobsUser.companyDescription,
+      address: company.address || jobsUser.address,
+      pincode: company.pincode || jobsUser.pincode,
+      whatsapp: company.whatsapp || jobsUser.whatsapp,
+      yearEstablished: company.yearEstablished || jobsUser.yearEstablished,
+      contactPerson: company.contactPerson || jobsUser.contactPerson,
+      gstNo: company.gstNo || jobsUser.gstNo,
+      companies: [{
+        id: "primary",
+        name: company.name || jobsUser.company || "Company",
+        type: company.type || jobsUser.companyType,
+        size: company.size || jobsUser.companySize,
+        industry: company.industry || jobsUser.industry,
+        website: company.website || jobsUser.website,
+        description: company.description || jobsUser.companyDescription,
+        address: company.address || jobsUser.address,
+        pincode: company.pincode || jobsUser.pincode,
+        whatsapp: company.whatsapp || jobsUser.whatsapp,
+        yearEstablished: company.yearEstablished || jobsUser.yearEstablished,
+        contactPerson: company.contactPerson || jobsUser.contactPerson,
+        gstNo: company.gstNo || jobsUser.gstNo,
+      }],
     });
   };
 
   return (
-    <JobsAuthContext.Provider value={{ jobsUser, loading, registerJobs, loginJobs, loginWithGoogleJobs, logoutJobs, updateJobsUser, addCompany, updateCompany }}>
+    <JobsAuthContext.Provider
+      value={{
+        jobsUser,
+        loading,
+        registerJobs,
+        loginJobs,
+        loginWithGoogleJobs,
+        logoutJobs,
+        updateJobsUser,
+        addCompany,
+        updateCompany,
+      }}
+    >
       {children}
     </JobsAuthContext.Provider>
   );
