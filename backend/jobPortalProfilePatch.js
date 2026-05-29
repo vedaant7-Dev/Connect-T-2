@@ -18,6 +18,32 @@ const EXTRA_FIELDS = {
   yearEstablished: { column: "year_established", definition: "VARCHAR(20) NULL" },
 };
 
+const CORE_PATCH_FIELDS = new Set([
+  "name",
+  "dob",
+  "email",
+  "avatarColor",
+  "profilePhoto",
+  "qualification",
+  "skills",
+  "about",
+  "currentStatus",
+  "experience",
+  "location",
+  "languages",
+  "company",
+  "contactPerson",
+  "gstNo",
+  "industry",
+  "website",
+  "companyDescription",
+  "address",
+  "pincode",
+  "whatsapp",
+  "latitude",
+  "longitude",
+]);
+
 const COLUMNS = Object.values(EXTRA_FIELDS).map((field) => field.column);
 const FIELD_BY_COLUMN = Object.fromEntries(
   Object.entries(EXTRA_FIELDS).map(([bodyKey, field]) => [field.column, bodyKey]),
@@ -60,6 +86,28 @@ function toCamelExtras(row = {}) {
   }
 
   return extra;
+}
+
+function hasCorePatchField(body = {}) {
+  return Object.keys(body).some((key) => CORE_PATCH_FIELDS.has(key));
+}
+
+async function ensureExtraOnlyPatchCanPassServerRoute(userId, body = {}) {
+  if (!pool || !userId || hasCorePatchField(body)) return;
+
+  const extraPayload = extractExtraPayload(body);
+  if (!Object.keys(extraPayload).length) return;
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT name FROM job_portal_users WHERE id = ? LIMIT 1",
+      [userId],
+    );
+
+    body.name = rows?.[0]?.name || "User";
+  } catch {
+    body.name = "User";
+  }
 }
 
 async function ensureExtraColumns() {
@@ -258,11 +306,14 @@ try {
     if (path === "/api/job-portal/users/:id") {
       handlers = handlers.map((handler) => async function jobPortalPatchUserPatch(req, res, next) {
         await updateExtraFields(req.params.id, req.body);
+        await ensureExtraOnlyPatchCanPassServerRoute(req.params.id, req.body);
+
         wrapUserJson(res, {
           beforeEnrich: async () => {
             await updateExtraFields(req.params.id, req.body);
           },
         });
+
         return handler(req, res, next);
       });
     }
