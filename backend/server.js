@@ -1704,6 +1704,963 @@ app.post("/api/auth/verify-otp", async (req, res) => {
   }
 });
 
+
+/* JOB PORTAL MYSQL API V1 */
+const jpCreateId = (prefix) =>
+  `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+function jpPhone(value) {
+  return String(value || "").replace(/\D/g, "").slice(-10);
+}
+
+function jpEmailOk(value) {
+  if (!value) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
+}
+
+function jpWordCount(value) {
+  return String(value || "").trim().split(/\s+/).filter(Boolean).length;
+}
+
+function jpBadRequest(res, error) {
+  return res.status(400).json({ success: false, error });
+}
+
+function jpUser(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    role: row.role,
+    name: row.name,
+    dob: row.dob,
+    phone: row.phone,
+    email: row.email,
+    avatarColor: row.avatar_color,
+    profilePhoto: row.profile_photo,
+    qualification: row.qualification,
+    skills: row.skills,
+    about: row.about,
+    currentStatus: row.current_status,
+    experience: row.experience,
+    location: row.location,
+    languages: row.languages,
+    company: row.company,
+    contactPerson: row.contact_person,
+    gstNo: row.gst_no,
+    industry: row.industry,
+    website: row.website,
+    companyDescription: row.company_description,
+    address: row.address,
+    pincode: row.pincode,
+    whatsapp: row.whatsapp,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function jpJob(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    employerId: row.employer_id,
+    employerName: row.employer_name || row.employerName,
+    employerPhone: row.employer_phone,
+    employerWhatsApp: row.employer_whatsapp,
+    company: row.company,
+    title: row.title,
+    category: row.category,
+    type: row.type,
+    salary: row.salary_text,
+    salaryMin: row.salary_min,
+    salaryMax: row.salary_max,
+    location: row.location,
+    address: row.address,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    distanceKm:
+      row.distance_km === null || row.distance_km === undefined
+        ? null
+        : Number(row.distance_km),
+    description: row.description,
+    requirements: row.requirements,
+    openings: row.openings,
+    active: !!row.active,
+    allowMessaging: !!row.allow_messaging,
+    applicantsCount: Number(row.applicants_count || 0),
+    applicationStatus: row.application_status || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function ensureJobPortalSchema() {
+  await db.query(`CREATE TABLE IF NOT EXISTS job_portal_users (
+    id VARCHAR(64) PRIMARY KEY,
+    role VARCHAR(20) NOT NULL,
+    name VARCHAR(160) NOT NULL,
+    dob DATE NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(190) NULL,
+    avatar_color VARCHAR(32) NULL,
+    profile_photo LONGTEXT NULL,
+    qualification VARCHAR(160) NULL,
+    skills TEXT NULL,
+    about TEXT NULL,
+    current_status VARCHAR(40) NULL,
+    experience VARCHAR(80) NULL,
+    location VARCHAR(190) NULL,
+    languages VARCHAR(190) NULL,
+    company VARCHAR(190) NULL,
+    contact_person VARCHAR(160) NULL,
+    gst_no VARCHAR(64) NULL,
+    industry VARCHAR(120) NULL,
+    website VARCHAR(190) NULL,
+    company_description TEXT NULL,
+    address TEXT NULL,
+    pincode VARCHAR(20) NULL,
+    whatsapp VARCHAR(20) NULL,
+    latitude DECIMAL(10,7) NULL,
+    longitude DECIMAL(10,7) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_job_portal_phone_role (phone, role),
+    KEY idx_job_portal_role (role),
+    KEY idx_job_portal_phone (phone)
+  )`);
+
+  await db.query(`CREATE TABLE IF NOT EXISTS job_portal_jobs (
+    id VARCHAR(64) PRIMARY KEY,
+    employer_id VARCHAR(64) NOT NULL,
+    title VARCHAR(190) NOT NULL,
+    category VARCHAR(80) NOT NULL DEFAULT 'other',
+    type VARCHAR(40) NOT NULL DEFAULT 'full-time',
+    salary_min INT NULL,
+    salary_max INT NULL,
+    salary_text VARCHAR(120) NULL,
+    location VARCHAR(190) NULL,
+    address TEXT NULL,
+    latitude DECIMAL(10,7) NULL,
+    longitude DECIMAL(10,7) NULL,
+    description TEXT NULL,
+    requirements TEXT NULL,
+    openings INT NOT NULL DEFAULT 1,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    allow_messaging TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_jp_jobs_employer (employer_id),
+    KEY idx_jp_jobs_category (category),
+    KEY idx_jp_jobs_active (active)
+  )`);
+
+  await db.query(`CREATE TABLE IF NOT EXISTS job_portal_applications (
+    id VARCHAR(64) PRIMARY KEY,
+    job_id VARCHAR(64) NOT NULL,
+    seeker_id VARCHAR(64) NOT NULL,
+    status VARCHAR(40) NOT NULL DEFAULT 'applied',
+    status_note TEXT NULL,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_jp_application (job_id, seeker_id),
+    KEY idx_jp_app_job (job_id),
+    KEY idx_jp_app_seeker (seeker_id),
+    KEY idx_jp_app_status (status)
+  )`);
+
+  await db.query(`CREATE TABLE IF NOT EXISTS job_portal_messages (
+    id VARCHAR(64) PRIMARY KEY,
+    job_id VARCHAR(64) NULL,
+    application_id VARCHAR(64) NULL,
+    sender_id VARCHAR(64) NOT NULL,
+    receiver_id VARCHAR(64) NOT NULL,
+    message TEXT NOT NULL,
+    read_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_jp_msg_pair (sender_id, receiver_id),
+    KEY idx_jp_msg_job (job_id),
+    KEY idx_jp_msg_app (application_id)
+  )`);
+
+  await db.query(`CREATE TABLE IF NOT EXISTS job_portal_notifications (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    title VARCHAR(190) NOT NULL,
+    body TEXT NULL,
+    type VARCHAR(60) NULL,
+    ref_id VARCHAR(64) NULL,
+    read_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_jp_notif_user (user_id),
+    KEY idx_jp_notif_read (read_at)
+  )`);
+
+  await db.query(`CREATE TABLE IF NOT EXISTS job_portal_resumes (
+    user_id VARCHAR(64) PRIMARY KEY,
+    summary TEXT NULL,
+    skills_json LONGTEXT NULL,
+    education_json LONGTEXT NULL,
+    experience_json LONGTEXT NULL,
+    certifications_json LONGTEXT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  )`);
+}
+
+app.get("/api/job-portal/health", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+    res.json({ success: true, message: "Job Portal MySQL schema ready" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/job-portal/register", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const role = String(req.body.role || "").trim();
+    const phone = jpPhone(req.body.phone || req.body.mobile);
+    const name = String(req.body.name || "").trim();
+    const email = String(req.body.email || "").trim();
+    const id = req.body.id || jpCreateId(role === "employer" ? "emp" : "seek");
+
+    if (!["seeker", "employer"].includes(role)) {
+      return jpBadRequest(res, "Valid role is required");
+    }
+
+    if (name.length < 3 || !/^[A-Za-z .'-]+$/.test(name)) {
+      return jpBadRequest(res, "Enter a valid full name");
+    }
+
+    if (phone.length !== 10) {
+      return jpBadRequest(res, "Enter a valid 10 digit contact number");
+    }
+
+    if (!jpEmailOk(email)) {
+      return jpBadRequest(res, "Enter a valid email address");
+    }
+
+    if (role === "seeker" && !req.body.dob) {
+      return jpBadRequest(res, "Date of birth is required");
+    }
+
+    if (role === "employer" && (!req.body.company || !req.body.address)) {
+      return jpBadRequest(res, "Company name and address are required");
+    }
+
+    await db.query(
+      `INSERT INTO job_portal_users
+       (id, role, name, dob, phone, email, avatar_color, profile_photo, qualification, skills, about, current_status, experience, location, languages, company, contact_person, gst_no, industry, website, company_description, address, pincode, whatsapp, latitude, longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+       name=VALUES(name),
+       dob=VALUES(dob),
+       email=VALUES(email),
+       avatar_color=VALUES(avatar_color),
+       profile_photo=VALUES(profile_photo),
+       qualification=VALUES(qualification),
+       skills=VALUES(skills),
+       about=VALUES(about),
+       current_status=VALUES(current_status),
+       experience=VALUES(experience),
+       location=VALUES(location),
+       languages=VALUES(languages),
+       company=VALUES(company),
+       contact_person=VALUES(contact_person),
+       gst_no=VALUES(gst_no),
+       industry=VALUES(industry),
+       website=VALUES(website),
+       company_description=VALUES(company_description),
+       address=VALUES(address),
+       pincode=VALUES(pincode),
+       whatsapp=VALUES(whatsapp),
+       latitude=VALUES(latitude),
+       longitude=VALUES(longitude)`,
+      [
+        id,
+        role,
+        name,
+        req.body.dob || null,
+        phone,
+        email || null,
+        req.body.avatarColor || req.body.avatar_color || "#059669",
+        req.body.profilePhoto || req.body.profile_photo || null,
+        req.body.qualification || null,
+        req.body.skills || null,
+        req.body.about || null,
+        req.body.currentStatus || req.body.current_status || null,
+        req.body.experience || null,
+        req.body.location || null,
+        req.body.languages || null,
+        req.body.company || null,
+        req.body.contactPerson || req.body.contact_person || null,
+        req.body.gstNo || req.body.gst_no || null,
+        req.body.industry || null,
+        req.body.website || null,
+        req.body.companyDescription || req.body.company_description || null,
+        req.body.address || null,
+        req.body.pincode || null,
+        req.body.whatsapp || phone,
+        req.body.latitude || null,
+        req.body.longitude || null,
+      ],
+    );
+
+    const [rows] = await db.query(
+      "SELECT * FROM job_portal_users WHERE phone = ? AND role = ? LIMIT 1",
+      [phone, role],
+    );
+
+    res.status(201).json({ success: true, user: jpUser(rows[0]) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/job-portal/login", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const role = String(req.body.role || "").trim();
+    const phone = jpPhone(req.body.phone || req.body.mobile);
+
+    if (!["seeker", "employer"].includes(role)) {
+      return jpBadRequest(res, "Valid role is required");
+    }
+
+    if (phone.length !== 10) {
+      return jpBadRequest(res, "Enter a valid 10 digit contact number");
+    }
+
+    const [rows] = await db.query(
+      "SELECT * FROM job_portal_users WHERE phone = ? AND role = ? LIMIT 1",
+      [phone, role],
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Account not found. Please register first.",
+      });
+    }
+
+    res.json({ success: true, user: jpUser(rows[0]) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/job-portal/users/:id", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM job_portal_users WHERE id = ? LIMIT 1",
+      [req.params.id],
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    res.json({ success: true, user: jpUser(rows[0]) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch("/api/job-portal/users/:id", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const allowed = {
+      name: "name",
+      dob: "dob",
+      email: "email",
+      avatarColor: "avatar_color",
+      profilePhoto: "profile_photo",
+      qualification: "qualification",
+      skills: "skills",
+      about: "about",
+      currentStatus: "current_status",
+      experience: "experience",
+      location: "location",
+      languages: "languages",
+      company: "company",
+      contactPerson: "contact_person",
+      gstNo: "gst_no",
+      industry: "industry",
+      website: "website",
+      companyDescription: "company_description",
+      address: "address",
+      pincode: "pincode",
+      whatsapp: "whatsapp",
+      latitude: "latitude",
+      longitude: "longitude",
+    };
+
+    const sets = [];
+    const params = [];
+
+    for (const [bodyKey, col] of Object.entries(allowed)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, bodyKey)) {
+        if (bodyKey === "email" && !jpEmailOk(req.body[bodyKey])) {
+          return jpBadRequest(res, "Enter a valid email address");
+        }
+
+        sets.push(`${col} = ?`);
+        params.push(req.body[bodyKey] || null);
+      }
+    }
+
+    if (!sets.length) {
+      return jpBadRequest(res, "No valid fields to update");
+    }
+
+    params.push(req.params.id);
+    await db.query(`UPDATE job_portal_users SET ${sets.join(", ")} WHERE id = ?`, params);
+
+    const [rows] = await db.query(
+      "SELECT * FROM job_portal_users WHERE id = ? LIMIT 1",
+      [req.params.id],
+    );
+
+    res.json({ success: true, user: jpUser(rows[0]) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/job-portal/jobs", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const {
+      search,
+      category,
+      type,
+      employerId,
+      active = "true",
+      viewerId,
+      userLat,
+      userLng,
+    } = req.query;
+
+    const params = [];
+    const where = ["1=1"];
+
+    if (active !== "all") {
+      where.push("j.active = ?");
+      params.push(active === "false" ? 0 : 1);
+    }
+
+    if (category) {
+      where.push("j.category = ?");
+      params.push(category);
+    }
+
+    if (type) {
+      where.push("j.type = ?");
+      params.push(type);
+    }
+
+    if (employerId) {
+      where.push("j.employer_id = ?");
+      params.push(employerId);
+    }
+
+    if (search) {
+      where.push("(j.title LIKE ? OR j.location LIKE ? OR j.description LIKE ? OR u.company LIKE ? OR j.category LIKE ?)");
+      const like = `%${search}%`;
+      params.push(like, like, like, like, like);
+    }
+
+    const lat = Number(userLat);
+    const lng = Number(userLng);
+
+    const distanceSql =
+      Number.isFinite(lat) && Number.isFinite(lng)
+        ? `ROUND(6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(j.latitude)) * COS(RADIANS(j.longitude) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(j.latitude))), 2)`
+        : "NULL";
+
+    const distanceParams = Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng, lat] : [];
+
+    const viewerJoin = viewerId
+      ? "LEFT JOIN job_portal_applications mine ON mine.job_id = j.id AND mine.seeker_id = ?"
+      : "LEFT JOIN job_portal_applications mine ON 1=0";
+
+    const viewerParams = viewerId ? [viewerId] : [];
+
+    const [rows] = await db.query(
+      `SELECT
+         j.*,
+         u.name AS employer_name,
+         u.phone AS employer_phone,
+         u.whatsapp AS employer_whatsapp,
+         u.company,
+         COUNT(a.id) AS applicants_count,
+         MAX(mine.status) AS application_status,
+         ${distanceSql} AS distance_km
+       FROM job_portal_jobs j
+       JOIN job_portal_users u ON u.id = j.employer_id
+       LEFT JOIN job_portal_applications a ON a.job_id = j.id
+       ${viewerJoin}
+       WHERE ${where.join(" AND ")}
+       GROUP BY j.id
+       ORDER BY ${Number.isFinite(lat) && Number.isFinite(lng) ? "distance_km IS NULL, distance_km ASC," : ""} j.created_at DESC`,
+      [...distanceParams, ...viewerParams, ...params],
+    );
+
+    res.json({ success: true, jobs: rows.map(jpJob) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/job-portal/jobs", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const employerId = req.body.employerId || req.body.employer_id;
+    const title = String(req.body.title || "").trim();
+    const description = String(req.body.description || "").trim();
+    const requirements = String(req.body.requirements || "").trim();
+
+    if (!employerId) return jpBadRequest(res, "Employer id is required");
+    if (title.length < 3) return jpBadRequest(res, "Job title is required");
+
+    if (jpWordCount(description) < 5 || jpWordCount(description) > 100) {
+      return jpBadRequest(res, "Description must be between 5 and 100 words");
+    }
+
+    if (requirements && jpWordCount(requirements) > 100) {
+      return jpBadRequest(res, "Requirements must be maximum 100 words");
+    }
+
+    const [empRows] = await db.query(
+      'SELECT * FROM job_portal_users WHERE id = ? AND role = "employer" LIMIT 1',
+      [employerId],
+    );
+
+    if (!empRows.length) {
+      return jpBadRequest(res, "Employer account not found");
+    }
+
+    const id = req.body.id || jpCreateId("job");
+
+    await db.query(
+      `INSERT INTO job_portal_jobs
+       (id, employer_id, title, category, type, salary_min, salary_max, salary_text, location, address, latitude, longitude, description, requirements, openings, active, allow_messaging)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        employerId,
+        title,
+        req.body.category || "other",
+        req.body.type || "full-time",
+        req.body.salaryMin || null,
+        req.body.salaryMax || null,
+        req.body.salary || req.body.salaryText || null,
+        req.body.location || null,
+        req.body.address || empRows[0].address || null,
+        req.body.latitude || null,
+        req.body.longitude || null,
+        description,
+        requirements || null,
+        Number(req.body.openings || 1),
+        req.body.active === false ? 0 : 1,
+        req.body.allowMessaging === false ? 0 : 1,
+      ],
+    );
+
+    const [rows] = await db.query(
+      `SELECT
+         j.*,
+         u.name AS employer_name,
+         u.phone AS employer_phone,
+         u.whatsapp AS employer_whatsapp,
+         u.company,
+         0 AS applicants_count,
+         NULL AS application_status,
+         NULL AS distance_km
+       FROM job_portal_jobs j
+       JOIN job_portal_users u ON u.id = j.employer_id
+       WHERE j.id = ?`,
+      [id],
+    );
+
+    res.status(201).json({ success: true, job: jpJob(rows[0]) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch("/api/job-portal/jobs/:id", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const allowed = {
+      title: "title",
+      category: "category",
+      type: "type",
+      salary: "salary_text",
+      salaryMin: "salary_min",
+      salaryMax: "salary_max",
+      location: "location",
+      address: "address",
+      description: "description",
+      requirements: "requirements",
+      openings: "openings",
+      active: "active",
+      allowMessaging: "allow_messaging",
+    };
+
+    const sets = [];
+    const params = [];
+
+    for (const [bodyKey, col] of Object.entries(allowed)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, bodyKey)) {
+        if (
+          bodyKey === "description" &&
+          (jpWordCount(req.body[bodyKey]) < 5 || jpWordCount(req.body[bodyKey]) > 100)
+        ) {
+          return jpBadRequest(res, "Description must be between 5 and 100 words");
+        }
+
+        sets.push(`${col} = ?`);
+        params.push(typeof req.body[bodyKey] === "boolean" ? (req.body[bodyKey] ? 1 : 0) : req.body[bodyKey]);
+      }
+    }
+
+    if (!sets.length) {
+      return jpBadRequest(res, "No valid fields to update");
+    }
+
+    params.push(req.params.id);
+    await db.query(`UPDATE job_portal_jobs SET ${sets.join(", ")} WHERE id = ?`, params);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete("/api/job-portal/jobs/:id", async (req, res) => {
+  try {
+    await db.query("DELETE FROM job_portal_jobs WHERE id = ?", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/job-portal/jobs/:id/apply", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const seekerId = req.body.seekerId || req.body.seeker_id;
+
+    if (!seekerId) {
+      return jpBadRequest(res, "Seeker id is required");
+    }
+
+    const appId = jpCreateId("app");
+
+    await db.query(
+      `INSERT INTO job_portal_applications (id, job_id, seeker_id, status)
+       VALUES (?, ?, ?, 'applied')
+       ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP`,
+      [appId, req.params.id, seekerId],
+    );
+
+    const [rows] = await db.query(
+      "SELECT * FROM job_portal_applications WHERE job_id = ? AND seeker_id = ? LIMIT 1",
+      [req.params.id, seekerId],
+    );
+
+    res.status(201).json({ success: true, application: rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/job-portal/applications", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const { seekerId, employerId, jobId } = req.query;
+    const where = [];
+    const params = [];
+
+    if (seekerId) {
+      where.push("a.seeker_id = ?");
+      params.push(seekerId);
+    }
+
+    if (employerId) {
+      where.push("j.employer_id = ?");
+      params.push(employerId);
+    }
+
+    if (jobId) {
+      where.push("a.job_id = ?");
+      params.push(jobId);
+    }
+
+    const [rows] = await db.query(
+      `SELECT
+         a.*,
+         j.title,
+         j.category,
+         j.type,
+         j.salary_text,
+         j.location,
+         j.openings,
+         u.company,
+         u.name AS employer_name,
+         u.phone AS employer_phone,
+         u.whatsapp AS employer_whatsapp,
+         s.name AS seeker_name,
+         s.phone AS seeker_phone,
+         s.email AS seeker_email,
+         s.skills AS seeker_skills,
+         s.qualification AS seeker_qualification,
+         s.profile_photo AS seeker_profile_photo
+       FROM job_portal_applications a
+       JOIN job_portal_jobs j ON j.id = a.job_id
+       JOIN job_portal_users u ON u.id = j.employer_id
+       JOIN job_portal_users s ON s.id = a.seeker_id
+       ${where.length ? "WHERE " + where.join(" AND ") : ""}
+       ORDER BY a.updated_at DESC`,
+      params,
+    );
+
+    res.json({ success: true, applications: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch("/api/job-portal/applications/:id/status", async (req, res) => {
+  try {
+    const status = String(req.body.status || "").trim();
+
+    if (!["applied", "shortlisted", "rejected", "hired"].includes(status)) {
+      return jpBadRequest(res, "Invalid application status");
+    }
+
+    await db.query(
+      "UPDATE job_portal_applications SET status = ?, status_note = ? WHERE id = ?",
+      [status, req.body.statusNote || req.body.status_note || null, req.params.id],
+    );
+
+    const [appRows] = await db.query(
+      "SELECT seeker_id FROM job_portal_applications WHERE id = ? LIMIT 1",
+      [req.params.id],
+    );
+
+    if (appRows.length) {
+      await db.query(
+        "INSERT INTO job_portal_notifications (id, user_id, title, body, type, ref_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          jpCreateId("notif"),
+          appRows[0].seeker_id,
+          "Application updated",
+          `Your application status is now ${status}.`,
+          "job_application_status",
+          req.params.id,
+        ],
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/job-portal/messages", async (req, res) => {
+  try {
+    const { userId, peerId, jobId, applicationId } = req.query;
+
+    const where = [];
+    const params = [];
+
+    if (userId && peerId) {
+      where.push("((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))");
+      params.push(userId, peerId, peerId, userId);
+    }
+
+    if (jobId) {
+      where.push("job_id = ?");
+      params.push(jobId);
+    }
+
+    if (applicationId) {
+      where.push("application_id = ?");
+      params.push(applicationId);
+    }
+
+    if (!where.length) {
+      return jpBadRequest(res, "userId and peerId, jobId, or applicationId required");
+    }
+
+    const [rows] = await db.query(
+      `SELECT * FROM job_portal_messages WHERE ${where.join(" AND ")} ORDER BY created_at ASC`,
+      params,
+    );
+
+    res.json({ success: true, messages: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/job-portal/messages", async (req, res) => {
+  try {
+    const senderId = req.body.senderId || req.body.sender_id;
+    const receiverId = req.body.receiverId || req.body.receiver_id;
+    const message = String(req.body.message || "").trim();
+
+    if (!senderId || !receiverId || !message) {
+      return jpBadRequest(res, "senderId, receiverId and message are required");
+    }
+
+    const id = jpCreateId("msg");
+
+    await db.query(
+      "INSERT INTO job_portal_messages (id, job_id, application_id, sender_id, receiver_id, message) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        id,
+        req.body.jobId || req.body.job_id || null,
+        req.body.applicationId || req.body.application_id || null,
+        senderId,
+        receiverId,
+        message,
+      ],
+    );
+
+    const [rows] = await db.query(
+      "SELECT * FROM job_portal_messages WHERE id = ? LIMIT 1",
+      [id],
+    );
+
+    res.status(201).json({ success: true, message: rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/job-portal/resume/:userId", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM job_portal_resumes WHERE user_id = ? LIMIT 1",
+      [req.params.userId],
+    );
+
+    res.json({ success: true, resume: rows[0] || null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put("/api/job-portal/resume/:userId", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    await db.query(
+      `INSERT INTO job_portal_resumes
+       (user_id, summary, skills_json, education_json, experience_json, certifications_json)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+       summary=VALUES(summary),
+       skills_json=VALUES(skills_json),
+       education_json=VALUES(education_json),
+       experience_json=VALUES(experience_json),
+       certifications_json=VALUES(certifications_json)`,
+      [
+        req.params.userId,
+        req.body.summary || null,
+        JSON.stringify(req.body.skills || []),
+        JSON.stringify(req.body.education || []),
+        JSON.stringify(req.body.experience || []),
+        JSON.stringify(req.body.certifications || []),
+      ],
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/job-portal/notifications/:userId", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM job_portal_notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 100",
+      [req.params.userId],
+    );
+
+    res.json({ success: true, notifications: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/job-portal/admin/analytics", async (req, res) => {
+  try {
+    await ensureJobPortalSchema();
+
+    const [[users]] = await db.query(
+      `SELECT
+         SUM(role='seeker') AS seekers,
+         SUM(role='employer') AS employers
+       FROM job_portal_users`,
+    );
+
+    const [[jobs]] = await db.query(
+      `SELECT COUNT(*) AS totalJobs, SUM(active=1) AS activeJobs
+       FROM job_portal_jobs`,
+    );
+
+    const [[apps]] = await db.query(
+      `SELECT
+         COUNT(*) AS totalApplications,
+         SUM(status='shortlisted') AS shortlisted,
+         SUM(status='hired') AS hired,
+         SUM(status='rejected') AS rejected
+       FROM job_portal_applications`,
+    );
+
+    const [byCategory] = await db.query(
+      `SELECT category, COUNT(*) AS count
+       FROM job_portal_jobs
+       GROUP BY category
+       ORDER BY count DESC`,
+    );
+
+    res.json({
+      success: true,
+      analytics: {
+        users,
+        jobs,
+        applications: apps,
+        byCategory,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+ensureJobPortalSchema()
+  .then(() => console.log("[Connect-T] Job Portal MySQL schema ready"))
+  .catch((err) => console.error("[Connect-T] Job Portal schema warning:", err.message));
+/* END JOB PORTAL MYSQL API V1 */
+
+
 /* 404 */
 app.use((req, res) => {
   res.status(404).json({
