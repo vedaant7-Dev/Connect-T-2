@@ -1,417 +1,149 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 
-import DecorativeCircles from "@/components/DecorativeCircles";
-import TopShade from "@/components/TopShade";
-import {
-  JobsUserRole,
-  randomColor,
-  useJobsAuth,
-} from "@/context/JobsAuthContext";
+import { useJobsAuth, JobsUserRole, randomColor } from "@/context/JobsAuthContext";
 
-type AuthTab = "login" | "register";
-type Step = "form" | "otp" | "success";
+type Tab = "login" | "register";
 
-const ROLES: {
-  id: JobsUserRole;
-  icon: string;
-  label: string;
-  sub: string;
-}[] = [
-  {
-    id: "seeker",
-    icon: "user",
-    label: "Job Seeker",
-    sub: "Find local jobs",
-  },
-  {
-    id: "employer",
-    icon: "briefcase",
-    label: "Employer",
-    sub: "Post & hire",
-  },
-];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const AGE_OPTIONS = Array.from({ length: 43 }, (_, i) => String(i + 18));
-
-const QUALIFICATION_OPTIONS = [
-  "Below 10th",
-  "10th Pass (SSC)",
-  "12th Pass (HSC)",
-  "ITI Certificate",
-  "Diploma",
-  "B.A (Arts)",
-  "B.Com (Commerce)",
-  "B.Sc (Science)",
-  "B.E / B.Tech (Engineering)",
-  "BBA",
-  "BCA",
-  "M.A / M.Com / M.Sc",
-  "M.E / M.Tech",
-  "MBA",
-  "MCA",
-  "PhD",
-  "Other",
-];
-
-const LOCATION_OPTIONS = [
-  "Ambernath East",
-  "Ambernath West",
-  "MIDC Ambernath",
-  "Shivaji Chowk",
-  "Station Area East",
-  "Station Area West",
-  "Old Ambernath",
-  "New Ambernath",
-  "Vithalwadi",
-  "Shelar Colony",
-  "Gupte Colony",
-  "Udayanagar",
-  "Vallabhwadi",
-  "Sahakar Nagar",
-  "Gopini",
-  "Chikhloli",
-  "Badlapur",
-  "Ulhasnagar",
-  "Other",
-];
-
-interface DropdownPickerProps {
-  label: string;
-  value: string;
-  options: string[];
-  placeholder?: string;
-  onSelect: (val: string) => void;
-  required?: boolean;
+function cleanPhone(value: string) {
+  return value.replace(/\D/g, "").slice(-10);
 }
 
-function cleanMobile(value: string) {
-  return value.replace(/\D/g, "").slice(0, 10);
+function wordCount(value: string) {
+  return value.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function DropdownPicker({
-  label,
-  value,
-  options,
-  placeholder,
-  onSelect,
-  required,
-}: DropdownPickerProps) {
-  const [open, setOpen] = useState(false);
-  const [manualMode, setManualMode] = useState(false);
-  const [manualText, setManualText] = useState("");
-  const insets = useSafeAreaInsets();
-
-  const handleSelect = (opt: string) => {
-    if (opt === "Other") {
-      setManualMode(true);
-      setOpen(false);
-      setManualText("");
-      return;
-    }
-
-    onSelect(opt);
-    setOpen(false);
-    setManualMode(false);
-  };
-
-  const handleManualDone = () => {
-    const clean = manualText.trim();
-
-    if (clean) {
-      onSelect(clean);
-      setManualMode(false);
-    }
-  };
-
-  return (
-    <View style={dd.wrap}>
-      <Text style={dd.label}>
-        {label}
-        {required && <Text style={dd.required}> *</Text>}
-      </Text>
-
-      {!manualMode ? (
-        <TouchableOpacity
-          style={dd.trigger}
-          onPress={() => setOpen(true)}
-          activeOpacity={0.84}
-        >
-          <Text style={[dd.triggerText, !value && dd.placeholder]}>
-            {value || placeholder || `Select ${label}`}
-          </Text>
-          <Feather name="chevron-down" size={16} color="#94A3B8" />
-        </TouchableOpacity>
-      ) : (
-        <View style={dd.manualRow}>
-          <TextInput
-            style={dd.manualInput}
-            value={manualText}
-            onChangeText={setManualText}
-            placeholder={`Type ${label.toLowerCase()}`}
-            placeholderTextColor="#CBD5E1"
-          />
-          <TouchableOpacity style={dd.doneBtn} onPress={handleManualDone}>
-            <Feather name="check" size={16} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={dd.cancelBtn}
-            onPress={() => setManualMode(false)}
-          >
-            <Feather name="x" size={16} color="#64748B" />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {value && !manualMode && (
-        <TouchableOpacity
-          onPress={() => {
-            setManualMode(true);
-            setManualText(value);
-          }}
-          style={dd.editLink}
-          activeOpacity={0.75}
-        >
-          <Feather name="edit-2" size={10} color="#EA580C" />
-          <Text style={dd.editLinkText}>Type manually instead</Text>
-        </TouchableOpacity>
-      )}
-
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
-        <TouchableOpacity
-          style={dd.overlay}
-          activeOpacity={1}
-          onPress={() => setOpen(false)}
-        >
-          <View
-            style={[
-              dd.sheet,
-              {
-                paddingBottom: Math.max(insets.bottom, 16),
-              },
-            ]}
-          >
-            <View style={dd.sheetHeader}>
-              <Text style={dd.sheetTitle}>Select {label}</Text>
-              <TouchableOpacity onPress={() => setOpen(false)}>
-                <Feather name="x" size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={options}
-              keyExtractor={(o) => o}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const active = item === value;
-
-                return (
-                  <TouchableOpacity
-                    style={[
-                      dd.option,
-                      active && dd.optionActive,
-                      item === "Other" && dd.optionOther,
-                    ]}
-                    onPress={() => handleSelect(item)}
-                    activeOpacity={0.76}
-                  >
-                    {item === "Other" ? (
-                      <View style={dd.optionRow}>
-                        <Feather name="edit-3" size={14} color="#EA580C" />
-                        <Text style={[dd.optionText, dd.optionOtherText]}>
-                          Other (type manually)
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={dd.optionRowBetween}>
-                        <Text
-                          style={[
-                            dd.optionText,
-                            active && dd.optionTextActive,
-                          ]}
-                        >
-                          {item}
-                        </Text>
-                        {active && (
-                          <Feather name="check" size={14} color="#EA580C" />
-                        )}
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
+function validName(value: string) {
+  return /^[A-Za-z .'-]{3,80}$/.test(value.trim());
 }
 
-export default function JobsLoginScreen() {
-  const insets = useSafeAreaInsets();
+function toIsoDob(day: string, month: string, year: string) {
+  const dd = day.padStart(2, "0");
+  const mm = month.padStart(2, "0");
+  return `${year}-${mm}-${dd}`;
+}
+
+function isValidDob(day: string, month: string, year: string) {
+  const d = Number(day);
+  const m = Number(month);
+  const y = Number(year);
+  const nowYear = new Date().getFullYear();
+
+  if (!d || !m || !y) return false;
+  if (y < 1940 || y > nowYear - 14) return false;
+  if (m < 1 || m > 12) return false;
+
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+export default function JobPortalLoginScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { registerJobs, loginJobs } = useJobsAuth();
 
-  const [tab, setTab] = useState<AuthTab>("login");
+  const [tab, setTab] = useState<Tab>("login");
   const [role, setRole] = useState<JobsUserRole>("seeker");
-  const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
 
-  const [dob, setDob] = useState("");
+  const [name, setName] = useState("");
+  const [dobDay, setDobDay] = useState("");
+  const [dobMonth, setDobMonth] = useState("");
+  const [dobYear, setDobYear] = useState("");
+  const [email, setEmail] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState<string | undefined>();
+  const [location, setLocation] = useState("");
   const [qualification, setQualification] = useState("");
   const [skills, setSkills] = useState("");
 
   const [company, setCompany] = useState("");
-  const [gstNo, setGstNo] = useState("");
-  const [location, setLocation] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [address, setAddress] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
 
-  const [otpSending, setOtpSending] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const phone10 = useMemo(() => cleanPhone(phone), [phone]);
 
-  const [otp, setOtp] = useState(["", "", "", ""]);
-  const otpRefs = useRef<Array<TextInput | null>>([]);
+  const pickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-  const currentRole = ROLES.find((item) => item.id === role) || ROLES[0];
-
-  useEffect(
-    () => () => {
-      if (countdownRef.current) clearInterval(countdownRef.current);
-    },
-    [],
-  );
-
-  const setOtpDigit = (index: number, value: string) => {
-    const clean = value.replace(/\D/g, "");
-
-    if (clean.length > 1) {
-      const digits = clean.slice(0, 4).split("");
-      const next = ["", "", "", ""];
-      digits.forEach((digit, i) => {
-        next[i] = digit;
-      });
-      setOtp(next);
-
-      const nextIndex = Math.min(digits.length, 3);
-      otpRefs.current[nextIndex]?.focus();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", "Please allow gallery access to upload profile photo.");
       return;
     }
 
-    const next = [...otp];
-    next[index] = clean.slice(-1);
-    setOtp(next);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.55,
+      base64: false,
+    });
 
-    if (clean && index < 3) {
-      otpRefs.current[index + 1]?.focus();
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setProfilePhoto(result.assets[0].uri);
     }
+  };
+
+  const goDashboard = () => {
+    router.replace("/jobs/(tabs)" as any);
+  };
+
+  const validateLogin = () => {
+    if (phone10.length !== 10) return "Enter a valid 10 digit mobile number.";
+    return "";
   };
 
   const validateSeeker = () => {
-    if (!name.trim()) return "Full name is required.";
-    if (!dob.trim()) return "Please enter your date of birth.";
-    if (phone.length !== 10) return "Enter a valid 10-digit mobile number.";
-    if (!qualification) return "Please select your qualification.";
-    return null;
+    if (!validName(name)) return "Enter a valid full name.";
+    if (!isValidDob(dobDay, dobMonth, dobYear)) return "Select a valid Date of Birth. Minimum age is 14 years.";
+    if (phone10.length !== 10) return "Enter a valid 10 digit contact number.";
+    if (email.trim() && !EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
+    if (location.trim().length < 3) return "Enter your location.";
+    return "";
   };
 
   const validateEmployer = () => {
-    if (!name.trim()) return "Full name is required.";
-    if (!company.trim()) return "Company name is required.";
-    if (!location) return "Please select your location.";
-    if (phone.length !== 10) return "Enter a valid 10-digit mobile number.";
-    return null;
+    if (company.trim().length < 3) return "Enter a valid company name.";
+    if (!validName(contactPerson)) return "Enter a valid contact person name.";
+    if (phone10.length !== 10) return "Enter a valid 10 digit contact number.";
+    if (companyEmail.trim() && !EMAIL_RE.test(companyEmail.trim())) return "Enter a valid email address.";
+    if (address.trim().length < 8) return "Enter a proper company address.";
+    if (companyDescription.trim() && (wordCount(companyDescription) < 5 || wordCount(companyDescription) > 100)) {
+      return "Company description must be minimum 5 words and maximum 100 words.";
+    }
+    return "";
   };
 
-  const startCountdown = () => {
-    setCountdown(30);
+  const handleLogin = async () => {
+    const message = validateLogin();
 
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-    }
-
-    countdownRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          if (countdownRef.current) clearInterval(countdownRef.current);
-          return 0;
-        }
-
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const resetOtp = () => {
-    setOtp(["", "", "", ""]);
-  };
-
-  const handleSendOtp = async () => {
-    setError("");
-    resetOtp();
-
-    if (tab === "register") {
-      const err = role === "seeker" ? validateSeeker() : validateEmployer();
-
-      if (err) {
-        setError(err);
-        return;
-      }
-    } else if (phone.length !== 10) {
-      setError("Enter a valid 10-digit mobile number.");
-      return;
-    }
-
-    try {
-      setOtpSending(true);
-      startCountdown();
-      setStep("otp");
-
-      setTimeout(() => {
-        otpRefs.current[0]?.focus();
-      }, 300);
-    } catch (e: any) {
-      setError(e?.message || "Failed to send OTP.");
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    const code = otp.join("");
-
-    if (code.length !== 4) {
-      setError("Enter the 4 digit OTP.");
-      return;
-    }
-
-    if (code !== "1234") {
-      setError("Invalid OTP. Use demo OTP 1234.");
+    if (message) {
+      setError(message);
       return;
     }
 
@@ -419,1047 +151,611 @@ export default function JobsLoginScreen() {
     setError("");
 
     try {
-      if (tab === "register") {
-        await registerJobs({
-          name: name.trim(),
-          phone,
-          role,
-          dob: dob.trim() || undefined,
-          qualification: qualification || undefined,
-          skills: skills.trim() || undefined,
-          company: company.trim() || undefined,
-          gstNo: gstNo.trim() || undefined,
-          location: location || undefined,
-          avatarColor: randomColor(),
-        });
-      } else {
-        const ok = await loginJobs(phone, role);
+      const ok = await loginJobs(phone10, role);
 
-        if (!ok) {
-          setError("No account found. Please register first.");
-          setStep("form");
-          setTab("register");
-          setLoading(false);
-          return;
-        }
+      if (!ok) {
+        setError("Account not found. Please register first.");
+        return;
       }
 
-      setStep("success");
-      setTimeout(() => router.replace("/jobs/(tabs)" as any), 900);
+      goDashboard();
     } catch (e: any) {
-      setError(e?.message || "Something went wrong. Try again.");
-      resetOtp();
+      setError(e?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const switchTab = (nextTab: AuthTab) => {
-    setTab(nextTab);
-    setStep("form");
+  const handleRegister = async () => {
+    const message = role === "seeker" ? validateSeeker() : validateEmployer();
+
+    if (message) {
+      setError(message);
+      return;
+    }
+
+    setLoading(true);
     setError("");
-    resetOtp();
+
+    try {
+      if (role === "seeker") {
+        await registerJobs({
+          role: "seeker",
+          name: name.trim(),
+          dob: toIsoDob(dobDay, dobMonth, dobYear),
+          phone: phone10,
+          email: email.trim() || undefined,
+          avatarColor: randomColor(),
+          profilePhoto,
+          location: location.trim(),
+          qualification: qualification.trim() || undefined,
+          skills: skills.trim() || undefined,
+          currentStatus: "unemployed",
+        });
+      } else {
+        await registerJobs({
+          role: "employer",
+          name: contactPerson.trim(),
+          phone: phone10,
+          email: companyEmail.trim() || undefined,
+          avatarColor: randomColor(),
+          profilePhoto,
+          company: company.trim(),
+          contactPerson: contactPerson.trim(),
+          whatsapp: cleanPhone(whatsapp || phone),
+          industry: industry.trim() || undefined,
+          address: address.trim(),
+          pincode: pincode.trim() || undefined,
+          companyDescription: companyDescription.trim() || undefined,
+        });
+      }
+
+      goDashboard();
+    } catch (e: any) {
+      setError(e?.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const switchRole = (nextRole: JobsUserRole) => {
-    setRole(nextRole);
-    setStep("form");
-    setError("");
-    resetOtp();
-  };
+  const submit = tab === "login" ? handleLogin : handleRegister;
 
-  const renderHeader = () => (
-    <LinearGradient
-      colors={["#9A3412", "#C2410C", "#EA580C", "#F97316", "#FB923C"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[
-        styles.header,
-        {
-          paddingTop: (Platform.OS === "web" ? 44 : insets.top) + 18,
-        },
-      ]}
-    >
-      <TopShade height={150} />
-      <DecorativeCircles />
-
-      <View style={styles.headerTop}>
-        <TouchableOpacity
-          style={styles.backCircle}
-          onPress={() => router.replace("/portal-select" as any)}
-          activeOpacity={0.84}
+  return (
+    <LinearGradient colors={["#C2410C", "#F97316", "#FB923C"]} style={styles.root}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 28 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Feather name="chevron-left" size={22} color="white" />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Feather name="arrow-left" size={18} color="#C2410C" />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
 
-        <View style={styles.headerBadge}>
-          <Feather name="briefcase" size={12} color="#FED7AA" />
-          <Text style={styles.headerBadgeText}>Job Portal</Text>
-        </View>
-      </View>
+          <View style={styles.header}>
+            <View style={styles.logo}>
+              <Feather name="briefcase" size={24} color="#FFF7ED" />
+            </View>
+            <Text style={styles.title}>Connect T Jobs</Text>
+            <Text style={styles.subtitle}>Trusted local jobs for Ambernath</Text>
+          </View>
 
-      <View style={styles.heroBlock}>
-        <View style={styles.heroIcon}>
-          <Feather name="briefcase" size={26} color="#EA580C" />
-        </View>
+          <View style={styles.card}>
+            <View style={styles.segment}>
+              {(["seeker", "employer"] as JobsUserRole[]).map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={[styles.segmentBtn, role === item && styles.segmentBtnActive]}
+                  onPress={() => setRole(item)}
+                >
+                  <Feather
+                    name={item === "seeker" ? "user" : "briefcase"}
+                    size={15}
+                    color={role === item ? "#FFFFFF" : "#C2410C"}
+                  />
+                  <Text style={[styles.segmentText, role === item && styles.segmentTextActive]}>
+                    {item === "seeker" ? "Job Seeker" : "Employer"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-        <Text style={styles.headerTitle}>Connect T Jobs</Text>
-        <Text style={styles.headerSub}>
-          Local jobs, local talent, trusted opportunities
-        </Text>
-      </View>
-    </LinearGradient>
-  );
+            <View style={styles.tabWrap}>
+              {(["login", "register"] as Tab[]).map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={[styles.tab, tab === item && styles.tabActive]}
+                  onPress={() => {
+                    setTab(item);
+                    setError("");
+                  }}
+                >
+                  <Text style={[styles.tabText, tab === item && styles.tabTextActive]}>
+                    {item === "login" ? "Login" : "Register"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-  const renderRoleSelector = () => (
-    <View style={styles.roleRow}>
-      {ROLES.map((item) => {
-        const active = role === item.id;
+            {tab === "register" && (
+              <TouchableOpacity style={styles.photoRow} onPress={pickPhoto}>
+                {profilePhoto ? (
+                  <Image source={{ uri: profilePhoto }} style={styles.photo} />
+                ) : (
+                  <View style={styles.photoEmpty}>
+                    <Feather name="camera" size={18} color="#EA580C" />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.photoTitle}>
+                    {role === "employer" ? "Upload company logo" : "Upload profile photo"}
+                  </Text>
+                  <Text style={styles.photoSub}>Recommended for professional profile</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            )}
 
-        return (
-          <TouchableOpacity
-            key={item.id}
-            style={[styles.roleCard, active && styles.roleCardActive]}
-            onPress={() => switchRole(item.id)}
-            activeOpacity={0.84}
-          >
-            <View style={[styles.roleIcon, active && styles.roleIconActive]}>
-              <Feather
-                name={item.icon as any}
-                size={20}
-                color={active ? "white" : "#EA580C"}
+            {tab === "register" && role === "seeker" && (
+              <>
+                <SectionTitle title="Job Seeker Details" />
+                <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your full name" />
+                <DobInput
+                  day={dobDay}
+                  month={dobMonth}
+                  year={dobYear}
+                  setDay={setDobDay}
+                  setMonth={setDobMonth}
+                  setYear={setDobYear}
+                />
+              </>
+            )}
+
+            {tab === "register" && role === "employer" && (
+              <>
+                <SectionTitle title="Employer Registration" />
+                <Input label="Company Name *" value={company} onChangeText={setCompany} placeholder="Company / Shop / Business name" />
+                <Input label="Contact Person *" value={contactPerson} onChangeText={setContactPerson} placeholder="Owner / HR / Manager name" />
+              </>
+            )}
+
+            <SectionTitle title={tab === "login" ? "Login Details" : "Contact Details"} />
+            <View style={styles.phoneRow}>
+              <View style={styles.countryBox}>
+                <Text style={styles.countryText}>IN +91</Text>
+              </View>
+              <TextInput
+                value={phone}
+                onChangeText={(v) => setPhone(cleanPhone(v))}
+                placeholder="10 digit mobile number"
+                keyboardType="phone-pad"
+                maxLength={10}
+                style={styles.phoneInput}
+                placeholderTextColor="#94A3B8"
               />
             </View>
 
-            <Text style={[styles.roleLabel, active && styles.roleLabelActive]}>
-              {item.label}
-            </Text>
-            <Text style={[styles.roleSub, active && styles.roleSubActive]}>
-              {item.sub}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+            {tab === "register" && role === "seeker" && (
+              <>
+                <Input label="Email Address" value={email} onChangeText={setEmail} placeholder="you@email.com" keyboardType="email-address" autoCapitalize="none" />
+                <Input label="Location *" value={location} onChangeText={setLocation} placeholder="Ambernath East / West" />
+                <Input label="Qualification" value={qualification} onChangeText={setQualification} placeholder="10th, 12th, ITI, Graduate..." />
+                <Input label="Skills" value={skills} onChangeText={setSkills} placeholder="Computer, Sales, Driving, Welding..." />
+              </>
+            )}
 
-  const renderTabSelector = () => (
-    <View style={styles.tabRow}>
-      {(["login", "register"] as AuthTab[]).map((item) => {
-        const active = tab === item;
+            {tab === "register" && role === "employer" && (
+              <>
+                <Input label="Email Address" value={companyEmail} onChangeText={setCompanyEmail} placeholder="company@email.com" keyboardType="email-address" autoCapitalize="none" />
+                <Input label="WhatsApp Number" value={whatsapp} onChangeText={(v) => setWhatsapp(cleanPhone(v))} placeholder="WhatsApp contact" keyboardType="phone-pad" maxLength={10} />
+                <Input label="Industry" value={industry} onChangeText={setIndustry} placeholder="Manufacturing, Retail, IT..." />
+                <Input label="Full Address *" value={address} onChangeText={setAddress} placeholder="Company full address" multiline />
+                <Input label="Pincode" value={pincode} onChangeText={setPincode} placeholder="421501" keyboardType="number-pad" maxLength={6} />
+                <Input
+                  label="Company Description"
+                  value={companyDescription}
+                  onChangeText={setCompanyDescription}
+                  placeholder="Minimum 5 words, maximum 100 words"
+                  multiline
+                />
+                <Text style={styles.helperText}>
+                  {wordCount(companyDescription)} / 100 words
+                </Text>
+              </>
+            )}
 
-        return (
-          <TouchableOpacity
-            key={item}
-            style={[styles.tabItem, active && styles.tabActive]}
-            onPress={() => switchTab(item)}
-            activeOpacity={0.84}
-          >
-            <Text style={[styles.tabText, active && styles.tabTextActive]}>
-              {item === "login" ? "Login" : "Register"}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+            {!!error && (
+              <View style={styles.errorBox}>
+                <Feather name="alert-circle" size={16} color="#DC2626" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
 
-  const renderPhoneInput = () => (
-    <View style={styles.inputWrap}>
-      <Text style={styles.inputLabel}>
-        Mobile Number <Text style={styles.required}>*</Text>
-      </Text>
-
-      <View style={styles.phoneRow}>
-        <View style={styles.phoneCode}>
-          <Text style={styles.phoneCodeText}>+91</Text>
-        </View>
-
-        <TextInput
-          style={[styles.input, styles.phoneInput]}
-          value={phone}
-          onChangeText={(value) => setPhone(cleanMobile(value))}
-          placeholder="XXXXX XXXXX"
-          placeholderTextColor="#CBD5E1"
-          keyboardType="phone-pad"
-          maxLength={10}
-        />
-      </View>
-    </View>
-  );
-
-  const renderLoginForm = () => (
-    <>
-      <View style={styles.sectionBanner}>
-        <Feather name={currentRole.icon as any} size={13} color="#EA580C" />
-        <Text style={styles.sectionBannerText}>
-          {currentRole.label} Login
-        </Text>
-      </View>
-
-      {renderPhoneInput()}
-    </>
-  );
-
-  const renderSeekerForm = () => (
-    <>
-      <View style={styles.sectionBanner}>
-        <Feather name="user" size={13} color="#EA580C" />
-        <Text style={styles.sectionBannerText}>Job Seeker Details</Text>
-      </View>
-
-      <View style={styles.inputWrap}>
-        <Text style={styles.inputLabel}>
-          Full Name <Text style={styles.required}>*</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder="e.g. Ramesh Patil"
-          placeholderTextColor="#CBD5E1"
-          autoCapitalize="words"
-        />
-      </View>
-
-      <DropdownPicker
-        label="Date of Birth"
-        value={dob}
-        options={AGE_OPTIONS}
-        placeholder="DD/MM/YYYY"
-        onSelect={setDob}
-        required
-      />
-
-      {renderPhoneInput()}
-
-      <DropdownPicker
-        label="Qualification"
-        value={qualification}
-        options={QUALIFICATION_OPTIONS}
-        placeholder="Select highest qualification"
-        onSelect={setQualification}
-        required
-      />
-
-      <View style={styles.inputWrap}>
-        <Text style={styles.inputLabel}>
-          Skills <Text style={styles.optional}>(optional)</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={skills}
-          onChangeText={setSkills}
-          placeholder="e.g. Welding, MS Office, Driving"
-          placeholderTextColor="#CBD5E1"
-        />
-        <Text style={styles.hint}>Separate multiple skills with commas</Text>
-      </View>
-    </>
-  );
-
-  const renderEmployerForm = () => (
-    <>
-      <View style={styles.sectionBanner}>
-        <Feather name="briefcase" size={13} color="#EA580C" />
-        <Text style={styles.sectionBannerText}>Employer Registration</Text>
-      </View>
-
-      <View style={styles.inputWrap}>
-        <Text style={styles.inputLabel}>
-          Full Name <Text style={styles.required}>*</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder="Contact person full name"
-          placeholderTextColor="#CBD5E1"
-          autoCapitalize="words"
-        />
-      </View>
-
-      <View style={styles.inputWrap}>
-        <Text style={styles.inputLabel}>
-          Company Name <Text style={styles.required}>*</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={company}
-          onChangeText={setCompany}
-          placeholder="e.g. XYZ Manufacturing Pvt Ltd"
-          placeholderTextColor="#CBD5E1"
-          autoCapitalize="words"
-        />
-      </View>
-
-      <View style={styles.inputWrap}>
-        <Text style={styles.inputLabel}>
-          GST Number <Text style={styles.optional}>(optional)</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={gstNo}
-          onChangeText={(value) => setGstNo(value.toUpperCase())}
-          placeholder="e.g. 27AABCU9603R1ZN"
-          placeholderTextColor="#CBD5E1"
-          autoCapitalize="characters"
-          maxLength={15}
-        />
-        <Text style={styles.hint}>15-digit GST Identification Number</Text>
-      </View>
-
-      <DropdownPicker
-        label="Business Location"
-        value={location}
-        options={LOCATION_OPTIONS}
-        placeholder="Select your area"
-        onSelect={setLocation}
-        required
-      />
-
-      {renderPhoneInput()}
-    </>
-  );
-
-  const renderFormStep = () => (
-    <>
-      <Text style={styles.cardTitle}>
-        {tab === "login" ? "Welcome Back" : "Create Job Account"}
-      </Text>
-
-      <Text style={styles.cardSubTitle}>
-        {tab === "login"
-          ? "Login with your mobile number and continue."
-          : "Register once and manage your job profile easily."}
-      </Text>
-
-      {renderRoleSelector()}
-      {renderTabSelector()}
-
-      {tab === "login" && renderLoginForm()}
-      {tab === "register" && role === "seeker" && renderSeekerForm()}
-      {tab === "register" && role === "employer" && renderEmployerForm()}
-
-      {!!error && (
-        <View style={styles.errorBox}>
-          <Feather name="alert-circle" size={15} color="#DC2626" />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      <TouchableOpacity
-        style={[styles.btn, otpSending && styles.btnDisabled]}
-        onPress={handleSendOtp}
-        activeOpacity={0.86}
-        disabled={otpSending}
-      >
-        <LinearGradient
-          colors={["#EA580C", "#F97316"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.btnGrad}
-        >
-          {otpSending ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <Text style={styles.btnText}>
-                {tab === "login" ? "Send OTP" : "Verify Mobile"}
+            <TouchableOpacity
+              style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
+              disabled={loading}
+              onPress={submit}
+            >
+              <Text style={styles.primaryText}>
+                {loading ? "Please wait..." : tab === "login" ? "Continue" : "Create Account"}
               </Text>
-              <Feather name="arrow-right" size={18} color="white" />
-            </>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
-    </>
+              <Feather name="arrow-right" size={19} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <Text style={styles.note}>
+              {tab === "login"
+                ? "Login with your registered mobile number."
+                : "Your data will be saved securely in Connect T MySQL database."}
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
+}
 
-  const renderOtpStep = () => (
-    <>
-      <View style={styles.otpTopIcon}>
-        <Feather name="lock" size={28} color="#EA580C" />
-      </View>
-
-      <Text style={styles.cardTitle}>Enter OTP</Text>
-      <Text style={styles.otpHint}>OTP sent to +91 {phone}</Text>
-
-      {!!error && (
-        <View style={styles.errorBox}>
-          <Feather name="alert-circle" size={15} color="#DC2626" />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      <View style={styles.otpRow}>
-        {otp.map((digit, index) => (
-          <TextInput
-            key={index}
-            ref={(ref) => {
-              otpRefs.current[index] = ref;
-            }}
-            style={[styles.otpBox, digit && styles.otpBoxFilled]}
-            value={digit}
-            onChangeText={(value) => setOtpDigit(index, value)}
-            keyboardType="default"
-            maxLength={1}
-            textAlign="center"
-          />
-        ))}
-      </View>
-
-      <Text style={styles.otpDemoNote}>Demo OTP is 1234</Text>
-
-      <TouchableOpacity
-        style={[styles.btn, loading && styles.btnDisabled]}
-        onPress={handleVerifyOtp}
-        activeOpacity={0.86}
-        disabled={loading}
-      >
-        <LinearGradient
-          colors={["#047857", "#059669", "#10B981"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.btnGrad}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <Feather name="check-circle" size={18} color="white" />
-              <Text style={styles.btnText}>Verify & Continue</Text>
-            </>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={handleSendOtp}
-        disabled={countdown > 0 || otpSending}
-        activeOpacity={0.72}
-      >
-        <Text style={[styles.resendLink, countdown > 0 && styles.resendMuted]}>
-          {countdown > 0 ? `Resend OTP in ${countdown}s` : "Resend OTP"}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => {
-          setStep("form");
-          setError("");
-          resetOtp();
-        }}
-        style={styles.changeNumberBtn}
-        activeOpacity={0.72}
-      >
-        <Feather name="arrow-left" size={14} color="#64748B" />
-        <Text style={styles.changeNumberText}>Change number</Text>
-      </TouchableOpacity>
-    </>
-  );
-
-  const renderSuccessStep = () => (
-    <View style={styles.successWrap}>
-      <View style={styles.successCircle}>
-        <Feather name="check" size={36} color="white" />
-      </View>
-      <Text style={styles.successTitle}>Welcome!</Text>
-      <Text style={styles.successSub}>Opening your job portal...</Text>
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <View style={styles.sectionTitleRow}>
+      <View style={styles.sectionDot} />
+      <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
+}
+
+function Input(props: React.ComponentProps<typeof TextInput> & { label: string }) {
+  const { label, multiline, style, ...rest } = props;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        style={styles.root}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {renderHeader()}
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        {...rest}
+        multiline={multiline}
+        style={[styles.input, multiline && styles.textArea, style]}
+        placeholderTextColor="#94A3B8"
+      />
+    </View>
+  );
+}
 
-        <View style={styles.card}>
-          {step === "form" && renderFormStep()}
-          {step === "otp" && renderOtpStep()}
-          {step === "success" && renderSuccessStep()}
-        </View>
-
-        <TouchableOpacity
-          onPress={() => router.replace("/portal-select" as any)}
-          style={styles.backPill}
-          activeOpacity={0.84}
-        >
-          <Feather name="arrow-left" size={14} color="#EA580C" />
-          <Text style={styles.backPillText}>Back to portal selection</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+function DobInput({
+  day,
+  month,
+  year,
+  setDay,
+  setMonth,
+  setYear,
+}: {
+  day: string;
+  month: string;
+  year: string;
+  setDay: (v: string) => void;
+  setMonth: (v: string) => void;
+  setYear: (v: string) => void;
+}) {
+  return (
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>Date of Birth *</Text>
+      <View style={styles.dobRow}>
+        <TextInput
+          value={day}
+          onChangeText={(v) => setDay(v.replace(/\D/g, "").slice(0, 2))}
+          placeholder="DD"
+          keyboardType="number-pad"
+          maxLength={2}
+          style={styles.dobInput}
+          placeholderTextColor="#94A3B8"
+        />
+        <TextInput
+          value={month}
+          onChangeText={(v) => setMonth(v.replace(/\D/g, "").slice(0, 2))}
+          placeholder="MM"
+          keyboardType="number-pad"
+          maxLength={2}
+          style={styles.dobInput}
+          placeholderTextColor="#94A3B8"
+        />
+        <TextInput
+          value={year}
+          onChangeText={(v) => setYear(v.replace(/\D/g, "").slice(0, 4))}
+          placeholder="YYYY"
+          keyboardType="number-pad"
+          maxLength={4}
+          style={[styles.dobInput, { flex: 1.35 }]}
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+      <Text style={styles.helperText}>Same DOB format as citizen registration: DD / MM / YYYY</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#FFF7ED",
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 34,
-  },
-  header: {
-    minHeight: 268,
-    paddingHorizontal: 22,
-    paddingBottom: 42,
-    overflow: "hidden",
-  },
-  headerTop: {
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  backCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerBadge: {
+  root: { flex: 1 },
+  content: { paddingHorizontal: 18 },
+  backBtn: {
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderRadius: 999,
-    paddingHorizontal: 13,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    paddingHorizontal: 14,
     paddingVertical: 9,
+    borderRadius: 999,
+    marginBottom: 18,
   },
-  headerBadgeText: {
-    fontSize: 12,
-    color: "white",
-    fontFamily: "Inter_700Bold",
-  },
-  heroBlock: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 24,
-  },
-  heroIcon: {
-    width: 76,
-    height: 76,
-    borderRadius: 26,
-    backgroundColor: "white",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  headerTitle: {
-    fontSize: 30,
-    fontWeight: "900",
-    color: "white",
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
-  },
-  headerSub: {
+  backText: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.75)",
-    fontFamily: "Inter_400Regular",
-    marginTop: 6,
-    textAlign: "center",
+    color: "#C2410C",
+    fontFamily: "Inter_700Bold",
+  },
+  header: { alignItems: "center", marginBottom: 18 },
+  logo: {
+    width: 58,
+    height: 58,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 32,
+    color: "#FFFFFF",
+    fontFamily: "Inter_800ExtraBold",
+    letterSpacing: -0.8,
+  },
+  subtitle: {
+    marginTop: 5,
+    fontSize: 13,
+    color: "#FFEDD5",
+    fontFamily: "Inter_600SemiBold",
   },
   card: {
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
     borderRadius: 28,
-    marginHorizontal: 16,
-    marginTop: -30,
-    padding: 20,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    padding: 16,
+    shadowColor: "#7C2D12",
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
   },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#0F172A",
-    fontFamily: "Inter_700Bold",
-    textAlign: "center",
-  },
-  cardSubTitle: {
-    fontSize: 12,
-    color: "#64748B",
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 18,
-    marginTop: 6,
-    marginBottom: 18,
-  },
-  roleRow: {
+  segment: {
     flexDirection: "row",
-    gap: 10,
-    marginBottom: 16,
-  },
-  roleCard: {
-    flex: 1,
-    minHeight: 112,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "#FED7AA",
     backgroundColor: "#FFF7ED",
-    padding: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 5,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+    marginBottom: 12,
   },
-  roleCardActive: {
-    borderColor: "#EA580C",
-    backgroundColor: "#EA580C",
-  },
-  roleIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 15,
-    backgroundColor: "#FFEDD5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  roleIconActive: {
-    backgroundColor: "rgba(255,255,255,0.22)",
-  },
-  roleLabel: {
-    fontSize: 13,
-    fontWeight: "900",
-    color: "#EA580C",
-    fontFamily: "Inter_700Bold",
-    textAlign: "center",
-  },
-  roleLabelActive: {
-    color: "white",
-  },
-  roleSub: {
-    fontSize: 10,
-    color: "#92400E",
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  roleSubActive: {
-    color: "rgba(255,255,255,0.78)",
-  },
-  tabRow: {
-    flexDirection: "row",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 18,
-  },
-  tabItem: {
+  segmentBtn: {
     flex: 1,
-    paddingVertical: 10,
+    borderRadius: 14,
+    paddingVertical: 11,
     alignItems: "center",
-    borderRadius: 13,
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  segmentBtnActive: { backgroundColor: "#EA580C" },
+  segmentText: {
+    color: "#C2410C",
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+  },
+  segmentTextActive: { color: "#FFFFFF" },
+  tabWrap: {
+    flexDirection: "row",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 18,
+    padding: 5,
+    marginBottom: 14,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 11,
+    alignItems: "center",
+    borderRadius: 14,
   },
   tabActive: {
-    backgroundColor: "white",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 1 },
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 2,
   },
   tabText: {
     fontSize: 14,
     color: "#64748B",
-    fontFamily: "Inter_600SemiBold",
-  },
-  tabTextActive: {
-    color: "#EA580C",
     fontFamily: "Inter_700Bold",
   },
-  sectionBanner: {
+  tabTextActive: { color: "#EA580C" },
+  sectionTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#FFF7ED",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: "#EA580C",
+    marginTop: 7,
+    marginBottom: 10,
   },
-  sectionBannerText: {
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#10B981",
+  },
+  sectionTitle: {
+    fontSize: 14,
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  inputGroup: { marginBottom: 12 },
+  label: {
     fontSize: 13,
-    fontWeight: "800",
-    color: "#EA580C",
+    color: "#334155",
     fontFamily: "Inter_700Bold",
-  },
-  inputWrap: {
-    marginBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#475569",
-    fontFamily: "Inter_600SemiBold",
     marginBottom: 7,
   },
-  required: {
-    color: "#DC2626",
-  },
-  optional: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontFamily: "Inter_400Regular",
-  },
   input: {
-    minHeight: 50,
+    minHeight: 54,
     backgroundColor: "#F8FAFC",
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
     borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 16,
     color: "#0F172A",
-    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
   },
-  hint: {
-    fontSize: 10,
-    color: "#94A3B8",
-    fontFamily: "Inter_400Regular",
-    marginTop: 5,
+  textArea: {
+    minHeight: 92,
+    paddingTop: 14,
+    textAlignVertical: "top",
   },
   phoneRow: {
     flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
   },
-  phoneCode: {
-    minHeight: 50,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
+  countryBox: {
+    width: 92,
+    height: 54,
     borderRadius: 16,
-    paddingHorizontal: 12,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     alignItems: "center",
     justifyContent: "center",
   },
-  phoneCodeText: {
-    fontSize: 15,
-    color: "#0F172A",
-    fontFamily: "Inter_700Bold",
+  countryText: {
+    fontSize: 14,
+    color: "#334155",
+    fontFamily: "Inter_800ExtraBold",
   },
   phoneInput: {
     flex: 1,
+    height: 54,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 16,
+    color: "#0F172A",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
   },
-  btn: {
-    borderRadius: 18,
-    overflow: "hidden",
+  dobRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  dobInput: {
+    flex: 1,
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    textAlign: "center",
+    color: "#0F172A",
+    fontSize: 15,
+    fontFamily: "Inter_800ExtraBold",
+  },
+  helperText: {
     marginTop: 6,
+    fontSize: 11,
+    color: "#64748B",
+    fontFamily: "Inter_500Medium",
   },
-  btnDisabled: {
-    opacity: 0.7,
-  },
-  btnGrad: {
-    minHeight: 52,
+  photoRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-    paddingVertical: 15,
+    gap: 12,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: "#FFF7ED",
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+    marginBottom: 14,
   },
-  btnText: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "white",
-    fontFamily: "Inter_700Bold",
+  photo: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#FED7AA",
+  },
+  photoEmpty: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#FDBA74",
+  },
+  photoTitle: {
+    fontSize: 13,
+    color: "#0F172A",
+    fontFamily: "Inter_800ExtraBold",
+  },
+  photoSub: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#64748B",
+    fontFamily: "Inter_500Medium",
   },
   errorBox: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
-    backgroundColor: "#FEE2E2",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    padding: 12,
+    borderRadius: 16,
+    marginTop: 4,
     marginBottom: 12,
   },
   errorText: {
     flex: 1,
     fontSize: 12,
-    color: "#991B1B",
-    fontFamily: "Inter_500Medium",
-    lineHeight: 17,
+    color: "#B91C1C",
+    fontFamily: "Inter_700Bold",
+    lineHeight: 18,
   },
-  otpTopIcon: {
-    alignSelf: "center",
-    width: 78,
-    height: 78,
-    borderRadius: 26,
-    backgroundColor: "#FFF7ED",
+  primaryBtn: {
+    height: 58,
+    borderRadius: 18,
+    backgroundColor: "#10B981",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
-  },
-  otpHint: {
-    fontSize: 13,
-    color: "#64748B",
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    marginTop: 7,
-    marginBottom: 18,
-  },
-  otpRow: {
     flexDirection: "row",
-    justifyContent: "center",
     gap: 10,
-    marginBottom: 10,
-  },
-  otpBox: {
-    width: 58,
-    height: 62,
-    borderRadius: 17,
-    borderWidth: 2,
-    borderColor: "#FED7AA",
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#0F172A",
-    backgroundColor: "#FFF7ED",
-    fontFamily: "Inter_700Bold",
-    textAlign: "center",
-    textAlignVertical: "center",
-    paddingVertical: 0,
-    includeFontPadding: false,
-    lineHeight: 62,
-  },
-  otpBoxFilled: {
-    borderColor: "#EA580C",
-    backgroundColor: "white",
-  },
-  otpDemoNote: {
-    fontSize: 11,
-    color: "#94A3B8",
-    textAlign: "center",
-    marginBottom: 16,
-    fontFamily: "Inter_400Regular",
-  },
-  resendLink: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#EA580C",
-    fontFamily: "Inter_700Bold",
-    textAlign: "center",
-    marginTop: 14,
-  },
-  resendMuted: {
-    color: "#94A3B8",
-  },
-  changeNumberBtn: {
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 16,
-  },
-  changeNumberText: {
-    fontSize: 13,
-    color: "#64748B",
-    fontFamily: "Inter_500Medium",
-  },
-  successWrap: {
-    alignItems: "center",
-    paddingVertical: 34,
-  },
-  successCircle: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    backgroundColor: "#16A34A",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#0F172A",
-    fontFamily: "Inter_700Bold",
-  },
-  successSub: {
-    fontSize: 13,
-    color: "#64748B",
-    fontFamily: "Inter_400Regular",
-    marginTop: 5,
-  },
-  backPill: {
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    backgroundColor: "white",
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: "#FED7AA",
-    marginTop: 18,
-  },
-  backPillText: {
-    fontSize: 13,
-    color: "#EA580C",
-    fontFamily: "Inter_700Bold",
-  },
-});
-
-const dd = StyleSheet.create({
-  wrap: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#475569",
-    fontFamily: "Inter_600SemiBold",
-    marginBottom: 7,
-  },
-  required: {
-    color: "#DC2626",
-  },
-  trigger: {
-    minHeight: 50,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  triggerText: {
-    fontSize: 15,
-    color: "#0F172A",
-    fontFamily: "Inter_400Regular",
-    flex: 1,
-  },
-  placeholder: {
-    color: "#CBD5E1",
-  },
-  manualRow: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  manualInput: {
-    flex: 1,
-    minHeight: 50,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: "#0F172A",
-    fontFamily: "Inter_400Regular",
-  },
-  doneBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: "#EA580C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: "#F1F5F9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  editLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 6,
-  },
-  editLinkText: {
-    fontSize: 10,
-    color: "#EA580C",
-    fontFamily: "Inter_500Medium",
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(15,23,42,0.45)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    maxHeight: 500,
-  },
-  sheetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  sheetTitle: {
-    fontSize: 17,
-    fontWeight: "900",
-    color: "#0F172A",
-    fontFamily: "Inter_700Bold",
-  },
-  option: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F8FAFC",
-  },
-  optionActive: {
-    backgroundColor: "#FFF7ED",
-  },
-  optionOther: {
-    borderTopWidth: 1,
-    borderTopColor: "#FED7AA",
     marginTop: 4,
   },
-  optionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+  primaryBtnDisabled: { opacity: 0.65 },
+  primaryText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontFamily: "Inter_800ExtraBold",
   },
-  optionRowBetween: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  optionText: {
-    fontSize: 14,
-    color: "#334155",
+  note: {
+    textAlign: "center",
+    color: "#64748B",
+    fontSize: 11,
     fontFamily: "Inter_500Medium",
-  },
-  optionOtherText: {
-    color: "#EA580C",
-  },
-  optionTextActive: {
-    color: "#EA580C",
-    fontFamily: "Inter_700Bold",
+    marginTop: 12,
+    lineHeight: 16,
   },
 });
