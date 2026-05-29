@@ -1,6 +1,12 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, TextInput,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Platform,
+  TextInput,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -21,10 +27,10 @@ function timeAgo(dateStr: string) {
 }
 
 function getInitials(name: string) {
-  return name.split(" ").map((w) => w[0] || "").join("").slice(0, 2).toUpperCase() || "??";
+  return name.split(" ").map((w) => w[0] || "").join("").slice(0, 2).toUpperCase() || "CT";
 }
 
-const AVATAR_COLORS = ["#EA580C", "#059669", "#7C3AED", "#0369A1", "#DC2626", "#B45309"];
+const AVATAR_COLORS = ["#047857", "#059669", "#EA580C", "#0369A1", "#7C3AED", "#B45309"];
 function avatarColor(str: string) {
   let h = 0;
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % AVATAR_COLORS.length;
@@ -39,55 +45,81 @@ export default function MessagesScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
 
-  const appliedJobs = jobs.filter((j) => jobsUser && j.applicants.includes(jobsUser.id));
+  const conversations = useMemo(() => {
+    if (!jobsUser) return [];
 
-  const contacts = appliedJobs.map((job) => ({
-    employerId: job.employerId,
-    company: job.company,
-    jobTitle: job.title,
-    jobId: job.id,
-    lastActivity: job.createdAt,
-    isShortlisted: job.shortlisted?.includes(jobsUser?.id || ""),
-    isRejected: job.rejected?.includes(jobsUser?.id || ""),
-  }));
+    if (jobsUser.role === "employer") {
+      return jobs.flatMap((job) =>
+        (job.applications || []).map((app) => ({
+          peerId: app.seekerId,
+          peerName: app.seekerName || `Applicant ${app.seekerId.slice(-4)}`,
+          company: app.seekerName || `Applicant ${app.seekerId.slice(-4)}`,
+          jobTitle: job.title,
+          jobId: job.id,
+          lastActivity: job.updatedAt || job.createdAt,
+          status: app.status,
+        })),
+      );
+    }
 
-  const uniqueContacts = contacts.filter(
-    (c, i, arr) => arr.findIndex((x) => x.employerId === c.employerId) === i
-  );
+    return jobs
+      .filter((job) => job.applicants.includes(jobsUser.id))
+      .map((job) => {
+        const app = (job.applications || []).find((item) => item.seekerId === jobsUser.id);
+        return {
+          peerId: job.employerId,
+          peerName: job.employerName || job.company,
+          company: job.company,
+          jobTitle: job.title,
+          jobId: job.id,
+          lastActivity: job.updatedAt || job.createdAt,
+          status: app?.status || (job.shortlisted.includes(jobsUser.id) ? "shortlisted" : job.rejected.includes(jobsUser.id) ? "rejected" : "applied"),
+        };
+      });
+  }, [jobs, jobsUser]);
 
   const filtered = search.trim()
-    ? uniqueContacts.filter(
+    ? conversations.filter(
         (c) =>
           c.company.toLowerCase().includes(search.toLowerCase()) ||
-          c.jobTitle.toLowerCase().includes(search.toLowerCase())
+          c.jobTitle.toLowerCase().includes(search.toLowerCase()) ||
+          c.peerName.toLowerCase().includes(search.toLowerCase()),
       )
-    : uniqueContacts;
+    : conversations;
 
   return (
     <View style={s.root}>
       <LinearGradient
-        colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        colors={["#064E3B", "#047857", "#059669", "#10B981"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={[s.header, { paddingTop: topPad + 12 }]}
       >
         <View style={s.headerRow}>
           <View style={{ flex: 1 }}>
+            <View style={s.headerPill}>
+              <Feather name="message-circle" size={11} color="rgba(255,255,255,0.9)" />
+              <Text style={s.headerPillText}>JOB PORTAL</Text>
+            </View>
             <Text style={s.headerTitle}>Messages</Text>
             <Text style={s.headerSub}>
-              {uniqueContacts.length > 0
-                ? `${uniqueContacts.length} employer conversation${uniqueContacts.length > 1 ? "s" : ""}`
-                : "Apply to jobs to start chatting"}
+              {conversations.length > 0
+                ? `${conversations.length} active conversation${conversations.length > 1 ? "s" : ""}`
+                : jobsUser?.role === "employer"
+                  ? "Applicants will appear here"
+                  : "Apply to jobs to start chatting"}
             </Text>
           </View>
           <View style={s.headerBadgeWrap}>
             <Feather name="message-circle" size={18} color="white" />
-            {uniqueContacts.length > 0 && (
+            {conversations.length > 0 && (
               <View style={s.notifBubble}>
-                <Text style={s.notifBubbleText}>{uniqueContacts.length}</Text>
+                <Text style={s.notifBubbleText}>{conversations.length}</Text>
               </View>
             )}
           </View>
         </View>
+
         <View style={s.searchBar}>
           <Feather name="search" size={15} color="#94A3B8" />
           <TextInput
@@ -108,23 +140,26 @@ export default function MessagesScreen() {
       {filtered.length === 0 ? (
         <View style={s.empty}>
           <View style={s.emptyIconWrap}>
-            <Feather name="message-circle" size={40} color="#EA580C" />
+            <Feather name="message-circle" size={40} color="#047857" />
           </View>
           <Text style={s.emptyTitle}>{search ? "No results found" : "No conversations yet"}</Text>
           <Text style={s.emptySub}>
             {search
               ? "Try a different search term"
-              : "Apply to jobs to start messaging employers directly"}
+              : jobsUser?.role === "employer"
+                ? "Applicants who apply to your jobs will appear here."
+                : "Apply to jobs to start messaging employers directly."}
           </Text>
-          {!search && (
+          {!search && jobsUser?.role !== "employer" && (
             <TouchableOpacity
               style={s.browseBtn}
               onPress={() => router.replace("/jobs/(tabs)" as any)}
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={["#C2410C", "#EA580C"]}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                colors={["#047857", "#059669", "#10B981"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={s.browseBtnGrad}
               >
                 <Feather name="briefcase" size={15} color="white" />
@@ -136,17 +171,30 @@ export default function MessagesScreen() {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item) => item.employerId}
+          keyExtractor={(item) => `${item.jobId}-${item.peerId}`}
           contentContainerStyle={[s.list, { paddingBottom: Math.max(insets.bottom, 8) + 90 }]}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
             const color = avatarColor(item.company);
             const initials = getInitials(item.company);
+            const isShortlisted = item.status === "shortlisted";
+            const isRejected = item.status === "rejected";
+            const isHired = item.status === "hired";
+
             return (
               <TouchableOpacity
                 style={s.contactCard}
                 activeOpacity={0.82}
-                onPress={() => router.push(`/jobs/chat/${item.employerId}` as any)}
+                onPress={() =>
+                  router.push({
+                    pathname: "/jobs/chat/[employerId]",
+                    params: {
+                      employerId: item.peerId,
+                      jobId: item.jobId,
+                      peerName: item.peerName,
+                    },
+                  } as any)
+                }
               >
                 <View style={[s.avatar, { backgroundColor: color }]}>
                   <Text style={s.avatarText}>{initials}</Text>
@@ -158,12 +206,17 @@ export default function MessagesScreen() {
                   </View>
                   <Text style={s.contactJob} numberOfLines={1}>{item.jobTitle}</Text>
                   <View style={s.statusRow}>
-                    {item.isShortlisted ? (
+                    {isHired ? (
+                      <View style={[s.statusPill, { backgroundColor: "#D1FAE5" }]}>
+                        <Feather name="briefcase" size={10} color="#059669" />
+                        <Text style={[s.statusPillText, { color: "#059669" }]}>Hired</Text>
+                      </View>
+                    ) : isShortlisted ? (
                       <View style={[s.statusPill, { backgroundColor: "#D1FAE5" }]}>
                         <Feather name="check-circle" size={10} color="#059669" />
                         <Text style={[s.statusPillText, { color: "#059669" }]}>Shortlisted</Text>
                       </View>
-                    ) : item.isRejected ? (
+                    ) : isRejected ? (
                       <View style={[s.statusPill, { backgroundColor: "#FEE2E2" }]}>
                         <Feather name="x-circle" size={10} color="#DC2626" />
                         <Text style={[s.statusPillText, { color: "#DC2626" }]}>Not selected</Text>
@@ -192,36 +245,57 @@ export default function MessagesScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F8FAFC" },
-  header: { paddingHorizontal: 16, paddingBottom: 14, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  headerBadgeWrap: { position: "relative", width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-  notifBubble: { position: "absolute", top: 5, right: 5, width: 16, height: 16, borderRadius: 8, backgroundColor: "#FCD34D", alignItems: "center", justifyContent: "center" },
+  root: { flex: 1, backgroundColor: "#F6FAF8" },
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 34,
+    borderBottomRightRadius: 34,
+    shadowColor: "#064E3B",
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14, gap: 12 },
+  headerPill: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    marginBottom: 10,
+  },
+  headerPillText: { fontSize: 10, letterSpacing: 1, color: "white", fontFamily: "Inter_700Bold" },
+  headerTitle: { fontSize: 28, fontWeight: "900", color: "white", fontFamily: "Inter_800ExtraBold", letterSpacing: -0.6 },
+  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.78)", fontFamily: "Inter_400Regular", marginTop: 4, lineHeight: 18 },
+  headerBadgeWrap: { position: "relative", width: 46, height: 46, borderRadius: 23, backgroundColor: "rgba(255,255,255,0.17)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  notifBubble: { position: "absolute", top: 5, right: 5, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: "#FCD34D", alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
   notifBubbleText: { fontSize: 8, fontWeight: "800", color: "#92400E", fontFamily: "Inter_700Bold" },
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
+  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, gap: 10, shadowColor: "#064E3B", shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
   searchInput: { flex: 1, fontSize: 13, color: "#0F172A", fontFamily: "Inter_400Regular", padding: 0 },
-
-  list: { paddingHorizontal: 14, paddingTop: 4 },
-  listHeader: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular", paddingVertical: 10 },
-
-  contactCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "white", borderRadius: 16, padding: 14, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  avatar: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  list: { paddingHorizontal: 16, paddingTop: 8 },
+  listHeader: { fontSize: 12, color: "#64748B", fontFamily: "Inter_600SemiBold", paddingVertical: 10 },
+  contactCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "white", borderRadius: 22, padding: 14, marginBottom: 11, shadowColor: "#0F172A", shadowOpacity: 0.05, shadowRadius: 11, shadowOffset: { width: 0, height: 4 }, elevation: 3, borderWidth: 1, borderColor: "rgba(226,232,240,0.9)" },
+  avatar: { width: 50, height: 50, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 16, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
-  contactTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
-  contactName: { fontSize: 14, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold", flex: 1 },
+  contactTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2, gap: 10 },
+  contactName: { fontSize: 14, fontWeight: "900", color: "#0F172A", fontFamily: "Inter_700Bold", flex: 1 },
   contactTime: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  contactJob: { fontSize: 12, color: "#64748B", fontFamily: "Inter_400Regular", marginBottom: 6 },
+  contactJob: { fontSize: 12, color: "#64748B", fontFamily: "Inter_400Regular", marginBottom: 7 },
   statusRow: { flexDirection: "row" },
-  statusPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  statusPillText: { fontSize: 10, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
-
+  statusPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  statusPillText: { fontSize: 10, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 12 },
-  emptyIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#FFEDD5", alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", textAlign: "center" },
-  emptySub: { fontSize: 13, color: "#94A3B8", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
-  browseBtn: { borderRadius: 14, overflow: "hidden", marginTop: 8 },
+  emptyIconWrap: { width: 82, height: 82, borderRadius: 28, backgroundColor: "#ECFDF5", alignItems: "center", justifyContent: "center", marginBottom: 4, borderWidth: 1.5, borderColor: "#A7F3D0" },
+  emptyTitle: { fontSize: 18, fontWeight: "900", color: "#0F172A", fontFamily: "Inter_700Bold", textAlign: "center" },
+  emptySub: { fontSize: 13, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+  browseBtn: { borderRadius: 18, overflow: "hidden", marginTop: 8 },
   browseBtnGrad: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 24, paddingVertical: 13 },
-  browseBtnText: { fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  browseBtnText: { fontSize: 14, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
 });
