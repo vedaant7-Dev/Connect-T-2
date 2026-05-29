@@ -167,7 +167,13 @@ export function JobsProvider({ children }: { children: ReactNode }) {
 
     try {
       const params = new URLSearchParams();
-      params.set("active", "all");
+
+      if (jobsUser?.role === "employer") {
+        params.set("active", "all");
+        params.set("employerId", jobsUser.id);
+      } else {
+        params.set("active", "true");
+      }
 
       if (jobsUser?.id) {
         params.set("viewerId", jobsUser.id);
@@ -180,10 +186,22 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       let apps: JobApplication[] = [];
 
       try {
-        const appRes = await apiGet<{ success: boolean; applications: any[] }>(
-          "/api/job-portal/applications",
-        );
-        apps = (appRes.applications || []).map(normalizeApplication);
+        const appParams = new URLSearchParams();
+
+        if (jobsUser?.role === "seeker") {
+          appParams.set("seekerId", jobsUser.id);
+        }
+
+        if (jobsUser?.role === "employer") {
+          appParams.set("employerId", jobsUser.id);
+        }
+
+        if (appParams.toString()) {
+          const appRes = await apiGet<{ success: boolean; applications: any[] }>(
+            `/api/job-portal/applications?${appParams.toString()}`,
+          );
+          apps = (appRes.applications || []).map(normalizeApplication);
+        }
       } catch {
         apps = [];
       }
