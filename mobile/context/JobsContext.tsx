@@ -18,6 +18,7 @@ export type JobType = "full-time" | "part-time" | "contract" | "apprentice";
 
 export interface JobMessage {
   from: string;
+  to?: string;
   text: string;
   createdAt: string;
 }
@@ -32,6 +33,7 @@ export interface JobApplication {
   seekerEmail?: string;
   seekerSkills?: string;
   seekerQualification?: string;
+  seekerProfilePhoto?: string;
 }
 
 export interface Job {
@@ -69,6 +71,7 @@ export interface Job {
   urgentHiring?: boolean;
   openings: number;
   applicants: string[];
+  applicantsCount?: number;
   messages: JobMessage[];
   hired: string[];
   shortlisted: string[];
@@ -101,6 +104,15 @@ function words(value?: string) {
   return String(value || "").trim().split(/\s+/).filter(Boolean).length;
 }
 
+function unique(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean).map(String)));
+}
+
+function asNumber(value: any): number | undefined {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 function asCategory(value: any): JobCategory {
   const v = String(value || "other") as JobCategory;
   return categoryConfig[v] ? v : "other";
@@ -112,25 +124,34 @@ function asType(value: any): JobType {
 }
 
 function normalizeApplication(raw: any): JobApplication {
+  const jobId = String(raw.job_id || raw.jobId || "");
+  const seekerId = String(raw.seeker_id || raw.seekerId || "");
+
   return {
-    id: String(raw.id),
-    jobId: String(raw.job_id || raw.jobId),
-    seekerId: String(raw.seeker_id || raw.seekerId),
+    id: String(raw.id || `${jobId}_${seekerId}`),
+    jobId,
+    seekerId,
     status: (raw.status || "applied") as JobApplication["status"],
-    seekerName: raw.seeker_name || raw.seekerName,
-    seekerPhone: raw.seeker_phone || raw.seekerPhone,
-    seekerEmail: raw.seeker_email || raw.seekerEmail,
-    seekerSkills: raw.seeker_skills || raw.seekerSkills,
-    seekerQualification: raw.seeker_qualification || raw.seekerQualification,
+    seekerName: raw.seeker_name || raw.seekerName || raw.name,
+    seekerPhone: raw.seeker_phone || raw.seekerPhone || raw.phone,
+    seekerEmail: raw.seeker_email || raw.seekerEmail || raw.email,
+    seekerSkills: raw.seeker_skills || raw.seekerSkills || raw.skills,
+    seekerQualification: raw.seeker_qualification || raw.seekerQualification || raw.qualification,
+    seekerProfilePhoto: raw.seeker_profile_photo || raw.seekerProfilePhoto || raw.profilePhoto,
   };
 }
 
 function normalizeJob(raw: any, apps: JobApplication[] = [], previous?: Job): Job {
-  const jobApps = apps.filter((app) => app.jobId === String(raw.id));
-  const applicants = jobApps.map((app) => app.seekerId);
+  const id = String(raw.id);
+  const jobApps = apps.filter((app) => app.jobId === id);
+  const applicants = unique([
+    ...(Array.isArray(raw.applicants) ? raw.applicants.map(String) : []),
+    ...jobApps.map((app) => app.seekerId),
+  ]);
+  const applicantsCount = Number(raw.applicantsCount ?? raw.applicants_count ?? applicants.length);
 
   return {
-    id: String(raw.id),
+    id,
     employerId: String(raw.employerId || raw.employer_id),
     employerName: raw.employerName || raw.employer_name || "Employer",
     employerPhone: raw.employerPhone || raw.employer_phone,
@@ -146,12 +167,12 @@ function normalizeJob(raw: any, apps: JobApplication[] = [], previous?: Job): Jo
     workingDays: raw.workingDays || raw.working_days || undefined,
     weeklyOff: raw.weeklyOff || raw.weekly_off || undefined,
     salary: raw.salary || raw.salaryText || raw.salary_text || "Salary not specified",
-    salaryMin: raw.salaryMin || raw.salary_min,
-    salaryMax: raw.salaryMax || raw.salary_max,
+    salaryMin: asNumber(raw.salaryMin ?? raw.salary_min),
+    salaryMax: asNumber(raw.salaryMax ?? raw.salary_max),
     location: raw.location || "Ambernath",
     address: raw.address || undefined,
-    latitude: raw.latitude ? Number(raw.latitude) : undefined,
-    longitude: raw.longitude ? Number(raw.longitude) : undefined,
+    latitude: asNumber(raw.latitude),
+    longitude: asNumber(raw.longitude),
     distanceKm: raw.distanceKm ?? raw.distance_km ?? null,
     description: raw.description || "",
     requirements: raw.requirements || "",
@@ -164,10 +185,11 @@ function normalizeJob(raw: any, apps: JobApplication[] = [], previous?: Job): Jo
     urgentHiring: !!(raw.urgentHiring || raw.urgent_hiring),
     openings: Number(raw.openings || 1),
     applicants,
+    applicantsCount: Number.isFinite(applicantsCount) ? applicantsCount : applicants.length,
     messages: previous?.messages || [],
-    hired: jobApps.filter((app) => app.status === "hired").map((app) => app.seekerId),
-    shortlisted: jobApps.filter((app) => app.status === "shortlisted").map((app) => app.seekerId),
-    rejected: jobApps.filter((app) => app.status === "rejected").map((app) => app.seekerId),
+    hired: unique(jobApps.filter((app) => app.status === "hired").map((app) => app.seekerId)),
+    shortlisted: unique(jobApps.filter((app) => app.status === "shortlisted").map((app) => app.seekerId)),
+    rejected: unique(jobApps.filter((app) => app.status === "rejected").map((app) => app.seekerId)),
     applications: jobApps,
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
     updatedAt: raw.updatedAt || raw.updated_at,
@@ -180,6 +202,27 @@ function mergeJob(prev: Job[], nextJob: Job) {
   return exists
     ? prev.map((job) => (job.id === nextJob.id ? { ...job, ...nextJob, messages: nextJob.messages || job.messages } : job))
     : [nextJob, ...prev];
+}
+
+function withApplicationStatus(job: Job, seekerId: string, status: JobApplication["status"]): Job {
+  const hired = job.hired.filter((id) => id !== seekerId);
+  const shortlisted = job.shortlisted.filter((id) => id !== seekerId);
+  const rejected = job.rejected.filter((id) => id !== seekerId);
+
+  if (status === "hired") hired.push(seekerId);
+  if (status === "shortlisted") shortlisted.push(seekerId);
+  if (status === "rejected") rejected.push(seekerId);
+
+  return {
+    ...job,
+    applicants: unique([...job.applicants, seekerId]),
+    hired: unique(hired),
+    shortlisted: unique(shortlisted),
+    rejected: unique(rejected),
+    applications: (job.applications || []).map((app) =>
+      app.seekerId === seekerId ? { ...app, status } : app,
+    ),
+  };
 }
 
 export function JobsProvider({ children }: { children: ReactNode }) {
@@ -245,7 +288,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshJobs().catch(() => setLoading(false));
-  }, [jobsUser?.id]);
+  }, [jobsUser?.id, jobsUser?.role]);
 
   const addJob = async (
     data: Omit<Job, "id" | "createdAt" | "applicants" | "messages" | "hired" | "shortlisted" | "rejected" | "active">,
@@ -268,6 +311,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       employerWhatsApp: jobsUser.whatsapp || jobsUser.phone,
       company: data.company || jobsUser.company || "Company",
       applicants: [],
+      applicantsCount: 0,
       messages: [],
       hired: [],
       shortlisted: [],
@@ -326,41 +370,70 @@ export function JobsProvider({ children }: { children: ReactNode }) {
 
     const senderId = message.from;
     const receiverId =
-      senderId === job.employerId
+      message.to ||
+      (senderId === job.employerId
         ? job.applicants.find((id) => id !== senderId)
-        : job.employerId;
+        : job.employerId);
 
     if (!receiverId) return;
+
+    const nextMessage = { ...message, to: receiverId };
 
     setJobs((prev) =>
       prev.map((item) =>
         item.id === jobId
-          ? { ...item, messages: [...(item.messages || []), message] }
+          ? { ...item, messages: [...(item.messages || []), nextMessage] }
           : item,
       ),
     );
 
-    await apiPost("/api/job-portal/messages", {
-      jobId,
-      senderId,
-      receiverId,
-      message: message.text,
-    });
+    try {
+      await apiPost("/api/job-portal/messages", {
+        jobId,
+        senderId,
+        receiverId,
+        message: message.text,
+      });
+    } catch (err) {
+      setJobs((prev) =>
+        prev.map((item) =>
+          item.id === jobId
+            ? { ...item, messages: (item.messages || []).filter((m) => m !== nextMessage) }
+            : item,
+        ),
+      );
+      throw err;
+    }
   };
 
   const applyJob = async (jobId: string, seekerId: string) => {
     if (!seekerId) return;
 
+    const previous = jobs;
+
     setJobs((prev) =>
       prev.map((job) =>
         job.id === jobId && !job.applicants.includes(seekerId)
-          ? { ...job, applicants: [...job.applicants, seekerId] }
+          ? {
+              ...job,
+              applicants: [...job.applicants, seekerId],
+              applicantsCount: Math.max(job.applicantsCount || 0, job.applicants.length + 1),
+              applications: [
+                ...(job.applications || []),
+                { id: `${jobId}_${seekerId}`, jobId, seekerId, status: "applied" },
+              ],
+            }
           : job,
       ),
     );
 
-    await apiPost(`/api/job-portal/jobs/${jobId}/apply`, { seekerId });
-    await refreshJobs();
+    try {
+      await apiPost(`/api/job-portal/jobs/${jobId}/apply`, { seekerId });
+      await refreshJobs();
+    } catch (err) {
+      setJobs(previous);
+      throw err;
+    }
   };
 
   const hasApplied = (jobId: string, seekerId: string) => {
@@ -377,12 +450,18 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     if (!current) return;
 
     const nextActive = !current.active;
+    const previous = jobs;
 
     setJobs((prev) =>
       prev.map((job) => (job.id === jobId ? { ...job, active: nextActive } : job)),
     );
 
-    await apiPatch(`/api/job-portal/jobs/${jobId}`, { active: nextActive });
+    try {
+      await apiPatch(`/api/job-portal/jobs/${jobId}`, { active: nextActive });
+    } catch (err) {
+      setJobs(previous);
+      throw err;
+    }
   };
 
   const updateApplicationStatus = async (
@@ -390,27 +469,28 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     seekerId: string,
     status: JobApplication["status"],
   ) => {
-    const app = applications.find((item) => item.jobId === jobId && item.seekerId === seekerId);
-    if (!app) return;
+    const app =
+      applications.find((item) => item.jobId === jobId && item.seekerId === seekerId) ||
+      jobs.flatMap((job) => job.applications || []).find((item) => item.jobId === jobId && item.seekerId === seekerId);
 
-    setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== jobId) return job;
+    if (!app) {
+      throw new Error("Application not found. Refresh and try again.");
+    }
 
-        const hired = job.hired.filter((id) => id !== seekerId);
-        const shortlisted = job.shortlisted.filter((id) => id !== seekerId);
-        const rejected = job.rejected.filter((id) => id !== seekerId);
+    const previousJobs = jobs;
+    const previousApps = applications;
 
-        if (status === "hired") hired.push(seekerId);
-        if (status === "shortlisted") shortlisted.push(seekerId);
-        if (status === "rejected") rejected.push(seekerId);
+    setApplications((prev) => prev.map((item) => (item.id === app.id ? { ...item, status } : item)));
+    setJobs((prev) => prev.map((job) => (job.id === jobId ? withApplicationStatus(job, seekerId, status) : job)));
 
-        return { ...job, hired, shortlisted, rejected };
-      }),
-    );
-
-    await apiPatch(`/api/job-portal/applications/${app.id}/status`, { status });
-    await refreshJobs();
+    try {
+      await apiPatch(`/api/job-portal/applications/${app.id}/status`, { status });
+      await refreshJobs();
+    } catch (err) {
+      setJobs(previousJobs);
+      setApplications(previousApps);
+      throw err;
+    }
   };
 
   const shortlistApplicant = async (jobId: string, seekerId: string) => {
