@@ -1774,6 +1774,12 @@ function jpJob(row) {
     title: row.title,
     category: row.category,
     type: row.type,
+    shift: row.shift,
+    jobMode: row.job_mode,
+    workStartTime: row.work_start_time,
+    workEndTime: row.work_end_time,
+    workingDays: row.working_days,
+    weeklyOff: row.weekly_off,
     salary: row.salary_text,
     salaryMin: row.salary_min,
     salaryMax: row.salary_max,
@@ -1787,14 +1793,38 @@ function jpJob(row) {
         : Number(row.distance_km),
     description: row.description,
     requirements: row.requirements,
+    experienceRequired: row.experience_required,
+    educationRequired: row.education_required,
+    skillsRequired: row.skills_required,
+    benefits: row.benefits,
+    joiningPreference: row.joining_preference,
+    lastDateToApply: row.last_date_to_apply,
     openings: row.openings,
     active: !!row.active,
     allowMessaging: !!row.allow_messaging,
+    urgentHiring: !!row.urgent_hiring,
     applicantsCount: Number(row.applicants_count || 0),
     applicationStatus: row.application_status || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+
+async function jpEnsureColumn(tableName, columnName, definition) {
+  const [rows] = await db.query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = ?
+       AND COLUMN_NAME = ?
+     LIMIT 1`,
+    [tableName, columnName],
+  );
+
+  if (!rows.length) {
+    await db.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
 }
 
 async function ensureJobPortalSchema() {
@@ -1907,6 +1937,20 @@ async function ensureJobPortalSchema() {
     certifications_json LONGTEXT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
+
+  await jpEnsureColumn("job_portal_jobs", "shift", "VARCHAR(60) NULL AFTER type");
+  await jpEnsureColumn("job_portal_jobs", "job_mode", "VARCHAR(40) NULL AFTER shift");
+  await jpEnsureColumn("job_portal_jobs", "work_start_time", "VARCHAR(20) NULL AFTER job_mode");
+  await jpEnsureColumn("job_portal_jobs", "work_end_time", "VARCHAR(20) NULL AFTER work_start_time");
+  await jpEnsureColumn("job_portal_jobs", "working_days", "VARCHAR(120) NULL AFTER work_end_time");
+  await jpEnsureColumn("job_portal_jobs", "weekly_off", "VARCHAR(80) NULL AFTER working_days");
+  await jpEnsureColumn("job_portal_jobs", "experience_required", "VARCHAR(120) NULL AFTER requirements");
+  await jpEnsureColumn("job_portal_jobs", "education_required", "VARCHAR(160) NULL AFTER experience_required");
+  await jpEnsureColumn("job_portal_jobs", "skills_required", "TEXT NULL AFTER education_required");
+  await jpEnsureColumn("job_portal_jobs", "benefits", "TEXT NULL AFTER skills_required");
+  await jpEnsureColumn("job_portal_jobs", "joining_preference", "VARCHAR(120) NULL AFTER benefits");
+  await jpEnsureColumn("job_portal_jobs", "last_date_to_apply", "DATE NULL AFTER joining_preference");
+  await jpEnsureColumn("job_portal_jobs", "urgent_hiring", "TINYINT(1) NOT NULL DEFAULT 0 AFTER allow_messaging");
 }
 
 app.get("/api/job-portal/health", async (req, res) => {
@@ -2252,14 +2296,20 @@ app.post("/api/job-portal/jobs", async (req, res) => {
 
     await db.query(
       `INSERT INTO job_portal_jobs
-       (id, employer_id, title, category, type, salary_min, salary_max, salary_text, location, address, latitude, longitude, description, requirements, openings, active, allow_messaging)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, employer_id, title, category, type, shift, job_mode, work_start_time, work_end_time, working_days, weekly_off, salary_min, salary_max, salary_text, location, address, latitude, longitude, description, requirements, experience_required, education_required, skills_required, benefits, joining_preference, last_date_to_apply, openings, active, allow_messaging, urgent_hiring)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         employerId,
         title,
         req.body.category || "other",
         req.body.type || "full-time",
+        req.body.shift || null,
+        req.body.jobMode || req.body.job_mode || null,
+        req.body.workStartTime || req.body.work_start_time || null,
+        req.body.workEndTime || req.body.work_end_time || null,
+        req.body.workingDays || req.body.working_days || null,
+        req.body.weeklyOff || req.body.weekly_off || null,
         req.body.salaryMin || null,
         req.body.salaryMax || null,
         req.body.salary || req.body.salaryText || null,
@@ -2269,9 +2319,16 @@ app.post("/api/job-portal/jobs", async (req, res) => {
         req.body.longitude || null,
         description,
         requirements || null,
+        req.body.experienceRequired || req.body.experience_required || null,
+        req.body.educationRequired || req.body.education_required || null,
+        req.body.skillsRequired || req.body.skills_required || null,
+        req.body.benefits || null,
+        req.body.joiningPreference || req.body.joining_preference || null,
+        req.body.lastDateToApply || req.body.last_date_to_apply || null,
         Number(req.body.openings || 1),
         req.body.active === false ? 0 : 1,
         req.body.allowMessaging === false ? 0 : 1,
+        req.body.urgentHiring === true ? 1 : 0,
       ],
     );
 
@@ -2305,6 +2362,12 @@ app.patch("/api/job-portal/jobs/:id", async (req, res) => {
       title: "title",
       category: "category",
       type: "type",
+      shift: "shift",
+      jobMode: "job_mode",
+      workStartTime: "work_start_time",
+      workEndTime: "work_end_time",
+      workingDays: "working_days",
+      weeklyOff: "weekly_off",
       salary: "salary_text",
       salaryMin: "salary_min",
       salaryMax: "salary_max",
@@ -2312,9 +2375,16 @@ app.patch("/api/job-portal/jobs/:id", async (req, res) => {
       address: "address",
       description: "description",
       requirements: "requirements",
+      experienceRequired: "experience_required",
+      educationRequired: "education_required",
+      skillsRequired: "skills_required",
+      benefits: "benefits",
+      joiningPreference: "joining_preference",
+      lastDateToApply: "last_date_to_apply",
       openings: "openings",
       active: "active",
       allowMessaging: "allow_messaging",
+      urgentHiring: "urgent_hiring",
     };
 
     const sets = [];
