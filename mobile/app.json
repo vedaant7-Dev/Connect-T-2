@@ -15,7 +15,7 @@
       "package": "com.connectt.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#EA580C"
+        "backgroundColor": "#047857"
       },
       "permissions": [
         "android.permission.INTERNET",
@@ -29,7 +29,7 @@
     },
     "androidStatusBar": {
       "barStyle": "light-content",
-      "backgroundColor": "#EA580C",
+      "backgroundColor": "#047857",
       "translucent": false
     },
     "web": {
