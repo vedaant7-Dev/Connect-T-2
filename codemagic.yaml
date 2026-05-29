@@ -1,6 +1,7 @@
 workflows:
   connect-t-android-native:
     name: Connect T Native Android Build
+    instance_type: linux
     max_build_duration: 120
 
     environment:
