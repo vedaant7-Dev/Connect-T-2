@@ -42,6 +42,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.2.14",
+    "hermes-compiler": "^250829098.0.10",
     "typescript": "~6.0.3"
   }
 }
