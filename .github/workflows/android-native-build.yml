@@ -1,0 +1,137 @@
+name: Native Android Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  android:
+    name: Build Android APK and AAB
+    runs-on: ubuntu-latest
+
+    env:
+      EXPO_PUBLIC_API_URL: https://connect-t-2.onrender.com
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Show source commit
+        run: |
+          pwd
+          git rev-parse HEAD
+          git log --oneline -8
+          ls -la mobile/android
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "21"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "build-tools;36.0.0" \
+            "ndk;27.1.12297006"
+          yes | sdkmanager --licenses || true
+
+      - name: Install Node dependencies
+        working-directory: mobile
+        run: |
+          npm ci || npm install
+
+      - name: Verify latest UI source
+        run: |
+          grep -R "Hiring Overview" -n "mobile/app/jobs/(tabs)/index.tsx"
+          grep -R "Find trusted local work" -n "mobile/app/jobs/(tabs)/index.tsx"
+          grep -R "Connect T Control Center" -n mobile/app/super-admin-login.tsx
+          grep -R "Open Super Admin Dashboard" -n mobile/app/super-admin-login.tsx
+
+      - name: TypeScript check
+        working-directory: mobile
+        run: |
+          npx tsc --noEmit -p tsconfig.json
+
+      - name: Create local.properties
+        working-directory: mobile/android
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          cat local.properties
+
+      - name: Verify ABI split config
+        run: |
+          grep -n "splits\|abi\|universalApk\|abiFilters" mobile/android/app/build.gradle || true
+          grep -q "universalApk false" mobile/android/app/build.gradle
+          grep -q 'include "arm64-v8a"' mobile/android/app/build.gradle
+          if grep -q "abiFilters" mobile/android/app/build.gradle; then
+            echo "ERROR: abiFilters exists. Remove it."
+            exit 1
+          fi
+
+      - name: Build release APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+
+      - name: Inspect APK ABI and size
+        working-directory: mobile
+        run: |
+          python3 - <<'PY2'
+          from pathlib import Path
+          import zipfile
+
+          apks = sorted(Path("android/app/build/outputs/apk").rglob("*.apk"))
+          if not apks:
+              raise SystemExit("No APK generated")
+
+          for apk in apks:
+              abis = set()
+              with zipfile.ZipFile(apk) as z:
+                  for name in z.namelist():
+                      if name.startswith("lib/") and name.endswith(".so"):
+                          abis.add(name.split("/")[1])
+
+              size_mb = apk.stat().st_size / 1024 / 1024
+              print(apk)
+              print("size_mb:", round(size_mb, 2))
+              print("abis:", sorted(abis))
+
+              if "x86" in abis or "x86_64" in abis or "armeabi-v7a" in abis:
+                  raise SystemExit("ERROR: universal/wrong ABI APK detected")
+          PY2
+
+      - name: Build release AAB
+        working-directory: mobile/android
+        run: |
+          ./gradlew :app:bundleRelease --no-daemon --max-workers=2 --stacktrace
+
+      - name: List outputs
+        run: |
+          echo "=== APK ==="
+          find mobile/android/app/build/outputs/apk -type f -name "*.apk" -printf "%s %p\n" | sort -nr || true
+          echo "=== AAB ==="
+          find mobile/android/app/build/outputs/bundle -type f -name "*.aab" -printf "%s %p\n" | sort -nr || true
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-apk
+          path: mobile/android/app/build/outputs/apk/**/*.apk
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-aab
+          path: mobile/android/app/build/outputs/bundle/**/*.aab
