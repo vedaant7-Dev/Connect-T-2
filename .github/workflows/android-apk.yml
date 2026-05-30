@@ -39,6 +39,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;27.1.12297006"
+          yes | sdkmanager --licenses || true
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -50,11 +55,19 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install mobile dependencies
+        working-directory: mobile
         run: pnpm install --no-frozen-lockfile
 
       - name: Typecheck workspace
         run: pnpm run typecheck
+
+      - name: Typecheck mobile app
+        working-directory: mobile
+        run: npx tsc --noEmit -p tsconfig.json
 
       - name: Prepare native Android build
         working-directory: mobile/android
