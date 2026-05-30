@@ -35,7 +35,7 @@ function validDob(day: string, month: string, year: string) {
   return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
 }
 
-export default function JobPortalLoginScreen() {
+export function JobPortalLoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { registerJobs, loginJobs } = useJobsAuth();
@@ -265,6 +265,8 @@ export default function JobPortalLoginScreen() {
   );
 }
 
+export default JobPortalLoginScreen;
+
 function Section({ title }: { title: string }) {
   return <View style={s.sectionRow}><View style={s.sectionDot} /><Text style={s.sectionTitle}>{title}</Text></View>;
 }
@@ -275,28 +277,42 @@ function Input(props: React.ComponentProps<typeof TextInput> & { label: string }
 }
 
 function PhotoPicker({ uri, role, onPress }: { uri?: string; role: JobsUserRole; onPress: () => void }) {
-  return <TouchableOpacity style={s.photoRow} onPress={onPress} activeOpacity={0.88}>{uri ? <Image source={{ uri }} style={s.photo} /> : <View style={s.photoEmpty}><Feather name="camera" size={18} color="#047857" /></View>}<View style={{ flex: 1 }}><Text style={s.photoTitle}>{role === "employer" ? "Upload company logo" : "Upload profile photo"}</Text><Text style={s.photoSub}>Recommended for a trusted professional profile</Text></View><Feather name="chevron-right" size={18} color="#94A3B8" /></TouchableOpacity>;
+  return <TouchableOpacity style={s.photoRow} onPress={onPress} activeOpacity={0.88}>{uri ? <Image source={{ uri }} style={s.photo} /> : <View style={s.photoEmpty}><Feather name="camera" size={18} color="#047857" /></View>}</TouchableOpacity>;
 }
 
 function DobInput({ day, month, year, setDay, setMonth, setYear }: { day: string; month: string; year: string; setDay: (v: string) => void; setMonth: (v: string) => void; setYear: (v: string) => void }) {
-  return <View style={s.inputGroup}><Text style={s.label}>Date of Birth *</Text><View style={s.dobRow}><TextInput value={day} onChangeText={(v) => setDay(v.replace(/\D/g, "").slice(0, 2))} placeholder="DD" keyboardType="number-pad" maxLength={2} style={s.dobInput} placeholderTextColor="#94A3B8" /><TextInput value={month} onChangeText={(v) => setMonth(v.replace(/\D/g, "").slice(0, 2))} placeholder="MM" keyboardType="number-pad" maxLength={2} style={s.dobInput} placeholderTextColor="#94A3B8" /><TextInput value={year} onChangeText={(v) => setYear(v.replace(/\D/g, "").slice(0, 4))} placeholder="YYYY" keyboardType="number-pad" maxLength={4} style={[s.dobInput, { flex: 1.35 }]} placeholderTextColor="#94A3B8" /></View><Text style={s.helperText}>Same DOB format as citizen registration: DD / MM / YYYY</Text></View>;
+  return <View style={s.inputGroup}><Text style={s.label}>Date of Birth *</Text><View style={s.dobRow}><TextInput value={day} onChangeText={(v) => setDay(v.replace(/\D/g, "").slice(0, 2))} placeholder="DD" keyboardType="number-pad" maxLength={2} style={s.dobInput} placeholderTextColor="#94A3B8" /><TextInput value={month} onChangeText={(v) => setMonth(v.replace(/\D/g, "").slice(0, 2))} placeholder="MM" keyboardType="number-pad" maxLength={2} style={s.dobInput} placeholderTextColor="#94A3B8" /><TextInput value={year} onChangeText={(v) => setYear(v.replace(/\D/g, "").slice(0, 4))} placeholder="YYYY" keyboardType="number-pad" maxLength={4} style={s.dobInput} placeholderTextColor="#94A3B8" /></View></View>;
 }
 
 const s = StyleSheet.create({
   root: { flex: 1 }, content: { paddingHorizontal: 18 },
-  backBtn: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.92)", paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, marginBottom: 18 },
+  backBtn: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.92)", paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, marginBottom: 12 },
   backText: { fontSize: 13, color: "#047857", fontFamily: "Inter_700Bold" }, header: { alignItems: "center", marginBottom: 18 },
-  logo: { width: 62, height: 62, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)", marginBottom: 12 },
+  logo: { width: 62, height: 62, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
   headerPill: { borderRadius: 999, backgroundColor: "rgba(255,255,255,0.14)", borderWidth: 1, borderColor: "rgba(255,255,255,0.16)", paddingHorizontal: 12, paddingVertical: 6, marginBottom: 9 },
-  headerPillText: { color: "white", fontSize: 10, letterSpacing: 1, fontFamily: "Inter_800ExtraBold" }, title: { fontSize: 32, color: "#FFFFFF", fontFamily: "Inter_800ExtraBold", letterSpacing: -0.8 }, subtitle: { marginTop: 5, fontSize: 13, color: "#D1FAE5", fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  headerPillText: { color: "white", fontSize: 10, letterSpacing: 1, fontFamily: "Inter_800ExtraBold" }, title: { fontSize: 32, color: "#FFFFFF", fontFamily: "Inter_800ExtraBold", letterSpacing: -0.5, marginBottom: 6 },
+  subtitle: { fontSize: 15, color: "rgba(255,255,255,0.82)", textAlign: "center", marginBottom: 2, fontFamily: "Inter_600SemiBold" },
   card: { backgroundColor: "#FFFFFF", borderRadius: 28, padding: 16, shadowColor: "#064E3B", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
-  segment: { flexDirection: "row", backgroundColor: "#ECFDF5", padding: 5, borderRadius: 18, borderWidth: 1, borderColor: "#A7F3D0", marginBottom: 12 }, segmentBtn: { flex: 1, borderRadius: 14, paddingVertical: 11, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 }, segmentBtnActive: { backgroundColor: "#047857" }, segmentText: { color: "#047857", fontSize: 13, fontFamily: "Inter_700Bold" }, segmentTextActive: { color: "#FFFFFF" },
-  tabWrap: { flexDirection: "row", backgroundColor: "#F8FAFC", borderRadius: 18, padding: 5, marginBottom: 14 }, tab: { flex: 1, paddingVertical: 11, alignItems: "center", borderRadius: 14 }, tabActive: { backgroundColor: "#FFFFFF", shadowColor: "#0F172A", shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 }, tabText: { fontSize: 14, color: "#64748B", fontFamily: "Inter_700Bold" }, tabTextActive: { color: "#047857" },
-  sectionRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 7, marginBottom: 10 }, sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981" }, sectionTitle: { fontSize: 14, color: "#0F172A", fontFamily: "Inter_800ExtraBold" }, inputGroup: { marginBottom: 12 }, label: { fontSize: 13, color: "#334155", fontFamily: "Inter_700Bold", marginBottom: 7 },
-  input: { minHeight: 54, backgroundColor: "#F8FAFC", borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 16, color: "#0F172A", fontSize: 15, fontFamily: "Inter_600SemiBold" }, textArea: { minHeight: 92, paddingTop: 14, textAlignVertical: "top" },
-  phoneRow: { flexDirection: "row", gap: 10, marginBottom: 12 }, countryBox: { width: 92, height: 54, borderRadius: 16, backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center" }, countryText: { fontSize: 14, color: "#334155", fontFamily: "Inter_800ExtraBold" }, phoneInput: { flex: 1, height: 54, backgroundColor: "#F8FAFC", borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 16, color: "#0F172A", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  dobRow: { flexDirection: "row", gap: 10 }, dobInput: { flex: 1, height: 54, borderRadius: 16, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", textAlign: "center", color: "#0F172A", fontSize: 15, fontFamily: "Inter_800ExtraBold" }, helperText: { marginTop: 6, marginBottom: 10, fontSize: 11, color: "#64748B", fontFamily: "Inter_500Medium" },
-  statusGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }, statusChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" }, statusChipActive: { backgroundColor: "#ECFDF5", borderColor: "#10B981" }, statusChipText: { fontSize: 12, color: "#64748B", fontFamily: "Inter_700Bold", textTransform: "capitalize" }, statusChipTextActive: { color: "#047857" },
-  photoRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0", marginBottom: 14 }, photo: { width: 48, height: 48, borderRadius: 16, backgroundColor: "#D1FAE5" }, photoEmpty: { width: 48, height: 48, borderRadius: 16, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#A7F3D0" }, photoTitle: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_800ExtraBold" }, photoSub: { marginTop: 2, fontSize: 11, color: "#64748B", fontFamily: "Inter_500Medium" },
-  errorBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA", padding: 12, borderRadius: 16, marginTop: 4, marginBottom: 12 }, errorText: { flex: 1, fontSize: 12, color: "#B91C1C", fontFamily: "Inter_700Bold", lineHeight: 18 }, primaryBtn: { height: 58, borderRadius: 18, backgroundColor: "#047857", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 10, marginTop: 4 }, primaryBtnDisabled: { opacity: 0.65 }, primaryText: { color: "#FFFFFF", fontSize: 17, fontFamily: "Inter_800ExtraBold" }, note: { textAlign: "center", color: "#64748B", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 12, lineHeight: 16 },
+  segment: { flexDirection: "row", backgroundColor: "#ECFDF5", padding: 5, borderRadius: 18, borderWidth: 1, borderColor: "#A7F3D0", marginBottom: 12 }, segmentBtn: { flex: 1, borderRadius: 14, paddingVertical: 10, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6 }, segmentBtnActive: { backgroundColor: "#047857" },
+  segmentText: { fontSize: 13, color: "#047857", fontFamily: "Inter_700Bold" }, segmentTextActive: { color: "#FFFFFF" },
+  tabWrap: { flexDirection: "row", backgroundColor: "#F8FAFC", borderRadius: 18, padding: 5, marginBottom: 14 }, tab: { flex: 1, paddingVertical: 11, alignItems: "center", borderRadius: 14 }, tabActive: { backgroundColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  tabText: { fontSize: 14, color: "#64748B", fontFamily: "Inter_700Bold" }, tabTextActive: { color: "#047857" },
+  label: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 8 },
+  inputGroup: { marginBottom: 12 },
+  sectionRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 7, marginBottom: 10 }, sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981" }, sectionTitle: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_700Bold" },
+  input: { minHeight: 54, backgroundColor: "#F8FAFC", borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 16, color: "#0F172A", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  textArea: { minHeight: 85, textAlignVertical: "top", paddingTop: 14, paddingBottom: 14 },
+  phoneRow: { flexDirection: "row", gap: 10, marginBottom: 12 }, countryBox: { width: 92, height: 54, borderRadius: 16, backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center" },
+  countryText: { fontSize: 14, color: "#0F172A", fontFamily: "Inter_700Bold" },
+  phoneInput: { flex: 1, height: 54, backgroundColor: "#F8FAFC", borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 16, color: "#0F172A", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  dobRow: { flexDirection: "row", gap: 10 }, dobInput: { flex: 1, height: 54, borderRadius: 16, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", textAlign: "center", color: "#0F172A", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  statusGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }, statusChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" }, statusChipActive: { backgroundColor: "#047857", borderColor: "#047857" },
+  statusChipText: { fontSize: 13, color: "#64748B", fontFamily: "Inter_600SemiBold", textTransform: "capitalize" }, statusChipTextActive: { color: "#FFFFFF" },
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0", marginBottom: 14 }, photo: { width: 80, height: 80, borderRadius: 16, backgroundColor: "#E0F2FE" }, photoEmpty: { width: 80, height: 80, borderRadius: 16, backgroundColor: "#F0F9FF", alignItems: "center", justifyContent: "center" },
+  primaryBtn: { height: 56, backgroundColor: "#10B981", borderRadius: 16, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, marginTop: 4 }, primaryBtnDisabled: { opacity: 0.6 },
+  primaryText: { fontSize: 16, color: "#FFFFFF", fontFamily: "Inter_700Bold" },
+  errorBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA", padding: 12, borderRadius: 16, marginTop: 4, marginBottom: 12 },
+  errorText: { flex: 1, fontSize: 13, color: "#DC2626", fontFamily: "Inter_600SemiBold" },
+  helperText: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_500Medium", marginTop: -8, marginBottom: 12 },
+  note: { fontSize: 12, color: "#64748B", textAlign: "center", marginTop: 12, fontFamily: "Inter_500Medium" },
 });
