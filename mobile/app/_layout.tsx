@@ -39,15 +39,19 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
-    const inLogin = segments[0] === "login";
-    const inTabs = segments[0] === "(tabs)";
-    const inJobs = segments[0] === "jobs";
-    const inPortalSelect = segments[0] === "portal-select";
-    const inSuperAdmin = String(segments[0]) === "super-admin";
+
+    const first = String(segments[0] || "");
+    const inLogin = first === "login";
+    const inTabs = first === "(tabs)";
+    const inJobs = first === "jobs";
+    const inPortalSelect = first === "portal-select";
+    const inSecretAccess = first === "secret-access";
+    const inSuperAdminLogin = first === "super-admin-login";
+    const inSuperAdmin = first === "super-admin";
+    const inNagarsevak = first === "nagarsevak";
     const currentTab = inTabs ? segments[1] : undefined;
 
-    if (inJobs) return;
-    if (inPortalSelect) return;
+    if (inJobs || inPortalSelect || inSecretAccess || inSuperAdminLogin || inNagarsevak) return;
     if (inSuperAdmin && user && isSuperAdminUser(user)) return;
 
     if (!user && !inLogin) {
@@ -65,7 +69,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     } else if (user && user.role === "nagarsevak" && !isSuperAdminUser(user) && inTabs && currentTab !== "admin") {
       router.replace("/(tabs)/admin" as any);
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, router]);
 
   return <>{children}</>;
 }
@@ -89,33 +93,31 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   const handleFinish = async (portal: SplashPortal) => {
     setSplashDone(true);
-    if ((portal as string) === "super_admin") {
-      if (user && isSuperAdminUser(user)) {
-        staticRouter.replace("/super-admin" as any);
-      } else {
-        staticRouter.replace("/super-admin-login" as any);
-      }
-    } else if ((portal as string) === "nagarsevak") {
-      if (user && user.role === "nagarsevak" && !isSuperAdminUser(user)) {
-        staticRouter.replace("/(tabs)/admin" as any);
-      } else if (user && isSuperAdminUser(user)) {
-        staticRouter.replace("/super-admin" as any);
-      } else {
-        staticRouter.replace("/nagarsevak/login" as any);
-      }
-    } else {
-      if (user) {
-        if (isSuperAdminUser(user)) {
-          staticRouter.replace("/super-admin" as any);
-        } else if (user.role === "nagarsevak") {
-          staticRouter.replace("/(tabs)/admin" as any);
-        } else {
-          staticRouter.replace("/(tabs)" as any);
-        }
-      } else {
-        staticRouter.replace("/login");
-      }
+
+    if (portal === "portal_select") {
+      staticRouter.replace("/portal-select" as any);
+      return;
     }
+
+    if (portal === "secret_access") {
+      staticRouter.replace("/secret-access" as any);
+      return;
+    }
+
+    if ((portal as string) === "super_admin") {
+      if (user && isSuperAdminUser(user)) staticRouter.replace("/super-admin" as any);
+      else staticRouter.replace("/super-admin-login" as any);
+      return;
+    }
+
+    if ((portal as string) === "nagarsevak") {
+      if (user && user.role === "nagarsevak" && !isSuperAdminUser(user)) staticRouter.replace("/(tabs)/admin" as any);
+      else if (user && isSuperAdminUser(user)) staticRouter.replace("/super-admin" as any);
+      else staticRouter.replace("/nagarsevak/login" as any);
+      return;
+    }
+
+    staticRouter.replace(user ? "/(tabs)" : "/login");
   };
 
   return (
@@ -131,6 +133,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="portal-select" options={{ headerShown: false, animation: "fade" }} />
+      <Stack.Screen name="secret-access" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="super-admin-login" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="super-admin" options={{ headerShown: false, animation: "fade" }} />
