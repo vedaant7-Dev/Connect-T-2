@@ -36,6 +36,20 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "build-tools;36.0.0" \
+            "ndk;27.1.12297006"
+          yes | sdkmanager --licenses || true
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -55,22 +69,35 @@ jobs:
 
       - name: Prepare native Android build
         working-directory: mobile/android
-        run: chmod +x ./gradlew
+        run: |
+          chmod +x ./gradlew
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          cat local.properties
 
       - name: Build standalone test APK with Gradle
         working-directory: mobile/android
-        run: >
-          ./gradlew clean :app:assembleRelease
-          --no-daemon
-          --stacktrace
-          -PreactNativeArchitectures=arm64-v8a
-          -Pandroid.enableMinifyInReleaseBuilds=false
-          -Pandroid.enableShrinkResourcesInReleaseBuilds=false
-          -Pandroid.enablePngCrunchInReleaseBuilds=false
+        run: |
+          set -o pipefail
+          ./gradlew clean :app:assembleRelease \
+            --no-daemon \
+            --stacktrace \
+            -PreactNativeArchitectures=arm64-v8a \
+            -Pandroid.enableMinifyInReleaseBuilds=false \
+            -Pandroid.enableShrinkResourcesInReleaseBuilds=false \
+            -Pandroid.enablePngCrunchInReleaseBuilds=false 2>&1 | tee ../../android-gradle-build.log
 
       - name: List APK outputs
         if: always()
         run: find mobile/android/app/build/outputs/apk -type f -name "*.apk" -print -exec ls -lh {} \;
+
+      - name: Upload Gradle log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-gradle-build-log
+          path: android-gradle-build.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
