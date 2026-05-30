@@ -10,23 +10,25 @@ function JobsTabBar() {
   const router = useRouter();
   const pathname = usePathname();
   const { jobsUser } = useJobsAuth();
-  const TAB_H = Platform.OS === "web" ? 64 : 56 + Math.max(insets.bottom, 8);
+  const TAB_H = Platform.OS === "web" ? 66 : 58 + Math.max(insets.bottom, 8);
 
   const TABS = jobsUser?.role === "employer"
     ? [
         { name: "index",   label: "Jobs",     icon: "home"         as const, path: "/jobs/(tabs)" },
-        { name: "post",    label: "Post Job",  icon: "plus-circle"  as const, path: "/jobs/(tabs)/post" },
-        { name: "profile", label: "Profile",   icon: "user"         as const, path: "/jobs/(tabs)/profile" },
+        { name: "post",    label: "Post",     icon: "plus-circle"  as const, path: "/jobs/(tabs)/post" },
+        { name: "messages", label: "Chats",   icon: "message-circle" as const, path: "/jobs/(tabs)/messages" },
+        { name: "profile", label: "Profile",  icon: "user"         as const, path: "/jobs/(tabs)/profile" },
       ]
     : [
-        { name: "index",    label: "Home",     icon: "home"         as const, path: "/jobs/(tabs)" },
-        { name: "messages", label: "Messages", icon: "message-circle" as const, path: "/jobs/(tabs)/messages" },
-        { name: "resume",   label: "Resume",   icon: "file-text"    as const, path: "/jobs/(tabs)/resume" },
-        { name: "profile",  label: "Profile",  icon: "user"         as const, path: "/jobs/(tabs)/profile" },
+        { name: "index",    label: "Home",     icon: "home"           as const, path: "/jobs/(tabs)" },
+        { name: "applied",  label: "Applied",  icon: "check-circle"   as const, path: "/jobs/(tabs)/applied" },
+        { name: "messages", label: "Chats",    icon: "message-circle" as const, path: "/jobs/(tabs)/messages" },
+        { name: "resume",   label: "Resume",   icon: "file-text"      as const, path: "/jobs/(tabs)/resume" },
+        { name: "profile",  label: "Profile",  icon: "user"           as const, path: "/jobs/(tabs)/profile" },
       ];
 
   return (
-    <View style={[styles.tabBar, { height: TAB_H, paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[styles.tabBar, { height: TAB_H, paddingBottom: Math.max(insets.bottom, 8) }]}> 
       {TABS.map((tab) => {
         const active =
           pathname === tab.path ||
@@ -37,12 +39,12 @@ function JobsTabBar() {
             key={tab.name}
             style={styles.tabItem}
             onPress={() => router.replace(tab.path as any)}
-            activeOpacity={0.7}
+            activeOpacity={0.72}
           >
             <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
-              <Feather name={tab.icon} size={20} color={active ? "#EA580C" : "#94A3B8"} />
+              <Feather name={tab.icon} size={19} color={active ? "#047857" : "#94A3B8"} />
             </View>
-            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
+            <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>{tab.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -52,10 +54,7 @@ function JobsTabBar() {
 
 export default function JobsTabLayout() {
   return (
-    <Tabs
-      screenOptions={{ headerShown: false }}
-      tabBar={() => <JobsTabBar />}
-    >
+    <Tabs screenOptions={{ headerShown: false }} tabBar={() => <JobsTabBar />}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="post" />
       <Tabs.Screen name="applied" />
@@ -71,16 +70,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "white",
     borderTopWidth: 1,
-    borderTopColor: "#FED7AA",
-    shadowColor: "#EA580C",
+    borderTopColor: "#D1FAE5",
+    shadowColor: "#064E3B",
     shadowOpacity: 0.1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: -3 },
     elevation: 10,
   },
-  tabItem: { flex: 1, alignItems: "center", justifyContent: "center", gap: 3, paddingTop: 8 },
-  tabIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  tabIconWrapActive: { backgroundColor: "#FFF7ED" },
-  tabLabel: { fontSize: 10, fontWeight: "600", color: "#94A3B8", fontFamily: "Inter_600SemiBold" },
-  tabLabelActive: { color: "#EA580C", fontFamily: "Inter_700Bold" },
+  tabItem: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2, paddingTop: 8, minWidth: 0 },
+  tabIconWrap: { width: 35, height: 35, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  tabIconWrapActive: { backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0" },
+  tabLabel: { fontSize: 9.5, fontWeight: "600", color: "#94A3B8", fontFamily: "Inter_600SemiBold" },
+  tabLabelActive: { color: "#047857", fontFamily: "Inter_700Bold" },
 });
