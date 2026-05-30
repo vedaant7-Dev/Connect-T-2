@@ -1,318 +1,137 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
-
-import { CurrentStatus, JobsUserRole, randomColor, useJobsAuth } from "@/context/JobsAuthContext";
+import DecorativeCircles from "@/components/DecorativeCircles";
+import TopShade from "@/components/TopShade";
+import { JobsUserRole, randomColor, useJobsAuth } from "@/context/JobsAuthContext";
 
 type Tab = "login" | "register";
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ORANGE = "#EA580C";
+const DARK = "#C2410C";
+const BG = "#ebeffc";
 
-function cleanPhone(value: string) {
-  return value.replace(/\D/g, "").slice(-10);
-}
+function cleanPhone(v: string) { return v.replace(/\D/g, "").slice(-10); }
+function validName(v: string) { return /^[A-Za-z .'-]{3,80}$/.test(v.trim()); }
 
-function words(value: string) {
-  return value.trim().split(/\s+/).filter(Boolean).length;
-}
-
-function validName(value: string) {
-  return /^[A-Za-z .'-]{3,80}$/.test(value.trim());
-}
-
-function isoDob(day: string, month: string, year: string) {
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-}
-
-function validDob(day: string, month: string, year: string) {
-  const d = Number(day), m = Number(month), y = Number(year);
-  const maxYear = new Date().getFullYear() - 14;
-  if (!d || !m || !y || y < 1940 || y > maxYear || m < 1 || m > 12) return false;
-  const dt = new Date(y, m - 1, d);
-  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
-}
-
-export function JobPortalLoginScreen() {
+export default function JobPortalLoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { registerJobs, loginJobs } = useJobsAuth();
-
   const [tab, setTab] = useState<Tab>("login");
   const [role, setRole] = useState<JobsUserRole>("seeker");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   const [phone, setPhone] = useState("");
-  const [profilePhoto, setProfilePhoto] = useState<string | undefined>();
-
   const [name, setName] = useState("");
-  const [dobDay, setDobDay] = useState("");
-  const [dobMonth, setDobMonth] = useState("");
-  const [dobYear, setDobYear] = useState("");
-  const [email, setEmail] = useState("");
-  const [location, setLocation] = useState("");
-  const [qualification, setQualification] = useState("");
-  const [skills, setSkills] = useState("");
-  const [currentStatus, setCurrentStatus] = useState<CurrentStatus>("unemployed");
-  const [experience, setExperience] = useState("");
-  const [languages, setLanguages] = useState("");
-  const [about, setAbout] = useState("");
-
   const [company, setCompany] = useState("");
   const [contactPerson, setContactPerson] = useState("");
-  const [companyEmail, setCompanyEmail] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [gstNo, setGstNo] = useState("");
-  const [address, setAddress] = useState("");
-  const [pincode, setPincode] = useState("");
-  const [companyDescription, setCompanyDescription] = useState("");
-
+  const [location, setLocation] = useState("");
   const phone10 = useMemo(() => cleanPhone(phone), [phone]);
 
-  const pickPhoto = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission needed", "Please allow gallery access to upload profile photo.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.55,
-      base64: false,
-    });
-    if (!result.canceled && result.assets?.[0]?.uri) setProfilePhoto(result.assets[0].uri);
+  const goBack = () => {
+    if (router.canGoBack?.()) router.back();
+    else router.replace("/portal-select" as any);
   };
 
   const validate = () => {
     if (phone10.length !== 10) return "Enter a valid 10 digit mobile number.";
     if (tab === "login") return "";
     if (role === "seeker") {
-      if (!validName(name)) return "Enter a valid full name.";
-      if (!validDob(dobDay, dobMonth, dobYear)) return "Select a valid DOB. Minimum age is 14 years.";
-      if (email.trim() && !EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
-      if (location.trim().length < 3) return "Enter your location.";
-      if (about.trim() && (words(about) < 5 || words(about) > 80)) return "About must be 5 to 80 words.";
+      if (!validName(name)) return "Enter your full name.";
+      if (location.trim().length < 3) return "Enter your area or location.";
       return "";
     }
-    if (company.trim().length < 3) return "Enter a valid company name.";
-    if (!validName(contactPerson)) return "Enter a valid contact person name.";
-    if (companyEmail.trim() && !EMAIL_RE.test(companyEmail.trim())) return "Enter a valid email address.";
-    if (address.trim().length < 8) return "Enter a proper company address.";
-    if (companyDescription.trim() && (words(companyDescription) < 5 || words(companyDescription) > 100)) return "Company description must be 5 to 100 words.";
+    if (company.trim().length < 3) return "Enter company or shop name.";
+    if (!validName(contactPerson)) return "Enter contact person name.";
+    if (location.trim().length < 3) return "Enter business area or location.";
     return "";
   };
 
   const submit = async () => {
-    const message = validate();
-    if (message) {
-      setError(message);
-      return;
-    }
-    setLoading(true);
-    setError("");
+    const msg = validate();
+    if (msg) { setError(msg); return; }
+    setLoading(true); setError("");
     try {
       if (tab === "login") {
         const ok = await loginJobs(phone10, role);
-        if (!ok) {
-          setError("Account not found. Please register first.");
-          return;
-        }
+        if (!ok) { setError("Account not found. Please register first."); return; }
       } else if (role === "seeker") {
-        await registerJobs({
-          role: "seeker",
-          name: name.trim(),
-          dob: isoDob(dobDay, dobMonth, dobYear),
-          phone: phone10,
-          email: email.trim() || undefined,
-          avatarColor: randomColor(),
-          profilePhoto,
-          location: location.trim(),
-          qualification: qualification.trim() || undefined,
-          skills: skills.trim() || undefined,
-          currentStatus,
-          experience: experience.trim() || undefined,
-          languages: languages.trim() || undefined,
-          about: about.trim() || undefined,
-        });
+        await registerJobs({ role: "seeker", name: name.trim(), phone: phone10, avatarColor: randomColor(), location: location.trim(), currentStatus: "unemployed" });
       } else {
-        await registerJobs({
-          role: "employer",
-          name: contactPerson.trim(),
-          phone: phone10,
-          email: companyEmail.trim() || undefined,
-          avatarColor: randomColor(),
-          profilePhoto,
-          company: company.trim(),
-          contactPerson: contactPerson.trim(),
-          whatsapp: cleanPhone(whatsapp || phone),
-          industry: industry.trim() || undefined,
-          gstNo: gstNo.trim() || undefined,
-          address: address.trim(),
-          pincode: pincode.trim() || undefined,
-          companyDescription: companyDescription.trim() || undefined,
-        });
+        await registerJobs({ role: "employer", name: contactPerson.trim(), phone: phone10, avatarColor: randomColor(), company: company.trim(), contactPerson: contactPerson.trim(), whatsapp: phone10, location: location.trim(), address: location.trim() });
       }
       router.replace("/jobs/(tabs)" as any);
     } catch (e: any) {
       setError(e?.message || "Action failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <LinearGradient colors={["#064E3B", "#047857", "#059669", "#10B981"]} style={s.root}>
+    <View style={s.root}>
+      <LinearGradient colors={["#C2410C", "#EA580C", "#F97316", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.header, { paddingTop: insets.top + 12 }]}>
+        <TopShade height={120} /><DecorativeCircles />
+        <TouchableOpacity style={s.backBtn} onPress={goBack} activeOpacity={0.84}><Feather name="arrow-left" size={18} color="white" /></TouchableOpacity>
+        <View style={s.headCenter}>
+          <View style={s.headIcon}><Feather name="briefcase" size={22} color={ORANGE} /></View>
+          <View style={s.pill}><Feather name="shield" size={10} color="rgba(255,255,255,0.85)" /><Text style={s.pillText}>CONNECT T JOB PORTAL</Text></View>
+          <Text style={s.title}>{tab === "login" ? "Job Login" : "Job Register"}</Text>
+          <Text style={s.sub}>Local work and hiring for Ambernath citizens</Text>
+        </View>
+      </LinearGradient>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={[s.content, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.85}>
-            <Feather name="arrow-left" size={18} color="#047857" />
-            <Text style={s.backText}>Back</Text>
-          </TouchableOpacity>
-
-          <View style={s.header}>
-            <View style={s.logo}><Feather name="briefcase" size={24} color="#ECFDF5" /></View>
-            <View style={s.headerPill}><Text style={s.headerPillText}>CONNECT T JOB PORTAL</Text></View>
-            <Text style={s.title}>Local Jobs</Text>
-            <Text style={s.subtitle}>Trusted work opportunities for Ambernath citizens</Text>
-          </View>
-
+        <ScrollView contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={s.card}>
-            <View style={s.segment}>
-              {(["seeker", "employer"] as JobsUserRole[]).map((item) => (
-                <TouchableOpacity key={item} style={[s.segmentBtn, role === item && s.segmentBtnActive]} onPress={() => setRole(item)} activeOpacity={0.9}>
-                  <Feather name={item === "seeker" ? "user" : "briefcase"} size={15} color={role === item ? "#FFFFFF" : "#047857"} />
-                  <Text style={[s.segmentText, role === item && s.segmentTextActive]}>{item === "seeker" ? "Job Seeker" : "Employer"}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={s.tabWrap}>
-              {(["login", "register"] as Tab[]).map((item) => (
-                <TouchableOpacity key={item} style={[s.tab, tab === item && s.tabActive]} onPress={() => { setTab(item); setError(""); }} activeOpacity={0.9}>
-                  <Text style={[s.tabText, tab === item && s.tabTextActive]}>{item === "login" ? "Login" : "Register"}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {tab === "register" && <PhotoPicker uri={profilePhoto} role={role} onPress={pickPhoto} />}
-
-            {tab === "register" && role === "seeker" && (
-              <>
-                <Section title="Job Seeker Details" />
-                <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your full name" />
-                <DobInput day={dobDay} month={dobMonth} year={dobYear} setDay={setDobDay} setMonth={setDobMonth} setYear={setDobYear} />
-              </>
-            )}
-
-            {tab === "register" && role === "employer" && (
-              <>
-                <Section title="Employer Registration" />
-                <Input label="Company Name *" value={company} onChangeText={setCompany} placeholder="Company / Shop / Business name" />
-                <Input label="Contact Person *" value={contactPerson} onChangeText={setContactPerson} placeholder="Owner / HR / Manager name" />
-              </>
-            )}
-
-            <Section title={tab === "login" ? "Login Details" : "Contact Details"} />
-            <View style={s.phoneRow}>
-              <View style={s.countryBox}><Text style={s.countryText}>IN +91</Text></View>
-              <TextInput value={phone} onChangeText={(v) => setPhone(cleanPhone(v))} placeholder="10 digit mobile number" keyboardType="phone-pad" maxLength={10} style={s.phoneInput} placeholderTextColor="#94A3B8" />
-            </View>
-
-            {tab === "register" && role === "seeker" && (
-              <>
-                <Input label="Email Address" value={email} onChangeText={setEmail} placeholder="you@email.com" keyboardType="email-address" autoCapitalize="none" />
-                <Input label="Location *" value={location} onChangeText={setLocation} placeholder="Ambernath East / West" />
-                <Input label="Qualification" value={qualification} onChangeText={setQualification} placeholder="10th, 12th, ITI, Graduate..." />
-                <Input label="Skills" value={skills} onChangeText={setSkills} placeholder="Computer, Sales, Driving, Welding..." />
-                <Text style={s.label}>Current Status</Text>
-                <View style={s.statusGrid}>{(["unemployed", "employed", "student", "fresher"] as CurrentStatus[]).map((item) => <TouchableOpacity key={item} style={[s.statusChip, currentStatus === item && s.statusChipActive]} onPress={() => setCurrentStatus(item)}><Text style={[s.statusChipText, currentStatus === item && s.statusChipTextActive]}>{item}</Text></TouchableOpacity>)}</View>
-                <Input label="Experience" value={experience} onChangeText={setExperience} placeholder="Fresher / 1 year / 3 years..." />
-                <Input label="Languages Known" value={languages} onChangeText={setLanguages} placeholder="Marathi, Hindi, English..." />
-                <Input label="About / Objective" value={about} onChangeText={setAbout} placeholder="Brief career objective" multiline />
-                <Text style={s.helperText}>{words(about)} / 80 words</Text>
-              </>
-            )}
-
-            {tab === "register" && role === "employer" && (
-              <>
-                <Input label="Email Address" value={companyEmail} onChangeText={setCompanyEmail} placeholder="company@email.com" keyboardType="email-address" autoCapitalize="none" />
-                <Input label="WhatsApp Number" value={whatsapp} onChangeText={(v) => setWhatsapp(cleanPhone(v))} placeholder="WhatsApp contact" keyboardType="phone-pad" maxLength={10} />
-                <Input label="Industry" value={industry} onChangeText={setIndustry} placeholder="Manufacturing, Retail, IT..." />
-                <Input label="GST Number" value={gstNo} onChangeText={setGstNo} placeholder="Optional GST / business registration" autoCapitalize="characters" />
-                <Input label="Full Address *" value={address} onChangeText={setAddress} placeholder="Company full address" multiline />
-                <Input label="Pincode" value={pincode} onChangeText={setPincode} placeholder="421501" keyboardType="number-pad" maxLength={6} />
-                <Input label="Company Description" value={companyDescription} onChangeText={setCompanyDescription} placeholder="Minimum 5 words, maximum 100 words" multiline />
-                <Text style={s.helperText}>{words(companyDescription)} / 100 words</Text>
-              </>
-            )}
-
+            <View style={s.segment}>{(["seeker", "employer"] as JobsUserRole[]).map((r) => <TouchableOpacity key={r} style={[s.segmentBtn, role === r && s.segmentActive]} onPress={() => { setRole(r); setError(""); }} activeOpacity={0.9}><Feather name={r === "seeker" ? "user" : "briefcase"} size={14} color={role === r ? "white" : ORANGE} /><Text style={[s.segmentText, role === r && s.segmentTextActive]}>{r === "seeker" ? "Job Seeker" : "Employer"}</Text></TouchableOpacity>)}</View>
+            <View style={s.tabWrap}>{(["login", "register"] as Tab[]).map((t) => <TouchableOpacity key={t} style={[s.tab, tab === t && s.tabActive]} onPress={() => { setTab(t); setError(""); }} activeOpacity={0.9}><Text style={[s.tabText, tab === t && s.tabTextActive]}>{t === "login" ? "Login" : "Register"}</Text></TouchableOpacity>)}</View>
+            <Section title={tab === "login" ? "Mobile Login" : role === "seeker" ? "Basic Job Seeker Details" : "Basic Employer Details"} />
+            {tab === "register" && role === "seeker" && <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your full name" />}
+            {tab === "register" && role === "employer" && <><Input label="Company / Shop Name *" value={company} onChangeText={setCompany} placeholder="Company / shop name" /><Input label="Contact Person *" value={contactPerson} onChangeText={setContactPerson} placeholder="Owner / HR / manager" /></>}
+            <View style={s.inputGroup}><Text style={s.label}>Mobile Number *</Text><View style={s.phoneRow}><View style={s.countryBox}><Text style={s.countryText}>+91</Text></View><TextInput value={phone} onChangeText={(v) => setPhone(cleanPhone(v))} placeholder="10 digit mobile number" keyboardType="phone-pad" maxLength={10} style={s.phoneInput} placeholderTextColor="#94A3B8" /></View></View>
+            {tab === "register" && <Input label={role === "seeker" ? "Area / Location *" : "Business Area / Location *"} value={location} onChangeText={setLocation} placeholder="Ambernath East / West" />}
+            {tab === "register" && <View style={s.infoBox}><Feather name="info" size={15} color={ORANGE} /><Text style={s.infoText}>Complete photo, DOB, skills, company details and resume from Profile after login.</Text></View>}
             {!!error && <View style={s.errorBox}><Feather name="alert-circle" size={16} color="#DC2626" /><Text style={s.errorText}>{error}</Text></View>}
-            <TouchableOpacity style={[s.primaryBtn, loading && s.primaryBtnDisabled]} disabled={loading} onPress={submit} activeOpacity={0.9}>
-              <Text style={s.primaryText}>{loading ? "Please wait..." : tab === "login" ? "Continue" : "Create Account"}</Text>
-              <Feather name="arrow-right" size={19} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={s.note}>{tab === "login" ? "Login with your registered mobile number." : "Your Job Portal data is saved in Connect T MySQL database."}</Text>
+            <TouchableOpacity style={[s.primaryBtn, loading && s.primaryBtnDisabled]} disabled={loading} onPress={submit} activeOpacity={0.9}><Text style={s.primaryText}>{loading ? "Please wait..." : tab === "login" ? "Continue" : "Create Account"}</Text><Feather name="arrow-right" size={18} color="white" /></TouchableOpacity>
+            <Text style={s.note}>{tab === "login" ? "Use your registered mobile number." : "Only basic details now. Full profile can be completed later."}</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
-export default JobPortalLoginScreen;
-
-function Section({ title }: { title: string }) {
-  return <View style={s.sectionRow}><View style={s.sectionDot} /><Text style={s.sectionTitle}>{title}</Text></View>;
-}
-
-function Input(props: React.ComponentProps<typeof TextInput> & { label: string }) {
-  const { label, multiline, style, ...rest } = props;
-  return <View style={s.inputGroup}><Text style={s.label}>{label}</Text><TextInput {...rest} multiline={multiline} style={[s.input, multiline && s.textArea, style]} placeholderTextColor="#94A3B8" /></View>;
-}
-
-function PhotoPicker({ uri, role, onPress }: { uri?: string; role: JobsUserRole; onPress: () => void }) {
-  return <TouchableOpacity style={s.photoRow} onPress={onPress} activeOpacity={0.88}>{uri ? <Image source={{ uri }} style={s.photo} /> : <View style={s.photoEmpty}><Feather name="camera" size={18} color="#047857" /></View>}</TouchableOpacity>;
-}
-
-function DobInput({ day, month, year, setDay, setMonth, setYear }: { day: string; month: string; year: string; setDay: (v: string) => void; setMonth: (v: string) => void; setYear: (v: string) => void }) {
-  return <View style={s.inputGroup}><Text style={s.label}>Date of Birth *</Text><View style={s.dobRow}><TextInput value={day} onChangeText={(v) => setDay(v.replace(/\D/g, "").slice(0, 2))} placeholder="DD" keyboardType="number-pad" maxLength={2} style={s.dobInput} placeholderTextColor="#94A3B8" /><TextInput value={month} onChangeText={(v) => setMonth(v.replace(/\D/g, "").slice(0, 2))} placeholder="MM" keyboardType="number-pad" maxLength={2} style={s.dobInput} placeholderTextColor="#94A3B8" /><TextInput value={year} onChangeText={(v) => setYear(v.replace(/\D/g, "").slice(0, 4))} placeholder="YYYY" keyboardType="number-pad" maxLength={4} style={s.dobInput} placeholderTextColor="#94A3B8" /></View></View>;
-}
+function Section({ title }: { title: string }) { return <View style={s.sectionRow}><View style={s.sectionDot} /><Text style={s.sectionTitle}>{title}</Text></View>; }
+function Input(props: React.ComponentProps<typeof TextInput> & { label: string }) { const { label, style, ...rest } = props; return <View style={s.inputGroup}><Text style={s.label}>{label}</Text><TextInput {...rest} style={[s.input, style]} placeholderTextColor="#94A3B8" /></View>; }
 
 const s = StyleSheet.create({
-  root: { flex: 1 }, content: { paddingHorizontal: 18 },
-  backBtn: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.92)", paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, marginBottom: 12 },
-  backText: { fontSize: 13, color: "#047857", fontFamily: "Inter_700Bold" }, header: { alignItems: "center", marginBottom: 18 },
-  logo: { width: 62, height: 62, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
-  headerPill: { borderRadius: 999, backgroundColor: "rgba(255,255,255,0.14)", borderWidth: 1, borderColor: "rgba(255,255,255,0.16)", paddingHorizontal: 12, paddingVertical: 6, marginBottom: 9 },
-  headerPillText: { color: "white", fontSize: 10, letterSpacing: 1, fontFamily: "Inter_800ExtraBold" }, title: { fontSize: 32, color: "#FFFFFF", fontFamily: "Inter_800ExtraBold", letterSpacing: -0.5, marginBottom: 6 },
-  subtitle: { fontSize: 15, color: "rgba(255,255,255,0.82)", textAlign: "center", marginBottom: 2, fontFamily: "Inter_600SemiBold" },
-  card: { backgroundColor: "#FFFFFF", borderRadius: 28, padding: 16, shadowColor: "#064E3B", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
-  segment: { flexDirection: "row", backgroundColor: "#ECFDF5", padding: 5, borderRadius: 18, borderWidth: 1, borderColor: "#A7F3D0", marginBottom: 12 }, segmentBtn: { flex: 1, borderRadius: 14, paddingVertical: 10, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6 }, segmentBtnActive: { backgroundColor: "#047857" },
-  segmentText: { fontSize: 13, color: "#047857", fontFamily: "Inter_700Bold" }, segmentTextActive: { color: "#FFFFFF" },
-  tabWrap: { flexDirection: "row", backgroundColor: "#F8FAFC", borderRadius: 18, padding: 5, marginBottom: 14 }, tab: { flex: 1, paddingVertical: 11, alignItems: "center", borderRadius: 14 }, tabActive: { backgroundColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  tabText: { fontSize: 14, color: "#64748B", fontFamily: "Inter_700Bold" }, tabTextActive: { color: "#047857" },
-  label: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 8 },
-  inputGroup: { marginBottom: 12 },
-  sectionRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 7, marginBottom: 10 }, sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981" }, sectionTitle: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_700Bold" },
-  input: { minHeight: 54, backgroundColor: "#F8FAFC", borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 16, color: "#0F172A", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  textArea: { minHeight: 85, textAlignVertical: "top", paddingTop: 14, paddingBottom: 14 },
-  phoneRow: { flexDirection: "row", gap: 10, marginBottom: 12 }, countryBox: { width: 92, height: 54, borderRadius: 16, backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center" },
-  countryText: { fontSize: 14, color: "#0F172A", fontFamily: "Inter_700Bold" },
-  phoneInput: { flex: 1, height: 54, backgroundColor: "#F8FAFC", borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 16, color: "#0F172A", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  dobRow: { flexDirection: "row", gap: 10 }, dobInput: { flex: 1, height: 54, borderRadius: 16, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", textAlign: "center", color: "#0F172A", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  statusGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }, statusChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" }, statusChipActive: { backgroundColor: "#047857", borderColor: "#047857" },
-  statusChipText: { fontSize: 13, color: "#64748B", fontFamily: "Inter_600SemiBold", textTransform: "capitalize" }, statusChipTextActive: { color: "#FFFFFF" },
-  photoRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0", marginBottom: 14 }, photo: { width: 80, height: 80, borderRadius: 16, backgroundColor: "#E0F2FE" }, photoEmpty: { width: 80, height: 80, borderRadius: 16, backgroundColor: "#F0F9FF", alignItems: "center", justifyContent: "center" },
-  primaryBtn: { height: 56, backgroundColor: "#10B981", borderRadius: 16, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, marginTop: 4 }, primaryBtnDisabled: { opacity: 0.6 },
-  primaryText: { fontSize: 16, color: "#FFFFFF", fontFamily: "Inter_700Bold" },
-  errorBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA", padding: 12, borderRadius: 16, marginTop: 4, marginBottom: 12 },
-  errorText: { flex: 1, fontSize: 13, color: "#DC2626", fontFamily: "Inter_600SemiBold" },
-  helperText: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_500Medium", marginTop: -8, marginBottom: 12 },
-  note: { fontSize: 12, color: "#64748B", textAlign: "center", marginTop: 12, fontFamily: "Inter_500Medium" },
+  root: { flex: 1, backgroundColor: BG },
+  header: { paddingHorizontal: 20, paddingBottom: 22, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
+  backBtn: { width: 42, height: 42, borderRadius: 13, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center", marginBottom: 14 },
+  headCenter: { alignItems: "center" },
+  headIcon: { width: 64, height: 64, borderRadius: 22, backgroundColor: "white", alignItems: "center", justifyContent: "center", shadowColor: DARK, shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6, marginBottom: 12 },
+  pill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.14)", borderWidth: 1, borderColor: "rgba(255,255,255,0.16)", paddingHorizontal: 10, paddingVertical: 5, marginBottom: 8 },
+  pillText: { color: "white", fontSize: 9, letterSpacing: 0.8, fontFamily: "Inter_700Bold" },
+  title: { fontSize: 24, color: "white", fontFamily: "Inter_700Bold", fontWeight: "900", letterSpacing: -0.4, marginBottom: 4 },
+  sub: { fontSize: 12, color: "rgba(255,255,255,0.78)", textAlign: "center", fontFamily: "Inter_400Regular" },
+  content: { padding: 16 },
+  card: { backgroundColor: "white", borderRadius: 20, padding: 14, shadowColor: DARK, shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, borderWidth: 1, borderColor: "rgba(255,237,213,0.8)" },
+  segment: { flexDirection: "row", backgroundColor: "#FFF7ED", padding: 4, borderRadius: 16, borderWidth: 1, borderColor: "#FED7AA", marginBottom: 10 },
+  segmentBtn: { flex: 1, borderRadius: 12, paddingVertical: 9, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
+  segmentActive: { backgroundColor: ORANGE },
+  segmentText: { fontSize: 12, color: ORANGE, fontFamily: "Inter_700Bold" },
+  segmentTextActive: { color: "white" },
+  tabWrap: { flexDirection: "row", backgroundColor: "#F8FAFC", borderRadius: 16, padding: 4, marginBottom: 12 },
+  tab: { flex: 1, paddingVertical: 9, alignItems: "center", borderRadius: 12 }, tabActive: { backgroundColor: "white", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  tabText: { fontSize: 13, color: "#64748B", fontFamily: "Inter_700Bold" }, tabTextActive: { color: ORANGE },
+  sectionRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 4, marginBottom: 10 }, sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ORANGE }, sectionTitle: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_700Bold" },
+  inputGroup: { marginBottom: 11 }, label: { fontSize: 11, color: "#334155", fontFamily: "Inter_700Bold", marginBottom: 6 },
+  input: { height: 48, backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 13, color: "#0F172A", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  phoneRow: { flexDirection: "row", gap: 9 }, countryBox: { width: 68, height: 48, borderRadius: 14, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", alignItems: "center", justifyContent: "center" }, countryText: { fontSize: 13, color: DARK, fontFamily: "Inter_700Bold" },
+  phoneInput: { flex: 1, height: 48, backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 13, color: "#0F172A", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  infoBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", padding: 10, borderRadius: 14, marginBottom: 11 }, infoText: { flex: 1, fontSize: 11, color: "#9A3412", fontFamily: "Inter_500Medium", lineHeight: 15 },
+  errorBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA", padding: 10, borderRadius: 14, marginBottom: 11 }, errorText: { flex: 1, fontSize: 12, color: "#DC2626", fontFamily: "Inter_600SemiBold" },
+  primaryBtn: { height: 52, backgroundColor: ORANGE, borderRadius: 16, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, shadowColor: DARK, shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }, primaryBtnDisabled: { opacity: 0.6 }, primaryText: { fontSize: 14, color: "white", fontFamily: "Inter_700Bold" },
+  note: { fontSize: 11, color: "#64748B", textAlign: "center", marginTop: 11, fontFamily: "Inter_500Medium" },
 });
