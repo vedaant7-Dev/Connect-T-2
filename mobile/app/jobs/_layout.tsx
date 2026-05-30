@@ -10,13 +10,15 @@ function JobsAuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
+
     const inLogin = segments[1] === "login";
+
     if (!jobsUser && !inLogin) {
       router.replace("/jobs/login" as any);
     } else if (jobsUser && inLogin) {
       router.replace("/jobs/(tabs)" as any);
     }
-  }, [jobsUser, loading, segments]);
+  }, [jobsUser, loading, segments, router]);
 
   return <>{children}</>;
 }
@@ -32,7 +34,9 @@ export default function JobsLayout() {
             <Stack.Screen name="search" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="results" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="resume" options={{ animation: "slide_from_bottom", presentation: "modal" }} />
+            <Stack.Screen name="status" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="detail/[jobId]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="active/[jobId]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="chat/[employerId]" options={{ animation: "slide_from_right" }} />
           </Stack>
         </JobsAuthGate>
