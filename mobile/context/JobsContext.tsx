@@ -213,15 +213,20 @@ function withApplicationStatus(job: Job, seekerId: string, status: JobApplicatio
   if (status === "shortlisted") shortlisted.push(seekerId);
   if (status === "rejected") rejected.push(seekerId);
 
+  const applications = job.applications || [];
+  const hasApplication = applications.some((app) => app.seekerId === seekerId);
+  const nextApplications = hasApplication
+    ? applications.map((app) => (app.seekerId === seekerId ? { ...app, status } : app))
+    : [...applications, { id: `${job.id}_${seekerId}`, jobId: job.id, seekerId, status }];
+
   return {
     ...job,
     applicants: unique([...job.applicants, seekerId]),
+    applicantsCount: Math.max(job.applicantsCount || 0, job.applicants.length),
     hired: unique(hired),
     shortlisted: unique(shortlisted),
     rejected: unique(rejected),
-    applications: (job.applications || []).map((app) =>
-      app.seekerId === seekerId ? { ...app, status } : app,
-    ),
+    applications: nextApplications,
   };
 }
 
@@ -464,23 +469,72 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const ensureApplicationForStatus = async (jobId: string, seekerId: string) => {
+    const existing =
+      applications.find((item) => item.jobId === jobId && item.seekerId === seekerId) ||
+      jobs.flatMap((job) => job.applications || []).find((item) => item.jobId === jobId && item.seekerId === seekerId);
+
+    if (existing?.id && !existing.id.startsWith(`${jobId}_`)) {
+      return existing;
+    }
+
+    const res = await apiPost<{ success: boolean; application: any }>(
+      `/api/job-portal/jobs/${jobId}/apply`,
+      { seekerId },
+    );
+
+    const created = normalizeApplication(res.application || { id: `${jobId}_${seekerId}`, job_id: jobId, seeker_id: seekerId });
+
+    setApplications((prev) => {
+      const withoutDuplicate = prev.filter((item) => !(item.jobId === jobId && item.seekerId === seekerId));
+      return [...withoutDuplicate, created];
+    });
+
+    setJobs((prev) =>
+      prev.map((job) =>
+        job.id === jobId
+          ? {
+              ...job,
+              applicants: unique([...job.applicants, seekerId]),
+              applications: [
+                ...(job.applications || []).filter((item) => item.seekerId !== seekerId),
+                created,
+              ],
+            }
+          : job,
+      ),
+    );
+
+    return created;
+  };
+
   const updateApplicationStatus = async (
     jobId: string,
     seekerId: string,
     status: JobApplication["status"],
   ) => {
-    const app =
+    let app =
       applications.find((item) => item.jobId === jobId && item.seekerId === seekerId) ||
       jobs.flatMap((job) => job.applications || []).find((item) => item.jobId === jobId && item.seekerId === seekerId);
 
-    if (!app) {
-      throw new Error("Application not found. Refresh and try again.");
+    if (!app?.id || app.id.startsWith(`${jobId}_`)) {
+      try {
+        app = await ensureApplicationForStatus(jobId, seekerId);
+      } catch {
+        throw new Error("Application not found. Ask the seeker to apply again, then try this action.");
+      }
     }
 
     const previousJobs = jobs;
     const previousApps = applications;
 
-    setApplications((prev) => prev.map((item) => (item.id === app.id ? { ...item, status } : item)));
+    setApplications((prev) => {
+      const exists = prev.some((item) => item.id === app!.id);
+      const next = exists
+        ? prev.map((item) => (item.id === app!.id ? { ...item, status } : item))
+        : [...prev, { ...app!, status }];
+      return next;
+    });
     setJobs((prev) => prev.map((job) => (job.id === jobId ? withApplicationStatus(job, seekerId, status) : job)));
 
     try {
