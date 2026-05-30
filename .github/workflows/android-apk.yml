@@ -1,0 +1,70 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "mobile/**"
+      - "tsconfig.json"
+      - "types/**"
+      - ".github/workflows/android-apk.yml"
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Build preview APK with EAS
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck workspace
+        run: pnpm run typecheck
+
+      - name: Check Expo token
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Missing EXPO_TOKEN GitHub secret. Add it in GitHub repo Settings > Secrets and variables > Actions > New repository secret."
+            exit 1
+          fi
+
+      - name: Build APK on EAS
+        working-directory: mobile
+        run: |
+          set -o pipefail
+          npx eas-cli@latest build --platform android --profile preview --non-interactive --wait 2>&1 | tee ../eas-apk-build.log
+
+      - name: Write build summary
+        if: always()
+        run: |
+          echo "## Connect-T Android APK Build" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Profile: preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "Backend: https://connect-t-2.onrender.com" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Build links found in EAS output" >> "$GITHUB_STEP_SUMMARY"
+          grep -Eo 'https://[^ ]+' eas-apk-build.log | sed 's/[),.]$//' | sort -u >> "$GITHUB_STEP_SUMMARY" || echo "No URL found. Open the job logs and search for expo.dev." >> "$GITHUB_STEP_SUMMARY"
