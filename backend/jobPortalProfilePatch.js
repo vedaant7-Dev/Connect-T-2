@@ -110,6 +110,36 @@ async function ensureExtraOnlyPatchCanPassServerRoute(userId, body = {}) {
   }
 }
 
+async function getPatchColumnStatus() {
+  if (!pool) {
+    return { connected: false, columns: COLUMNS.map((column) => ({ column, exists: false })) };
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'job_portal_users'
+         AND COLUMN_NAME IN (${COLUMNS.map(() => "?").join(",")})`,
+      COLUMNS,
+    );
+
+    const existing = new Set(rows.map((row) => row.COLUMN_NAME));
+
+    return {
+      connected: true,
+      columns: COLUMNS.map((column) => ({ column, exists: existing.has(column) })),
+    };
+  } catch (err) {
+    return {
+      connected: true,
+      error: err.message,
+      columns: COLUMNS.map((column) => ({ column, exists: false })),
+    };
+  }
+}
+
 async function ensureExtraColumns() {
   if (!pool) return;
 
@@ -320,6 +350,27 @@ try {
 
     return originalPatch.call(this, path, ...handlers);
   };
+
+  express.application.get.call(express.application, "/api/job-portal/patch-health", async function jobPortalPatchHealth(req, res) {
+    try {
+      await ensureExtraColumns();
+      const status = await getPatchColumnStatus();
+      res.json({
+        success: true,
+        patch: "jobPortalProfilePatch",
+        active: true,
+        extraFields: Object.keys(EXTRA_FIELDS),
+        ...status,
+      });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        patch: "jobPortalProfilePatch",
+        active: true,
+        error: err.message,
+      });
+    }
+  });
 
   console.log("[JobPortalPatch] Profile field persistence patch active");
 } catch (err) {
