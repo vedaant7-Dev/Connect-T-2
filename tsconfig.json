@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES2022"
+    "target": "ES2022",
+    "noEmit": true
   },
   "files": [
     "types/root-empty.d.ts"
