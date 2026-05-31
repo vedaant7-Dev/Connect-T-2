@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node --require ./jobPortalProfilePatch.js server.js"
+    "start": "node --require ./connectTProductionPatch.js --require ./jobPortalProfilePatch.js server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
