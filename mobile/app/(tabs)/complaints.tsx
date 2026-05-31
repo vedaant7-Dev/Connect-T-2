@@ -175,10 +175,10 @@ export default function ComplaintsScreen() {
             return (
               <TouchableOpacity key={tab.id} onPress={() => setFilter(tab.id)} style={[styles.filterChip, isActive && styles.filterChipActive]} activeOpacity={0.8}>
                 <View style={[styles.filterChipIcon, isActive && { backgroundColor: tab.color + "12" }]}> 
-                  <Feather name={tab.icon as any} size={15} color={isActive ? tab.color : "rgba(255,255,255,0.72)"} />
+                  <Feather name={tab.icon as any} size={14} color={isActive ? tab.color : "rgba(255,255,255,0.78)"} />
                 </View>
                 <Text style={[styles.filterChipCount, isActive && styles.filterChipCountActive]}>{count ?? 0}</Text>
-                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]} numberOfLines={1}>{tab.label}</Text>
+                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]} numberOfLines={2}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -201,20 +201,20 @@ export default function ComplaintsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#ebeffc" },
-  header: { paddingHorizontal: 18, paddingBottom: 14, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  header: { paddingHorizontal: 18, paddingBottom: 15, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15, gap: 12 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "#FFFFFF", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  newBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "white", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 13, borderWidth: 1, borderColor: "rgba(255,255,255,0.95)", shadowColor: "#7C2D12", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
+  newBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: "white", paddingHorizontal: 15, paddingVertical: 9, minHeight: 38, borderRadius: 14, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.96)", shadowColor: "#7C2D12", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 7, elevation: 5 },
   newBtnText: { fontSize: 13, fontWeight: "900", color: "#EA580C", fontFamily: "Inter_700Bold" },
-  filterRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "stretch", gap: 7, paddingBottom: 4 },
-  filterChip: { flex: 1, minHeight: 86, alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 5, paddingVertical: 9, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.18)" },
+  filterRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "stretch", gap: 8, paddingBottom: 5 },
+  filterChip: { flex: 1, minHeight: 92, alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 5, paddingVertical: 11, borderRadius: 15, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.2)" },
   filterChipActive: { backgroundColor: "white", borderColor: "white", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
-  filterChipIcon: { width: 26, height: 26, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)", marginBottom: 1 },
+  filterChipIcon: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.18)", marginBottom: 1 },
   filterChipCount: { fontSize: 19, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", lineHeight: 22 },
   filterChipCountActive: { color: "#111827" },
-  filterChipText: { fontSize: 10.5, fontWeight: "700", color: "rgba(255,255,255,0.88)", fontFamily: "Inter_600SemiBold", textAlign: "center", lineHeight: 13, maxWidth: "100%" },
+  filterChipText: { fontSize: 9.8, fontWeight: "700", color: "rgba(255,255,255,0.9)", fontFamily: "Inter_600SemiBold", textAlign: "center", lineHeight: 12.5, maxWidth: "100%" },
   filterChipTextActive: { color: "#C2410C" },
   filterChipBadge: { backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 10, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
   filterChipBadgeActive: { backgroundColor: "#EA580C" },
