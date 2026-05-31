@@ -36,6 +36,14 @@ function makeOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+function makeAccessId() {
+  return `SA${Date.now()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+function makeAccessCode() {
+  return `SA-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
 function sendJson(res, status, payload) {
   if (res.headersSent) return;
   return res.status(status).json(payload);
@@ -78,6 +86,22 @@ async function sendFast2Sms(mobile, otp) {
   }
 
   return data;
+}
+
+async function ensureSuperAdminAccessTable(db) {
+  await db.query(`CREATE TABLE IF NOT EXISTS super_admin_access_codes (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    mobile VARCHAR(20) NOT NULL,
+    access_code VARCHAR(40) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_by VARCHAR(80) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_super_admin_mobile_code (mobile, access_code),
+    KEY idx_super_admin_access_status (status),
+    KEY idx_super_admin_access_mobile (mobile)
+  )`);
 }
 
 async function sendOtpAlias(req, res) {
@@ -319,6 +343,115 @@ async function nagarsevakRegister(req, res) {
   }
 }
 
+async function listSuperAdminAccessCodes(req, res) {
+  try {
+    const db = getPool();
+    await ensureSuperAdminAccessTable(db);
+    const [rows] = await db.query(
+      `SELECT id, name, mobile, access_code AS accessCode, status, created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
+       FROM super_admin_access_codes
+       ORDER BY created_at DESC`,
+    );
+    return sendJson(res, 200, { success: true, accessCodes: rows });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message, message: err.message });
+  }
+}
+
+async function createSuperAdminAccessCode(req, res) {
+  try {
+    const db = getPool();
+    await ensureSuperAdminAccessTable(db);
+    const name = String(req.body?.name || "").trim();
+    const mobile = normalizeMobile(req.body?.mobile);
+    const createdBy = String(req.body?.createdBy || req.body?.created_by || "main_super_admin").trim();
+
+    if (!name || mobile.length !== 10) {
+      return sendJson(res, 400, { success: false, message: "Name and valid mobile are required" });
+    }
+
+    const id = makeAccessId();
+    const accessCode = makeAccessCode();
+
+    await db.query(
+      `INSERT INTO super_admin_access_codes (id, name, mobile, access_code, status, created_by)
+       VALUES (?, ?, ?, ?, 'active', ?)`,
+      [id, name, mobile, accessCode, createdBy || null],
+    );
+
+    return sendJson(res, 201, {
+      success: true,
+      access: { id, name, mobile, accessCode, status: "active", createdBy },
+    });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message, message: err.message });
+  }
+}
+
+async function updateSuperAdminAccessCode(req, res) {
+  try {
+    const db = getPool();
+    await ensureSuperAdminAccessTable(db);
+    const id = String(req.params?.id || "").trim();
+    const status = String(req.body?.status || "").trim() === "revoked" ? "revoked" : "active";
+
+    if (!id) return sendJson(res, 400, { success: false, message: "Access id is required" });
+
+    const [result] = await db.query(
+      "UPDATE super_admin_access_codes SET status = ? WHERE id = ?",
+      [status, id],
+    );
+
+    return sendJson(res, 200, { success: true, updated: result.affectedRows || 0, status });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message, message: err.message });
+  }
+}
+
+async function superAdminAccessLogin(req, res) {
+  try {
+    const db = getPool();
+    await ensureSuperAdminAccessTable(db);
+    const mobile = normalizeMobile(req.body?.mobile);
+    const accessCode = String(req.body?.accessCode || req.body?.access_code || "").trim().toUpperCase();
+
+    if (mobile.length !== 10 || !accessCode) {
+      return sendJson(res, 400, { success: false, message: "Mobile and unique access ID are required" });
+    }
+
+    const [rows] = await db.query(
+      `SELECT id, name, mobile, access_code, status
+       FROM super_admin_access_codes
+       WHERE ${mobileSql("mobile")} = ? AND UPPER(access_code) = ?
+       LIMIT 1`,
+      [mobile, accessCode],
+    );
+
+    if (!rows.length) {
+      return sendJson(res, 401, { success: false, message: "Invalid mobile number or unique access ID" });
+    }
+
+    const row = rows[0];
+    if (String(row.status || "").toLowerCase() !== "active") {
+      return sendJson(res, 403, { success: false, message: "This unique access ID is revoked" });
+    }
+
+    return sendJson(res, 200, {
+      success: true,
+      user: {
+        id: row.id,
+        name: row.name,
+        mobile,
+        role: "super_admin",
+        isSuperAdmin: true,
+        accessCode: row.access_code,
+      },
+    });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message, message: err.message });
+  }
+}
+
 async function deleteJobMessage(req, res) {
   try {
     const db = getPool();
@@ -371,6 +504,7 @@ try {
   const express = require("express");
   const originalGet = express.application.get;
   const originalPost = express.application.post;
+  const originalPatch = express.application.patch;
   const originalDelete = express.application.delete;
 
   function installCompatibilityRoutes(app) {
@@ -378,6 +512,10 @@ try {
     routesInstalled = true;
     originalPost.call(app, "/api/send-otp", sendOtpAlias);
     originalPost.call(app, "/api/verify-otp", verifyOtpAlias);
+    originalGet.call(app, "/api/super-admin/access-codes", listSuperAdminAccessCodes);
+    originalPost.call(app, "/api/super-admin/access-codes", createSuperAdminAccessCode);
+    originalPatch.call(app, "/api/super-admin/access-codes/:id", updateSuperAdminAccessCode);
+    originalPost.call(app, "/api/auth/super-admin-access-login", superAdminAccessLogin);
     originalDelete.call(app, "/api/job-portal/messages/:id", deleteJobMessage);
   }
 
@@ -405,7 +543,12 @@ try {
     return originalPost.call(this, path, ...handlers);
   };
 
-  console.log("[ConnectTPatch] OTP compatibility, complaint filter and Nagarsevak safety patch active");
+  express.application.patch = function patchedPatch(path, ...handlers) {
+    installCompatibilityRoutes(this);
+    return originalPatch.call(this, path, ...handlers);
+  };
+
+  console.log("[ConnectTPatch] OTP, complaint filter, Nagarsevak safety and Super Admin access patch active");
 } catch (err) {
   console.warn("[ConnectTPatch] express patch disabled:", err.message);
 }
