@@ -287,10 +287,6 @@ export default function JobPortalProfileScreen() {
               <View style={s.rolePill}><Feather name={isEmployer ? "briefcase" : "user"} size={11} color="rgba(255,255,255,0.9)" /><Text style={s.rolePillText}>{roleText}</Text></View>
               <Text style={s.roleSub}>{roleSub}</Text>
             </View>
-            <TouchableOpacity style={s.switchPortalBtn} onPress={() => router.replace("/(tabs)" as any)} activeOpacity={0.85}>
-              <Feather name="home" size={12} color={ORANGE} />
-              <Text style={s.switchPortalText}>Switch to Civic Service</Text>
-            </TouchableOpacity>
             <View style={s.infoRow}>
               <View style={s.infoChipRow}><Feather name="phone" size={10} color="rgba(255,255,255,0.58)" /><Text style={s.infoChipText}>+91 {jobsUser.phone}</Text></View>
               <View style={s.infoChipRow}><Feather name="map-pin" size={10} color="rgba(255,255,255,0.58)" /><Text style={s.infoChipText} numberOfLines={1}>{location || address || "Ambernath"}</Text></View>
@@ -390,9 +386,7 @@ const s = StyleSheet.create({
   rolePill: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
   rolePillText: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.9)", fontFamily: "Inter_700Bold" },
   roleSub: { fontSize: 11, color: "rgba(255,255,255,0.58)", fontFamily: "Inter_400Regular" },
-  switchPortalBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", backgroundColor: "white", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, marginTop: 6 },
-  switchPortalText: { fontSize: 12, color: ORANGE, fontFamily: "Inter_700Bold", fontWeight: "900" },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 2 },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 4 },
   infoChipRow: { flexDirection: "row", alignItems: "center", gap: 5, maxWidth: "100%" },
   infoChipText: { fontSize: 10.5, color: "rgba(255,255,255,0.58)", fontFamily: "Inter_400Regular", maxWidth: 190 },
   statsRow: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 14, padding: 10, alignItems: "center" },
