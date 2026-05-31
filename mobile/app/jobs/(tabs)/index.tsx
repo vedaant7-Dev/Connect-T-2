@@ -133,7 +133,6 @@ function ApplicantRow({ app, job, onOpen }: { app: JobApplication; job: Job; onO
 function EmployerDashboard({ jobs, employerId, onPostJob, onToggle, onDelete }: { jobs: Job[]; employerId: string; onPostJob: () => void; onToggle: (id: string) => void; onDelete: (id: string) => void }) {
   const router = useRouter();
   const myJobs = jobs.filter((job) => job.employerId === employerId);
-  const activeJobs = myJobs.filter((job) => job.active);
   const totalApplicants = myJobs.reduce((sum, job) => sum + job.applicants.length, 0);
 
   return (
@@ -177,10 +176,6 @@ function EmployerDashboard({ jobs, employerId, onPostJob, onToggle, onDelete }: 
   );
 }
 
-function Action({ icon, title, sub, onPress }: { icon: any; title: string; sub: string; onPress: () => void }) {
-  return <TouchableOpacity style={s.actionCard} activeOpacity={0.9} onPress={onPress}><View style={s.actionIcon}><Feather name={icon} size={19} color={ORANGE} /></View><Text style={s.actionTitle}>{title}</Text><Text style={s.actionSub}>{sub}</Text></TouchableOpacity>;
-}
-
 export default function JobsHomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -204,6 +199,8 @@ export default function JobsHomeScreen() {
     }
   };
 
+  const list = nearbyJobs.length ? nearbyJobs : visibleJobs;
+
   return (
     <View style={s.root}>
       <LinearGradient colors={[DARK, ORANGE, "#F97316", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.header, { paddingTop: topPad + 12 }]}> 
@@ -212,10 +209,7 @@ export default function JobsHomeScreen() {
         {!isEmployer && <TouchableOpacity style={s.searchCard} activeOpacity={0.9} onPress={() => router.push("/jobs/search" as any)}><View style={s.searchIcon}><Feather name="search" size={18} color={ORANGE} /></View><View style={{ flex: 1 }}><Text style={s.searchTitle}>Nearby job openings</Text><Text style={s.searchSub}>Tap to view jobs list with filters</Text></View><Feather name="sliders" size={18} color="#94A3B8" /></TouchableOpacity>}
       </LinearGradient>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[s.content, { paddingBottom: Math.max(insets.bottom, 8) + 92 }]}> 
-        {isEmployer ? <EmployerDashboard jobs={jobs} employerId={jobsUser?.id || ""} onPostJob={() => router.push("/jobs/(tabs)/post" as any)} onToggle={toggleJobActive} onDelete={deleteJob} /> : <>
-          <View style={s.actionGrid}><Action icon="search" title="Find Jobs" sub="Nearby openings" onPress={() => router.push("/jobs/search" as any)} /><Action icon="clipboard" title="Applications" sub="Track status" onPress={() => router.push("/jobs/(tabs)/applied" as any)} /><Action icon="file-text" title="Resume" sub="Build profile" onPress={() => router.push("/jobs/resume" as any)} /></View>
-          <View style={s.sectionBlock}><SectionHeader title="Nearby Jobs" sub="Local openings with search and filters" count={nearbyJobs.length || visibleJobs.length} /><TouchableOpacity onPress={() => router.push("/jobs/search" as any)} style={s.seeAllBtn}><Text style={s.seeAllText}>See all jobs</Text><Feather name="arrow-right" size={13} color={ORANGE} /></TouchableOpacity>{(nearbyJobs.length ? nearbyJobs : visibleJobs).length === 0 ? <Empty icon="briefcase" title="No jobs right now" sub="New verified local jobs will appear here." /> : (nearbyJobs.length ? nearbyJobs : visibleJobs).slice(0, 8).map((job) => <JobCard key={job.id} job={job} applied={!!jobsUser && hasApplied(job.id, jobsUser.id)} near={nearbyJobs.some((j) => j.id === job.id)} onOpen={() => router.push(`/jobs/detail/${job.id}` as any)} onApply={() => handleApply(job)} />)}</View>
-        </>}
+        {isEmployer ? <EmployerDashboard jobs={jobs} employerId={jobsUser?.id || ""} onPostJob={() => router.push("/jobs/(tabs)/post" as any)} onToggle={toggleJobActive} onDelete={deleteJob} /> : <View style={s.sectionBlock}><SectionHeader title="Nearby Jobs" sub="Local openings with search and filters" count={list.length} /><TouchableOpacity onPress={() => router.push("/jobs/search" as any)} style={s.seeAllBtn}><Text style={s.seeAllText}>See all jobs</Text><Feather name="arrow-right" size={13} color={ORANGE} /></TouchableOpacity>{list.length === 0 ? <Empty icon="briefcase" title="No jobs right now" sub="New verified local jobs will appear here." /> : list.slice(0, 8).map((job) => <JobCard key={job.id} job={job} applied={!!jobsUser && hasApplied(job.id, jobsUser.id)} near={nearbyJobs.some((j) => j.id === job.id)} onOpen={() => router.push(`/jobs/detail/${job.id}` as any)} onApply={() => handleApply(job)} />)}</View>}
       </ScrollView>
       <NotificationsModal visible={showNotifications} onClose={() => setShowNotifications(false)} jobs={activeJobs} />
       <AppNotice visible={notice.visible} title={notice.title} message={notice.message} onClose={() => setNotice((prev) => ({ ...prev, visible: false }))} />
@@ -238,11 +232,6 @@ const s = StyleSheet.create({
   searchTitle: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_700Bold", fontWeight: "900" },
   searchSub: { marginTop: 2, fontSize: 10.5, color: "#94A3B8", fontFamily: "Inter_400Regular" },
   content: { padding: 16, gap: 16 },
-  actionGrid: { flexDirection: "row", gap: 9 },
-  actionCard: { flex: 1, backgroundColor: "white", borderRadius: 18, padding: 12, minHeight: 112, justifyContent: "space-between", borderWidth: 1, borderColor: "rgba(254,215,170,0.9)", shadowColor: DARK, shadowOpacity: 0.05, shadowRadius: 9, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  actionIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" },
-  actionTitle: { fontSize: 12.5, color: "#0F172A", fontFamily: "Inter_700Bold", fontWeight: "900" },
-  actionSub: { fontSize: 9.5, color: "#94A3B8", fontFamily: "Inter_400Regular" },
   sectionBlock: { gap: 11 },
   sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   sectionTitle: { fontSize: 14, color: "#0F172A", fontWeight: "900", fontFamily: "Inter_700Bold" },
