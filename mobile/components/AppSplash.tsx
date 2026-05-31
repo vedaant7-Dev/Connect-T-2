@@ -78,7 +78,7 @@ export function AppSplash({ onFinish }: AppSplashProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", zIndex: 9999, overflow: "hidden" },
+  container: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", zIndex: 9999, overflow: "hidden" },
   centre: { alignItems: "center", flex: 1, justifyContent: "center", paddingHorizontal: 24 },
   logoTouch: { marginBottom: 18 },
   logoWrap: { alignItems: "center", justifyContent: "center" },
