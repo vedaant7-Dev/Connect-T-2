@@ -14,7 +14,7 @@ const ORANGE = "#EA580C";
 const DARK = "#C2410C";
 const BG = "#ebeffc";
 
-const AREAS = ["MIDC Ambernath", "Ambernath East", "Ambernath West", "Shivaji Chowk", "Station Area East", "Station Area West", "Old Ambernath", "New Ambernath", "Vithalwadi", "Shelar Colony", "Badlapur", "Ulhasnagar"];
+const AREAS = ["MIDC Ambernath", "Ambernath East", "Ambernath West", "Shivaji Chowk", "Station Area East", "Station Area West", "Vithalwadi", "Shelar Colony", "Badlapur", "Ulhasnagar"];
 const JOB_TYPES: { id: JobType | "all"; label: string }[] = [{ id: "all", label: "All Types" }, { id: "full-time", label: "Full Time" }, { id: "part-time", label: "Part Time" }, { id: "contract", label: "Contract" }, { id: "apprentice", label: "Apprentice" }];
 const CATEGORIES: { id: JobCategory | "all"; label: string }[] = [{ id: "all", label: "All" }, { id: "manufacturing", label: "Factory" }, { id: "it", label: "IT" }, { id: "retail", label: "Retail" }, { id: "healthcare", label: "Health" }, { id: "transport", label: "Transport" }, { id: "education", label: "Teaching" }, { id: "security", label: "Security" }, { id: "construction", label: "Construction" }];
 
