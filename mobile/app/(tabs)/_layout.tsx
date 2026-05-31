@@ -13,16 +13,10 @@ const ORANGE = "#EA580C";
 const GREEN = "#16A34A";
 const MUTED = "#94A3B8";
 
-function getBottomInset() {
-  const insets = useSafeAreaInsets();
-  return Platform.OS === "web" ? 14 : Math.max(insets.bottom, 8);
-}
-
 function AnimatedTabBar(props: any) {
   const { state, descriptors, navigation } = props;
   const { tabBarAnimatedStyle } = useTabBarVisibility();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const insets = useSafeAreaInsets();
@@ -52,7 +46,8 @@ function AnimatedTabBar(props: any) {
 }
 
 function NagarsevakTabBar({ state, descriptors, navigation }: any) {
-  const bottomInset = getBottomInset();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Platform.OS === "web" ? 14 : Math.max(insets.bottom, 8);
   const visibleNames = ["admin", "feed", "profile"];
   const visibleRoutes = state.routes.filter((route: any) => visibleNames.includes(route.name));
   const activeRouteName = state.routes[state.index]?.name;
