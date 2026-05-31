@@ -6,6 +6,17 @@ import { Feather } from "@expo/vector-icons";
 import { useJobsAuth } from "@/context/JobsAuthContext";
 
 const ORANGE = "#EA580C";
+const MUTED = "#94A3B8";
+
+function isTabActive(pathname: string, tabName: string) {
+  const clean = pathname.replace(/\/$/, "");
+
+  if (tabName === "index") {
+    return clean === "/jobs" || clean === "/jobs/(tabs)" || clean === "/jobs/(tabs)/index";
+  }
+
+  return clean === `/jobs/${tabName}` || clean === `/jobs/(tabs)/${tabName}` || clean.endsWith(`/jobs/(tabs)/${tabName}`);
+}
 
 function JobsTabBar() {
   const insets = useSafeAreaInsets();
@@ -14,7 +25,7 @@ function JobsTabBar() {
   const { jobsUser } = useJobsAuth();
   const TAB_H = Platform.OS === "web" ? 66 : 58 + Math.max(insets.bottom, 8);
 
-  const TABS = jobsUser?.role === "employer"
+  const tabs = jobsUser?.role === "employer"
     ? [
         { name: "index", label: "Jobs", icon: "home", path: "/jobs/(tabs)" },
         { name: "post", label: "Post", icon: "plus-circle", path: "/jobs/(tabs)/post" },
@@ -31,12 +42,12 @@ function JobsTabBar() {
 
   return (
     <View style={[styles.tabBar, { height: TAB_H, paddingBottom: Math.max(insets.bottom, 8) }]}> 
-      {TABS.map((tab) => {
-        const active = pathname === tab.path || pathname.startsWith(`${tab.path}/`) || (tab.name === "index" && (pathname === "/jobs/(tabs)/index" || pathname === "/jobs/(tabs)"));
+      {tabs.map((tab) => {
+        const active = isTabActive(pathname, tab.name);
         return (
           <TouchableOpacity key={tab.name} style={styles.tabItem} onPress={() => router.replace(tab.path as any)} activeOpacity={0.72}>
             <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
-              <Feather name={tab.icon as any} size={18} color={active ? ORANGE : "#94A3B8"} />
+              <Feather name={tab.icon as any} size={18} color={active ? ORANGE : MUTED} />
             </View>
             <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>{tab.label}</Text>
           </TouchableOpacity>
@@ -74,6 +85,6 @@ const styles = StyleSheet.create({
   tabItem: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2, paddingTop: 8, minWidth: 0 },
   tabIconWrap: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   tabIconWrapActive: { backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" },
-  tabLabel: { fontSize: 9.3, fontWeight: "600", color: "#94A3B8", fontFamily: "Inter_600SemiBold" },
+  tabLabel: { fontSize: 9.3, fontWeight: "600", color: MUTED, fontFamily: "Inter_600SemiBold" },
   tabLabelActive: { color: ORANGE, fontFamily: "Inter_700Bold" },
 });
