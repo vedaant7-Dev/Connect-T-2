@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -34,17 +33,6 @@ const statusConfig: Record<ComplaintStatus, { color: string; bg: string; icon: s
   rejected: { color: "#DC2626", bg: "#FEE2E2", icon: "x-circle" },
 };
 
-const categoryLabelKeys: Record<string, string> = {
-  roads: "roads",
-  water: "water",
-  electricity: "electricity",
-  garbage: "garbage",
-  drainage: "drainage",
-  streetlight: "streetLight",
-  encroachment: "encroachment",
-  other: "other",
-};
-
 const categoryConfig: Record<string, { icon: string; color: string }> = {
   roads: { icon: "truck", color: "#92400E" },
   water: { icon: "droplet", color: "#0369A1" },
@@ -58,7 +46,7 @@ const categoryConfig: Record<string, { icon: string; color: string }> = {
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
+  const mins = Math.max(Math.floor(diff / 60000), 0);
   const hours = Math.floor(mins / 60);
   const days = Math.floor(hours / 24);
   if (days > 0) return `${days}d ago`;
@@ -74,13 +62,13 @@ function ComplaintCard({ complaint, onPress }: { complaint: Complaint; onPress: 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.card}>
       <View style={styles.cardTop}>
-        <View style={[styles.catIcon, { backgroundColor: cat.color + "18" }]}>
+        <View style={[styles.catIcon, { backgroundColor: cat.color + "18" }]}> 
           <Feather name={cat.icon as any} size={18} color={cat.color} />
         </View>
         <View style={styles.cardInfo}>
           <View style={styles.cardTitleRow}>
             <Text style={styles.cardTitle} numberOfLines={1}>{complaint.title}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: st.bg }]}>
+            <View style={[styles.statusBadge, { backgroundColor: st.bg }]}> 
               <Feather name={st.icon as any} size={9} color={st.color} />
               <Text style={[styles.statusText, { color: st.color }]}>{t(statusLabelKeys[complaint.status])}</Text>
             </View>
@@ -99,15 +87,15 @@ function ComplaintCard({ complaint, onPress }: { complaint: Complaint; onPress: 
       <View style={styles.cardFooter}>
         <Text style={styles.cmpId}># {complaint.id}</Text>
         <View style={styles.timelineBar}>
-          {(["submitted", "assigned", "in_progress", "resolved"] as ComplaintStatus[]).map((s, i) => {
+          {(["submitted", "assigned", "in_progress", "resolved"] as ComplaintStatus[]).map((item, i) => {
             const steps = ["submitted", "assigned", "in_progress", "resolved"] as ComplaintStatus[];
             const currentIdx = steps.indexOf(complaint.status);
             const filled = i <= currentIdx && complaint.status !== "rejected";
             return (
               <View
-                key={s}
+                key={item}
                 style={[styles.timelineStep, {
-                  backgroundColor: filled ? statusConfig[s].color : "#E2E8F0",
+                  backgroundColor: filled ? statusConfig[item].color : "#E2E8F0",
                   flex: i < 3 ? 1 : 0,
                   width: i === 3 ? 20 : undefined,
                   height: i === 3 ? 20 : 4,
@@ -170,16 +158,12 @@ export default function ComplaintsScreen() {
         <TopShade height={100} />
         <DecorativeCircles />
         <View style={styles.headerRow}>
-          <View>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.headerTitle}>{t("myComplaints")}</Text>
             <Text style={styles.headerSub}>{complaints.length} {t("total")}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.newBtn}
-            onPress={() => router.push("/complaint/new")}
-            activeOpacity={0.85}
-          >
-            <Feather name="plus" size={16} color="white" />
+          <TouchableOpacity style={styles.newBtn} onPress={() => router.push("/complaint/new")} activeOpacity={0.85}>
+            <Feather name="plus" size={16} color="#EA580C" />
             <Text style={styles.newBtnText}>{t("new")}</Text>
           </TouchableOpacity>
         </View>
@@ -189,21 +173,12 @@ export default function ComplaintsScreen() {
             const isActive = filter === tab.id;
             const count = counts[tab.id as keyof typeof counts];
             return (
-              <TouchableOpacity
-                key={tab.id}
-                onPress={() => setFilter(tab.id)}
-                style={[styles.filterChip, isActive && styles.filterChipActive]}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.filterChipIcon, isActive && { backgroundColor: tab.color + "12" }]}>
-                  <Feather name={tab.icon as any} size={16} color={isActive ? tab.color : "rgba(255,255,255,0.55)"} />
+              <TouchableOpacity key={tab.id} onPress={() => setFilter(tab.id)} style={[styles.filterChip, isActive && styles.filterChipActive]} activeOpacity={0.8}>
+                <View style={[styles.filterChipIcon, isActive && { backgroundColor: tab.color + "12" }]}> 
+                  <Feather name={tab.icon as any} size={15} color={isActive ? tab.color : "rgba(255,255,255,0.72)"} />
                 </View>
-                <Text style={[styles.filterChipCount, isActive && styles.filterChipCountActive]}>
-                  {count ?? 0}
-                </Text>
-                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-                  {tab.label}
-                </Text>
+                <Text style={[styles.filterChipCount, isActive && styles.filterChipCountActive]}>{count ?? 0}</Text>
+                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]} numberOfLines={1}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -213,139 +188,46 @@ export default function ComplaintsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(c) => c.id}
-        renderItem={({ item }) => (
-          <ComplaintCard
-            complaint={item}
-            onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })}
-          />
-        )}
+        renderItem={({ item }) => <ComplaintCard complaint={item} onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: item.id } })} />}
         contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 80 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Feather name="inbox" size={40} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>{t("noComplaintsYet")}</Text>
-            <Text style={styles.emptySub}>{t("tapNewToRaise")}</Text>
-          </View>
-        }
+        ListEmptyComponent={<View style={styles.empty}><Feather name="inbox" size={40} color="#CBD5E1" /><Text style={styles.emptyTitle}>{t("noComplaintsYet")}</Text><Text style={styles.emptySub}>{t("tapNewToRaise")}</Text></View>}
       />
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#ebeffc" },
-  header: { paddingHorizontal: 20, paddingBottom: 14, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  header: { paddingHorizontal: 18, paddingBottom: 14, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 14,
-  },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "#FFFFFF", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  newBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
-  },
-  newBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  filterRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-    paddingBottom: 4,
-  },
-  filterChip: {
-    width: "23%",
-    aspectRatio: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  filterChipActive: {
-    backgroundColor: "white",
-    borderColor: "white",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  filterChipIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  filterChipCount: { fontSize: 20, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", lineHeight: 24 },
+  newBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "white", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 13, borderWidth: 1, borderColor: "rgba(255,255,255,0.95)", shadowColor: "#7C2D12", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
+  newBtnText: { fontSize: 13, fontWeight: "900", color: "#EA580C", fontFamily: "Inter_700Bold" },
+  filterRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "stretch", gap: 7, paddingBottom: 4 },
+  filterChip: { flex: 1, minHeight: 86, alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 5, paddingVertical: 9, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.18)" },
+  filterChipActive: { backgroundColor: "white", borderColor: "white", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
+  filterChipIcon: { width: 26, height: 26, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)", marginBottom: 1 },
+  filterChipCount: { fontSize: 19, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", lineHeight: 22 },
   filterChipCountActive: { color: "#111827" },
-  filterChipText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.85)", fontFamily: "Inter_600SemiBold", textAlign: "center", lineHeight: 15 },
+  filterChipText: { fontSize: 10.5, fontWeight: "700", color: "rgba(255,255,255,0.88)", fontFamily: "Inter_600SemiBold", textAlign: "center", lineHeight: 13, maxWidth: "100%" },
   filterChipTextActive: { color: "#C2410C" },
-  filterChipBadge: {
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 4,
-  },
+  filterChipBadge: { backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 10, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
   filterChipBadgeActive: { backgroundColor: "#EA580C" },
   filterChipBadgeText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.9)", fontFamily: "Inter_700Bold" },
   filterChipBadgeTextActive: { color: "white" },
   list: { padding: 14 },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 10,
-    shadowColor: "#B45309",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 2,
-    overflow: "hidden",
-  },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 16, marginBottom: 10, shadowColor: "#B45309", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2, overflow: "hidden" },
   cardTop: { flexDirection: "row", gap: 10, padding: 14, alignItems: "flex-start" },
-  catIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  cardInfo: { flex: 1 },
+  catIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  cardInfo: { flex: 1, minWidth: 0 },
   cardTitleRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 6, marginBottom: 4 },
   cardTitle: { fontSize: 14, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold", flex: 1 },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 20,
-    flexShrink: 0,
-  },
+  statusBadge: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20, flexShrink: 0 },
   statusText: { fontSize: 9, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
   cardDesc: { fontSize: 12, color: "#64748B", fontFamily: "Inter_400Regular", lineHeight: 17, marginBottom: 6 },
   cardMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
@@ -353,20 +235,9 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular", flex: 1 },
   metaDot: { fontSize: 10, color: "#CBD5E1" },
   metaTime: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingBottom: 12,
-  },
+  cardFooter: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingBottom: 12 },
   cmpId: { fontSize: 10, fontWeight: "700", color: "#94A3B8", fontFamily: "Inter_600SemiBold" },
-  timelineBar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
+  timelineBar: { flex: 1, flexDirection: "row", alignItems: "center", gap: 3 },
   timelineStep: {},
   empty: { alignItems: "center", paddingTop: 60, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#334155", fontFamily: "Inter_700Bold" },
