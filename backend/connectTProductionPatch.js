@@ -13,6 +13,10 @@ function normalizeMobile(value) {
   return String(value || "").replace(/\D/g, "").slice(-10);
 }
 
+function mobileSql(column) {
+  return `RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(${column},''), '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', ''), 10)`;
+}
+
 function normalizeWardCode(value) {
   if (!value) return null;
   const match = String(value).trim().toUpperCase().match(/(\d{1,2})\s*([ABC])/);
@@ -171,7 +175,7 @@ async function complaintsList(req, res) {
     }
 
     if (cleanUserMobile) {
-      sql += " AND RIGHT(REGEXP_REPLACE(COALESCE(user_mobile,''), '[^0-9]', ''), 10) = ?";
+      sql += ` AND ${mobileSql("user_mobile")} = ?`;
       params.push(cleanUserMobile);
     }
 
@@ -245,7 +249,7 @@ async function nagarsevakRegister(req, res) {
     const [existingMobile] = await db.query(
       `SELECT id, approval_status
        FROM users
-       WHERE mobile = ? AND role = 'nagarsevak'
+       WHERE ${mobileSql("mobile")} = ? AND role = 'nagarsevak'
        LIMIT 1`,
       [mobile],
     );
