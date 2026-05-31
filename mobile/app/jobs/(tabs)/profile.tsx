@@ -229,7 +229,7 @@ export default function JobPortalProfileScreen() {
     if (saving) return;
     if (name.trim().length < 3) return showNotice("Check profile", "Enter a valid full name.", "info");
     if (!validEmail(email)) return showNotice("Check profile", "Enter a valid email address.", "info");
-    if (!isEmployer && about.trim() && (countWords(about) < 5 || countWords(about) > 80)) return showNotice("Check profile", "About / Objective must be 5 to 80 words.", "info");
+    if (!isEmployer && about.trim() && countWords(about) > 80) return showNotice("Check profile", "About / Objective must be maximum 80 words.", "info");
     if (isEmployer && companyDescription.trim() && countWords(companyDescription) > 100) return showNotice("Check profile", "Company description must be maximum 100 words.", "info");
 
     setSaving(true);
@@ -293,7 +293,7 @@ export default function JobPortalProfileScreen() {
             </TouchableOpacity>
             <View style={s.infoRow}>
               <View style={s.infoChipRow}><Feather name="phone" size={10} color="rgba(255,255,255,0.58)" /><Text style={s.infoChipText}>+91 {jobsUser.phone}</Text></View>
-              <View style={s.infoChipRow}><Feather name="map-pin" size={10} color="rgba(255,255,255,0.58)" /><Text style={s.infoChipText}>{location || address || "Ambernath"}</Text></View>
+              <View style={s.infoChipRow}><Feather name="map-pin" size={10} color="rgba(255,255,255,0.58)" /><Text style={s.infoChipText} numberOfLines={1}>{location || address || "Ambernath"}</Text></View>
             </View>
           </View>
         </View>
@@ -379,11 +379,11 @@ export default function JobPortalProfileScreen() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: BG },
   header: { paddingHorizontal: 20, paddingBottom: 14, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
-  headerContent: { flexDirection: "row", alignItems: "center", gap: 13, marginBottom: 12 },
-  avatarWrap: { width: 74, height: 74, borderRadius: 37, backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 2.5, borderColor: "rgba(255,255,255,0.45)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  avatarImg: { width: 68, height: 68, borderRadius: 34 },
-  avatarText: { fontSize: 25, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
-  cameraDot: { position: "absolute", right: -1, bottom: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: "white", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.7)" },
+  headerContent: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  avatarWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 2.2, borderColor: "rgba(255,255,255,0.45)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  avatarImg: { width: 58, height: 58, borderRadius: 29 },
+  avatarText: { fontSize: 22, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
+  cameraDot: { position: "absolute", right: -1, bottom: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: "white", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.7)" },
   headerText: { flex: 1, gap: 4, minWidth: 0 },
   userName: { fontSize: 18, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   rolePillRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
@@ -392,9 +392,9 @@ const s = StyleSheet.create({
   roleSub: { fontSize: 11, color: "rgba(255,255,255,0.58)", fontFamily: "Inter_400Regular" },
   switchPortalBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", backgroundColor: "white", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, marginTop: 6 },
   switchPortalText: { fontSize: 12, color: ORANGE, fontFamily: "Inter_700Bold", fontWeight: "900" },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 2 },
-  infoChipRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  infoChipText: { fontSize: 10.5, color: "rgba(255,255,255,0.58)", fontFamily: "Inter_400Regular" },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 2 },
+  infoChipRow: { flexDirection: "row", alignItems: "center", gap: 5, maxWidth: "100%" },
+  infoChipText: { fontSize: 10.5, color: "rgba(255,255,255,0.58)", fontFamily: "Inter_400Regular", maxWidth: 190 },
   statsRow: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 14, padding: 10, alignItems: "center" },
   statItem: { flex: 1, alignItems: "center" },
   statNum: { fontSize: 23, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
@@ -409,12 +409,12 @@ const s = StyleSheet.create({
   actionIcon: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   actionLabel: { fontSize: 13, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_600SemiBold" },
   actionSub: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 1, lineHeight: 15 },
-  formHead: { flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 16, paddingTop: 15, paddingBottom: 10 },
+  formHead: { flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 18, paddingTop: 15, paddingBottom: 10 },
   formIcon: { width: 32, height: 32, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" },
   formTitle: { fontSize: 14, color: "#0F172A", fontFamily: "Inter_700Bold", fontWeight: "900" },
-  inputGroup: { paddingHorizontal: 16, paddingBottom: 14 },
+  inputGroup: { paddingHorizontal: 18, paddingBottom: 14 },
   label: { fontSize: 9.5, fontWeight: "700", color: "#94A3B8", letterSpacing: 1, fontFamily: "Inter_600SemiBold", marginBottom: 6, paddingLeft: 2 },
-  input: { width: "100%", backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 13.5, color: "#0F172A", fontFamily: "Inter_400Regular", outlineWidth: 0 } as any,
+  input: { width: "100%", backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 15, paddingVertical: 12, fontSize: 13.5, color: "#0F172A", fontFamily: "Inter_400Regular", outlineWidth: 0 } as any,
   textArea: { minHeight: 88, textAlignVertical: "top" },
   dobRow: { flexDirection: "row", gap: 8 },
   dobInput: { flex: 1, backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 12, paddingVertical: 12, fontSize: 13.5, color: "#0F172A", fontFamily: "Inter_600SemiBold", textAlign: "center", outlineWidth: 0 } as any,
