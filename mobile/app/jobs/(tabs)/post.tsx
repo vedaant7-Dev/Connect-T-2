@@ -84,9 +84,10 @@ export default function EmployerPostJobScreen() {
     if (!validTime(workStartTime) || !validTime(workEndTime)) return "Use valid time like 09:00 AM or 18:00.";
     if (!workingDays.trim()) return "Enter working days.";
     if (!weeklyOff.trim()) return "Enter weekly off.";
-    if (descriptionWords < 5 || descriptionWords > 100) return "Description must be minimum 5 words and maximum 100 words.";
-    if (requirements.trim() && requirementsWords > 100) return "Requirements must be maximum 100 words.";
-    if (benefits.trim() && benefitsWords > 80) return "Benefits must be maximum 80 words.";
+    if (description.trim().length < 12) return "Enter a short job description.";
+    if (descriptionWords > 120) return "Description is too long. Keep it short and clear.";
+    if (requirements.trim() && requirementsWords > 100) return "Requirements are too long. Keep them short and clear.";
+    if (benefits.trim() && benefitsWords > 80) return "Benefits are too long. Keep them short and clear.";
     if (!validDate(lastDateToApply)) return "Last date must be in YYYY-MM-DD format.";
     return "";
   };
@@ -110,7 +111,7 @@ export default function EmployerPostJobScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[DARK, ORANGE, "#F97316", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={[DARK, ORANGE, "#F97316", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + 12 }]}> 
         <TopShade height={110} /><DecorativeCircles />
         <View style={styles.headerRow}><TouchableOpacity style={styles.backBtn} onPress={() => goBack(router)} activeOpacity={0.85}><Feather name="arrow-left" size={18} color="white" /></TouchableOpacity><View style={{ flex: 1 }}><Text style={styles.kicker}>Employer Dashboard</Text><Text style={styles.title}>Post New Job</Text><Text style={styles.subtitle}>{companyName}</Text></View></View>
       </LinearGradient>
@@ -120,8 +121,8 @@ export default function EmployerPostJobScreen() {
           <Card title="Salary & Openings" icon="credit-card"><View style={styles.twoCol}><Input label="Min Salary" value={salaryMin} onChangeText={(v) => setSalaryMin(cleanMoney(v))} placeholder="15000" keyboardType="number-pad" /><Input label="Max Salary" value={salaryMax} onChangeText={(v) => setSalaryMax(cleanMoney(v))} placeholder="25000" keyboardType="number-pad" /></View><Input label="Openings *" value={openings} onChangeText={(v) => setOpenings(v.replace(/\D/g, "").slice(0, 2))} placeholder="1" keyboardType="number-pad" />{!!salaryText && <Text style={styles.previewText}>Salary preview: {salaryText}</Text>}</Card>
           <Card title="Timing & Shift" icon="clock"><Label text="Shift" /><ChipGrid>{shifts.map((item) => <Chip key={item} label={item} active={shift === item} onPress={() => setShift(item)} />)}</ChipGrid><Label text="Job Mode" /><ChipGrid>{jobModes.map((item) => <Chip key={item} label={item} active={jobMode === item} onPress={() => setJobMode(item)} />)}</ChipGrid><View style={styles.twoCol}><Input label="Start Time" value={workStartTime} onChangeText={setWorkStartTime} placeholder="09:00 AM" /><Input label="End Time" value={workEndTime} onChangeText={setWorkEndTime} placeholder="06:00 PM" /></View><Input label="Working Days *" value={workingDays} onChangeText={setWorkingDays} placeholder="Monday to Saturday" /><Label text="Weekly Off" /><ChipGrid>{weeklyOffOptions.map((item) => <Chip key={item} label={item} active={weeklyOff === item} onPress={() => setWeeklyOff(item)} />)}</ChipGrid></Card>
           <Card title="Location" icon="map-pin"><Input label="Job Location *" value={location} onChangeText={setLocation} placeholder="MIDC Ambernath, Station Road..." /><Input label="Full Address *" value={address} onChangeText={setAddress} placeholder="Complete workplace address" multiline /></Card>
-          <Card title="Candidate Requirements" icon="user-check"><Input label="Experience Required" value={experienceRequired} onChangeText={setExperienceRequired} placeholder="Fresher / 1-2 years / 3+ years" /><Input label="Education Required" value={educationRequired} onChangeText={setEducationRequired} placeholder="10th Pass, ITI, Graduate..." /><Input label="Skills Required" value={skillsRequired} onChangeText={setSkillsRequired} placeholder="Computer, Sales, Machine handling..." multiline /><Input label="Requirements" value={requirements} onChangeText={setRequirements} placeholder="Maximum 100 words" multiline /></Card>
-          <Card title="Job Description" icon="file-text"><Input label="Description *" value={description} onChangeText={setDescription} placeholder="Minimum 5 words and maximum 100 words" multiline /><Input label="Benefits" value={benefits} onChangeText={setBenefits} placeholder="PF, ESIC, overtime, food, transport..." multiline /></Card>
+          <Card title="Candidate Requirements" icon="user-check"><Input label="Experience Required" value={experienceRequired} onChangeText={setExperienceRequired} placeholder="Fresher / 1-2 years / 3+ years" /><Input label="Education Required" value={educationRequired} onChangeText={setEducationRequired} placeholder="10th Pass, ITI, Graduate..." /><Input label="Skills Required" value={skillsRequired} onChangeText={setSkillsRequired} placeholder="Computer, Sales, Machine handling..." multiline /><Input label="Requirements" value={requirements} onChangeText={setRequirements} placeholder="Main requirements" multiline /></Card>
+          <Card title="Job Description" icon="file-text"><Input label="Description *" value={description} onChangeText={setDescription} placeholder="Describe work, responsibilities and expectations" multiline /><Input label="Benefits" value={benefits} onChangeText={setBenefits} placeholder="PF, ESIC, overtime, food, transport..." multiline /></Card>
           <Card title="Application Settings" icon="calendar"><Label text="Joining Preference" /><ChipGrid>{joiningOptions.map((item) => <Chip key={item} label={item} active={joiningPreference === item} onPress={() => setJoiningPreference(item)} />)}</ChipGrid><Input label="Last Date To Apply" value={lastDateToApply} onChangeText={setLastDateToApply} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" /></Card>
           <TouchableOpacity style={[styles.submitBtn, submitting && styles.submitBtnDisabled]} onPress={handleSubmit} disabled={submitting} activeOpacity={0.9}>{submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.submitText}>Post Job</Text><Feather name="send" size={18} color="#FFFFFF" /></>}</TouchableOpacity>
         </ScrollView>
@@ -150,9 +151,9 @@ const styles = StyleSheet.create({
   cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 1 },
   cardIcon: { width: 36, height: 36, borderRadius: 13, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", alignItems: "center", justifyContent: "center" },
   cardTitle: { flex: 1, fontSize: 14, color: "#0F172A", fontFamily: "Inter_700Bold", fontWeight: "900" },
-  inputGroup: { flex: 1, gap: 6 },
+  inputGroup: { flex: 1, width: "100%", minWidth: 0, gap: 6 },
   label: { fontSize: 11, color: "#334155", fontFamily: "Inter_700Bold" },
-  input: { minHeight: 48, borderRadius: 14, backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 13, paddingVertical: 10, color: "#0F172A", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  input: { minHeight: 48, borderRadius: 14, backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 10, color: "#0F172A", fontSize: 13, fontFamily: "Inter_600SemiBold" },
   textArea: { minHeight: 86, textAlignVertical: "top" },
   twoCol: { flexDirection: "row", gap: 9 },
   chipGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
