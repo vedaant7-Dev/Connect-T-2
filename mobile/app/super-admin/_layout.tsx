@@ -10,26 +10,32 @@ import { JobsAuthProvider } from "@/context/JobsAuthContext";
 const GREEN = "#16A34A";
 const MUTED = "#94A3B8";
 
+const TABS = [
+  { name: "index", icon: "grid", label: "Dashboard" },
+  { name: "officers", icon: "users", label: "Officers" },
+  { name: "jobs", icon: "briefcase", label: "Jobs" },
+  { name: "broadcast", icon: "radio", label: "Broadcast" },
+  { name: "reports", icon: "bar-chart-2", label: "Reports" },
+];
+
 function SuperAdminTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const tabs = [
-    { name: "index", icon: "grid", label: "Dashboard" },
-    { name: "officers", icon: "users", label: "Officers" },
-    { name: "jobs", icon: "briefcase", label: "Jobs" },
-    { name: "broadcast", icon: "radio", label: "Broadcast" },
-    { name: "reports", icon: "bar-chart-2", label: "Reports" },
-  ];
-
-  const visibleRoutes = state.routes.filter((r: any) => r.name !== "settings" && r.name !== "access");
+  const bottomInset = Platform.OS === "web" ? 10 : Math.max(insets.bottom, 8);
   const activeRouteName = state.routes[state.index]?.name;
 
   return (
-    <View style={{ flexDirection: "row", backgroundColor: "white", paddingBottom: Platform.OS === "ios" ? insets.bottom : 8, paddingTop: 7, borderTopWidth: 1, borderTopColor: "#E2E8F0", shadowColor: "#166534", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 10 }}>
-      {visibleRoutes.map((route: any) => {
-        const tab = tabs.find((t) => t.name === route.name) || tabs[0];
-        const isFocused = activeRouteName === route.name;
+    <View style={{ flexDirection: "row", backgroundColor: "white", paddingBottom: bottomInset, paddingTop: 7, borderTopWidth: 1, borderTopColor: "#E2E8F0", shadowColor: "#166534", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 10 }}>
+      {TABS.map((tab) => {
+        const route = state.routes.find((item: any) => item.name === tab.name);
+        if (!route) return null;
+        const isFocused = activeRouteName === tab.name;
+        const onPress = () => {
+          const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+          if (!isFocused && !event.defaultPrevented) navigation.navigate(tab.name);
+        };
+
         return (
-          <TouchableOpacity key={route.key} onPress={() => navigation.navigate(route.name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 3 }} activeOpacity={0.72}>
+          <TouchableOpacity key={tab.name} onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 3, minWidth: 0 }} activeOpacity={0.72} accessibilityRole="button" accessibilityState={isFocused ? { selected: true } : {}}>
             <View style={{ width: 38, height: 32, alignItems: "center", justifyContent: "center", backgroundColor: isFocused ? "rgba(22,163,74,0.12)" : "transparent", borderRadius: 16, borderWidth: isFocused ? 1 : 0, borderColor: "rgba(22,163,74,0.18)" }}>
               <Feather name={tab.icon as any} size={19} color={isFocused ? GREEN : MUTED} />
             </View>
@@ -55,8 +61,8 @@ export default function SuperAdminLayout() {
           <Tabs.Screen name="jobs" />
           <Tabs.Screen name="broadcast" />
           <Tabs.Screen name="reports" />
-          <Tabs.Screen name="settings" />
-          <Tabs.Screen name="access" />
+          <Tabs.Screen name="settings" options={{ href: null }} />
+          <Tabs.Screen name="access" options={{ href: null }} />
         </Tabs>
       </JobsProvider>
     </JobsAuthProvider>
