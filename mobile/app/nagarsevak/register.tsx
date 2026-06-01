@@ -7,11 +7,22 @@ import { router, useLocalSearchParams } from "expo-router";
 import { NAGARSEVAK_WARDS } from "@/data/wards";
 import { getApiUrl } from "@/utils/apiUrl";
 
-type Step = "form" | "otp" | "success";
-const DEMO_OTP = "123456";
+type Step = "form" | "otp" | "pending";
+const DEMO_OTP = "1234";
 
 function cleanMobile(value: string) {
   return String(value || "").replace(/\D/g, "").slice(-10);
+}
+
+function formatDob(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
+}
+
+function isValidDob(value: string) {
+  return /^\d{2}-\d{2}-\d{4}$/.test(value.trim());
 }
 
 export default function NagarsevakRegisterScreen() {
@@ -19,6 +30,7 @@ export default function NagarsevakRegisterScreen() {
   const params = useLocalSearchParams<{ phone?: string }>();
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
+  const [dob, setDob] = useState("");
   const [mobile, setMobile] = useState(cleanMobile(String(params.phone || "")));
   const [ward, setWard] = useState("");
   const [address, setAddress] = useState("");
@@ -29,10 +41,10 @@ export default function NagarsevakRegisterScreen() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
   const [wardAvailable, setWardAvailable] = useState<boolean | null>(null);
   const [checkingWard, setCheckingWard] = useState(false);
-  const otpRefs = [useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null)];
+  const otpRefs = [useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null), useRef<TextInput>(null)];
 
   useEffect(() => {
     if (mobile && !contactNumber) setContactNumber(mobile);
@@ -66,6 +78,7 @@ export default function NagarsevakRegisterScreen() {
     const cleaned = cleanMobile(mobile);
     const contact = cleanMobile(contactNumber || cleaned);
     if (name.trim().length < 2) return setError("Enter your full name");
+    if (!isValidDob(dob)) return setError("Enter DOB as DD-MM-YYYY");
     if (cleaned.length !== 10) return setError("Enter a valid 10-digit mobile number");
     if (!ward) return setError("Select your ward");
     if (wardAvailable === false) return setError("This ward is already assigned to an approved Nagarsevak");
@@ -74,7 +87,7 @@ export default function NagarsevakRegisterScreen() {
     setTimeout(() => {
       setMobile(cleaned);
       setContactNumber(contact);
-      setOtpDigits(["", "", "", "", "", ""]);
+      setOtpDigits(["", "", "", ""]);
       setStep("otp");
       setOtpSending(false);
     }, 250);
@@ -91,6 +104,7 @@ export default function NagarsevakRegisterScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
+          dob,
           mobile: cleanMobile(mobile),
           ward,
           wardCode: ward,
@@ -102,11 +116,8 @@ export default function NagarsevakRegisterScreen() {
         }),
       });
       const regData = await regRes.json();
-      if (regData.success) {
-        setStep("success");
-      } else if (regData.message === "ALREADY_PENDING") {
-        setStep("form");
-        setError("Your registration is already submitted and pending approval.");
+      if (regData.success || regData.message === "ALREADY_PENDING") {
+        setStep("pending");
       } else if (regData.message === "WARD_TAKEN") {
         setStep("form");
         setWardAvailable(false);
@@ -126,41 +137,42 @@ export default function NagarsevakRegisterScreen() {
     const next = [...otpDigits];
     next[index] = cleaned.slice(-1);
     setOtpDigits(next);
-    if (cleaned && index < 5) otpRefs[index + 1]?.current?.focus();
+    if (cleaned && index < 3) otpRefs[index + 1]?.current?.focus();
     if (!cleaned && index > 0) otpRefs[index - 1]?.current?.focus();
   };
 
   return (
     <View style={styles.root}>
       <LinearGradient colors={["#9A3412", "#C2410C", "#EA580C", "#F97316", "#FB923C"]} locations={[0, 0.25, 0.55, 0.8, 1]} style={StyleSheet.absoluteFill} />
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}><Feather name="chevron-left" size={22} color="white" /></TouchableOpacity>
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}> 
+        <TouchableOpacity onPress={() => router.replace("/nagarsevak/login" as any)} style={styles.backBtn} activeOpacity={0.8}><Feather name="chevron-left" size={22} color="white" /></TouchableOpacity>
         <View style={styles.topBadge}><Feather name="user-plus" size={13} color="white" /><Text style={styles.topBadgeText}>Nagarsevak Registration</Text></View>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.card}>
             {step === "form" && <>
-              <View style={styles.cardHeader}><View style={styles.headerIcon}><Feather name="clipboard" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Register as Nagarsevak</Text><Text style={styles.cardSub}>Select your ward and verify with demo OTP for now.</Text></View>
+              <View style={styles.cardHeader}><View style={styles.headerIcon}><Feather name="clipboard" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Register as Nagarsevak</Text><Text style={styles.cardSub}>Submit once. Super Admin approval is required before login.</Text></View>
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
               <Field label="FULL NAME *"><TextInput style={styles.input} value={name} onChangeText={setName} placeholder="As per official records" placeholderTextColor="#CBD5E1" autoCapitalize="words" /></Field>
+              <Field label="DATE OF BIRTH *"><TextInput style={styles.input} value={dob} onChangeText={(v) => setDob(formatDob(v))} placeholder="DD-MM-YYYY" placeholderTextColor="#CBD5E1" keyboardType="number-pad" maxLength={10} /></Field>
               <Field label="MOBILE NUMBER *"><View style={styles.phoneRow}><View style={styles.countryCode}><Text style={styles.countryCodeText}>+91</Text></View><TextInput style={[styles.input, { flex: 1, borderWidth: 0, borderRadius: 0 }]} value={mobile} onChangeText={setMobile} placeholder="10-digit mobile" placeholderTextColor="#CBD5E1" keyboardType="phone-pad" maxLength={10} /></View></Field>
               <Field label="WARD *"><TouchableOpacity style={[styles.input, styles.wardPicker]} onPress={() => setWardModal(true)} activeOpacity={0.8}><Text style={[styles.wardPickerText, !ward && { color: "#CBD5E1" }]}>{ward || "Select your ward"}</Text>{checkingWard ? <ActivityIndicator size="small" color="#EA580C" /> : ward ? <View style={[styles.wardBadge, { backgroundColor: wardAvailable === false ? "#FEE2E2" : "#D1FAE5" }]}><Feather name={wardAvailable === false ? "x" : "check"} size={11} color={wardAvailable === false ? "#DC2626" : "#059669"} /><Text style={[styles.wardBadgeText, { color: wardAvailable === false ? "#DC2626" : "#059669" }]}>{wardAvailable === false ? "Taken" : "Available"}</Text></View> : <Feather name="chevron-down" size={16} color="#94A3B8" />}</TouchableOpacity>{ward && wardAvailable === false && <Text style={styles.wardTakenMsg}>Only approved Nagarsevak can reserve a ward. Try another ward.</Text>}</Field>
               <Field label="CONTACT NUMBER *"><TextInput style={styles.input} value={contactNumber} onChangeText={setContactNumber} placeholder="Public contact number" placeholderTextColor="#CBD5E1" keyboardType="phone-pad" maxLength={10} /></Field>
               <Field label="OFFICE ADDRESS"><TextInput style={[styles.input, styles.textarea]} value={officeAddress} onChangeText={setOfficeAddress} placeholder="Ward office address" placeholderTextColor="#CBD5E1" multiline textAlignVertical="top" /></Field>
               <Field label="RESIDENCE ADDRESS"><TextInput style={[styles.input, styles.textarea]} value={address} onChangeText={setAddress} placeholder="Your residence address" placeholderTextColor="#CBD5E1" multiline textAlignVertical="top" /></Field>
-              <View style={styles.noticeCard}><Feather name="info" size={14} color="#D97706" /><Text style={styles.noticeText}>After submission, Super Admin approval is required before login.</Text></View>
+              <View style={styles.noticeCard}><Feather name="info" size={14} color="#D97706" /><Text style={styles.noticeText}>If this mobile already has a pending request, the app will show pending verification and will not submit again.</Text></View>
               <TouchableOpacity style={[styles.primaryBtn, otpSending && { opacity: 0.7 }]} onPress={sendOtp} disabled={otpSending} activeOpacity={0.85}><LinearGradient colors={["#C2410C", "#EA580C"]} style={styles.btnGrad}>{otpSending ? <ActivityIndicator color="white" /> : <><Feather name="send" size={17} color="white" /><Text style={styles.btnText}>Verify Mobile & Submit</Text></>}</LinearGradient></TouchableOpacity>
               <Text style={styles.demoText}>Demo OTP: {DEMO_OTP}</Text>
             </>}
             {step === "otp" && <>
-              <View style={styles.cardHeader}><View style={styles.headerIcon}><Feather name="lock" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Verify Mobile</Text><Text style={styles.cardSub}>Use demo OTP {DEMO_OTP} for +91 {mobile}</Text></View>
+              <View style={styles.cardHeader}><View style={styles.headerIcon}><Feather name="lock" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Verify Mobile</Text><Text style={styles.cardSub}>Use 4 digit demo OTP {DEMO_OTP} for +91 {mobile}</Text></View>
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
               <View style={styles.otpRow}>{otpDigits.map((digit, idx) => <TextInput key={idx} ref={otpRefs[idx]} style={[styles.otpBox, digit && styles.otpBoxFilled]} value={digit} onChangeText={(v) => setDigit(idx, v)} keyboardType="number-pad" maxLength={1} textAlign="center" />)}</View>
               <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.7 }]} onPress={verifyAndRegister} disabled={loading} activeOpacity={0.85}><LinearGradient colors={["#C2410C", "#EA580C"]} style={styles.btnGrad}>{loading ? <ActivityIndicator color="white" /> : <><Feather name="check" size={17} color="white" /><Text style={styles.btnText}>Submit for Approval</Text></>}</LinearGradient></TouchableOpacity>
               <TouchableOpacity onPress={() => setStep("form")} style={styles.changeBtn}><Text style={styles.changeBtnText}>← Edit details</Text></TouchableOpacity>
             </>}
-            {step === "success" && <View style={styles.statusWrap}><View style={[styles.statusIcon, { backgroundColor: "#D1FAE5" }]}><Feather name="check-circle" size={36} color="#059669" /></View><Text style={[styles.statusTitle, { color: "#065F46" }]}>Submitted Successfully</Text><Text style={styles.statusMsg}>Your registration is sent for Super Admin approval.</Text><TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/nagarsevak/login" as any)}><Text style={styles.backToHomeBtnText}>Back to Login</Text></TouchableOpacity></View>}
+            {step === "pending" && <View style={styles.statusWrap}><View style={[styles.statusIcon, { backgroundColor: "#FEF3C7" }]}><Feather name="clock" size={36} color="#D97706" /></View><Text style={[styles.statusTitle, { color: "#92400E" }]}>Verification Pending</Text><Text style={styles.statusMsg}>Your Nagarsevak request is submitted. Once Super Admin approves it, you will be able to login with OTP. You cannot submit another request while this one is pending.</Text><TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/nagarsevak/login" as any)}><Text style={styles.backToHomeBtnText}>Back to Login</Text></TouchableOpacity></View>}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -204,8 +216,8 @@ const styles = StyleSheet.create({
   btnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
   btnText: { color: "white", fontSize: 15, fontFamily: "Inter_700Bold" },
   demoText: { textAlign: "center", marginTop: 10, color: "#EA580C", fontSize: 12, fontFamily: "Inter_700Bold" },
-  otpRow: { flexDirection: "row", justifyContent: "center", gap: 7, marginBottom: 18 },
-  otpBox: { width: 42, height: 50, borderRadius: 12, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", fontSize: 20, fontFamily: "Inter_700Bold", color: "#0F172A" },
+  otpRow: { flexDirection: "row", justifyContent: "center", gap: 9, marginBottom: 18 },
+  otpBox: { width: 48, height: 50, borderRadius: 12, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", fontSize: 20, fontFamily: "Inter_700Bold", color: "#0F172A" },
   otpBoxFilled: { borderColor: "#EA580C", backgroundColor: "#FFF7ED" },
   changeBtn: { alignItems: "center", marginTop: 14 },
   changeBtnText: { color: "#EA580C", fontSize: 13, fontFamily: "Inter_600SemiBold" },
