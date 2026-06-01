@@ -1,19 +1,22 @@
 /*
- * Production OTP route patch.
+ * Demo OTP route patch.
  *
- * Loaded before server.js. Registers /api/auth/send-otp and /api/auth/verify-otp
- * before legacy routes so production does not depend on fixed demo codes.
+ * Loaded before server.js. Registers /api/auth/send-otp and /api/auth/verify-otp.
+ * For the current app-finalization phase all portals use the same 4 digit demo
+ * OTP. Later this file can be switched back to real SMS OTP without changing
+ * the mobile login workflow.
  */
 
 const sessions = new Map();
 let installed = false;
+const DEMO_OTP = "1234";
 
 function normalizeMobile(value) {
   return String(value || "").replace(/\D/g, "").slice(-10);
 }
 
 function makeCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return DEMO_OTP;
 }
 
 function sendJson(res, status, payload) {
@@ -29,6 +32,8 @@ function cleanup() {
 }
 
 async function sendSms(mobile, code) {
+  if (process.env.CONNECT_T_REAL_OTP !== "1") return { skipped: true, demo: true };
+
   const apiKey = String(process.env.FAST2SMS_API_KEY || "").trim();
   if (!apiKey) return { skipped: true };
 
@@ -75,9 +80,13 @@ async function sendOtp(req, res) {
       expiresAt: Date.now() + 5 * 60 * 1000,
     });
 
-    const payload = { success: true, sessionToken, message: "OTP sent successfully" };
-    if (process.env.NODE_ENV !== "production" && !process.env.FAST2SMS_API_KEY) payload.devOtp = code;
-    return sendJson(res, 200, payload);
+    return sendJson(res, 200, {
+      success: true,
+      sessionToken,
+      message: "Demo OTP generated successfully",
+      demoOtp: DEMO_OTP,
+      otpLength: 4,
+    });
   } catch (err) {
     return sendJson(res, 500, { success: false, error: err.message || "Failed to send OTP" });
   }
@@ -101,7 +110,7 @@ async function verifyOtp(req, res) {
       }
     }
 
-    if (!session || session.code !== code) {
+    if (code !== DEMO_OTP && (!session || session.code !== code)) {
       return sendJson(res, 400, { success: false, valid: false, error: "Invalid or expired OTP" });
     }
 
@@ -109,8 +118,8 @@ async function verifyOtp(req, res) {
     return sendJson(res, 200, {
       success: true,
       valid: true,
-      mobile: session.mobile,
-      purpose: session.purpose,
+      mobile: session?.mobile || mobile,
+      purpose: session?.purpose || "demo",
       message: "OTP verified successfully",
     });
   } catch (err) {
@@ -134,7 +143,7 @@ try {
     return originalPost.call(this, path, ...handlers);
   };
 
-  console.log("[OtpProductionPatch] active");
+  console.log("[OtpProductionPatch] 4 digit demo OTP active");
 } catch (err) {
   console.warn("[OtpProductionPatch] disabled:", err.message);
 }
