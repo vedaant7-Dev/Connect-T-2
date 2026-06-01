@@ -4,9 +4,9 @@
   "license": "MIT",
   "private": true,
   "description": "Connect-T backend entry for Hostinger Node.js deployment. Mobile app source remains under mobile/ and backend source remains under backend/.",
-  "main": "backend/hostinger-server.js",
+  "main": "backend/hostinger-entry.js",
   "scripts": {
-    "start": "node backend/hostinger-server.js",
+    "start": "node backend/hostinger-entry.js",
     "build": "echo \"No build step required for Connect-T Node backend\"",
     "typecheck": "echo \"Typecheck skipped on Hostinger backend deployment\""
   },
