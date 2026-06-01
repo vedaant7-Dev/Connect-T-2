@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Platform } from "react-native";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
@@ -37,13 +37,45 @@ function SuperAdminTabBar({ state, navigation }: any) {
         return (
           <TouchableOpacity key={tab.name} onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 3, minWidth: 0 }} activeOpacity={0.72} accessibilityRole="button" accessibilityState={isFocused ? { selected: true } : {}}>
             <View style={{ width: 38, height: 32, alignItems: "center", justifyContent: "center", backgroundColor: isFocused ? "rgba(22,163,74,0.12)" : "transparent", borderRadius: 16, borderWidth: isFocused ? 1 : 0, borderColor: "rgba(22,163,74,0.18)" }}>
-              <Feather name={tab.icon as any} size={19} color={isFocused ? GREEN : MUTED} />
+              <Feather name={tab.icon as any} size={18} color={isFocused ? GREEN : MUTED} />
             </View>
-            <Text numberOfLines={1} style={{ fontSize: 8.7, fontFamily: isFocused ? "Inter_700Bold" : "Inter_600SemiBold", color: isFocused ? GREEN : MUTED, marginTop: 2, maxWidth: 70 }}>{tab.label}</Text>
+            <Text numberOfLines={1} style={{ fontSize: 9.2, fontFamily: isFocused ? "Inter_700Bold" : "Inter_600SemiBold", color: isFocused ? GREEN : MUTED, marginTop: 2, maxWidth: 72 }}>{tab.label}</Text>
           </TouchableOpacity>
         );
       })}
     </View>
+  );
+}
+
+function FloatingSettingsButton() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  return (
+    <TouchableOpacity
+      onPress={() => router.push("/super-admin/settings" as any)}
+      activeOpacity={0.86}
+      style={{
+        position: "absolute",
+        top: (Platform.OS === "web" ? 24 : Math.max(insets.top, 8)) + 10,
+        right: 14,
+        width: 40,
+        height: 40,
+        borderRadius: 15,
+        backgroundColor: "rgba(255,255,255,0.96)",
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#052E16",
+        shadowOpacity: 0.18,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: "rgba(22,163,74,0.22)",
+        zIndex: 999,
+      }}
+    >
+      <Feather name="settings" size={19} color={GREEN} />
+    </TouchableOpacity>
   );
 }
 
@@ -55,15 +87,18 @@ export default function SuperAdminLayout() {
   return (
     <JobsAuthProvider>
       <JobsProvider>
-        <Tabs tabBar={(props) => <SuperAdminTabBar {...props} />} screenOptions={{ headerShown: false }}>
-          <Tabs.Screen name="index" />
-          <Tabs.Screen name="officers" />
-          <Tabs.Screen name="jobs" />
-          <Tabs.Screen name="broadcast" />
-          <Tabs.Screen name="reports" />
-          <Tabs.Screen name="settings" options={{ href: null }} />
-          <Tabs.Screen name="access" options={{ href: null }} />
-        </Tabs>
+        <View style={{ flex: 1 }}>
+          <Tabs tabBar={(props) => <SuperAdminTabBar {...props} />} screenOptions={{ headerShown: false }}>
+            <Tabs.Screen name="index" />
+            <Tabs.Screen name="officers" />
+            <Tabs.Screen name="jobs" />
+            <Tabs.Screen name="broadcast" />
+            <Tabs.Screen name="reports" />
+            <Tabs.Screen name="settings" options={{ href: null }} />
+            <Tabs.Screen name="access" options={{ href: null }} />
+          </Tabs>
+          <FloatingSettingsButton />
+        </View>
       </JobsProvider>
     </JobsAuthProvider>
   );
