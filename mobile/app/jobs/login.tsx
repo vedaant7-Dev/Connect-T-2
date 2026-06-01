@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,9 +9,11 @@ import TopShade from "@/components/TopShade";
 import { JobsUserRole, randomColor, useJobsAuth } from "@/context/JobsAuthContext";
 
 type Tab = "login" | "register";
+type Step = "form" | "otp";
 const ORANGE = "#EA580C";
 const DARK = "#C2410C";
 const BG = "#ebeffc";
+const DEMO_OTP = "1234";
 
 function cleanPhone(v: string) { return v.replace(/\D/g, "").slice(-10); }
 function validName(v: string) { return /^[A-Za-z .'-]{3,80}$/.test(v.trim()); }
@@ -21,20 +23,19 @@ export default function JobPortalLoginScreen() {
   const insets = useSafeAreaInsets();
   const { registerJobs, loginJobs } = useJobsAuth();
   const [tab, setTab] = useState<Tab>("login");
+  const [step, setStep] = useState<Step>("form");
   const [role, setRole] = useState<JobsUserRole>("seeker");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [contactPerson, setContactPerson] = useState("");
   const [location, setLocation] = useState("");
   const phone10 = useMemo(() => cleanPhone(phone), [phone]);
 
-  const goBack = () => {
-    if (router.canGoBack?.()) router.back();
-    else router.replace("/portal-select" as any);
-  };
+  const goBack = () => router.replace("/portal-select" as any);
 
   const validate = () => {
     if (phone10.length !== 10) return "Enter a valid 10 digit mobile number.";
@@ -50,9 +51,16 @@ export default function JobPortalLoginScreen() {
     return "";
   };
 
-  const submit = async () => {
+  const continueToOtp = () => {
     const msg = validate();
     if (msg) { setError(msg); return; }
+    setError("");
+    setOtp("");
+    setStep("otp");
+  };
+
+  const submit = async () => {
+    if (otp !== DEMO_OTP) { setError(`Enter demo OTP ${DEMO_OTP}`); return; }
     setLoading(true); setError("");
     try {
       if (tab === "login") {
@@ -78,23 +86,32 @@ export default function JobPortalLoginScreen() {
           <View style={s.headIcon}><Feather name="briefcase" size={22} color={ORANGE} /></View>
           <View style={s.pill}><Feather name="shield" size={10} color="rgba(255,255,255,0.85)" /><Text style={s.pillText}>CONNECT T JOB PORTAL</Text></View>
           <Text style={s.title}>{tab === "login" ? "Job Login" : "Job Register"}</Text>
-          <Text style={s.sub}>Local work and hiring for Ambernath citizens</Text>
+          <Text style={s.sub}>Use 4 digit demo OTP: {DEMO_OTP}</Text>
         </View>
       </LinearGradient>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={s.card}>
-            <View style={s.segment}>{(["seeker", "employer"] as JobsUserRole[]).map((r) => <TouchableOpacity key={r} style={[s.segmentBtn, role === r && s.segmentActive]} onPress={() => { setRole(r); setError(""); }} activeOpacity={0.9}><Feather name={r === "seeker" ? "user" : "briefcase"} size={14} color={role === r ? "white" : ORANGE} /><Text style={[s.segmentText, role === r && s.segmentTextActive]}>{r === "seeker" ? "Job Seeker" : "Employer"}</Text></TouchableOpacity>)}</View>
-            <View style={s.tabWrap}>{(["login", "register"] as Tab[]).map((t) => <TouchableOpacity key={t} style={[s.tab, tab === t && s.tabActive]} onPress={() => { setTab(t); setError(""); }} activeOpacity={0.9}><Text style={[s.tabText, tab === t && s.tabTextActive]}>{t === "login" ? "Login" : "Register"}</Text></TouchableOpacity>)}</View>
-            <Section title={tab === "login" ? "Mobile Login" : role === "seeker" ? "Basic Job Seeker Details" : "Basic Employer Details"} />
-            {tab === "register" && role === "seeker" && <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your full name" />}
-            {tab === "register" && role === "employer" && <><Input label="Company / Shop Name *" value={company} onChangeText={setCompany} placeholder="Company / shop name" /><Input label="Contact Person *" value={contactPerson} onChangeText={setContactPerson} placeholder="Owner / HR / manager" /></>}
-            <View style={s.inputGroup}><Text style={s.label}>Mobile Number *</Text><View style={s.phoneRow}><View style={s.countryBox}><Text style={s.countryText}>+91</Text></View><TextInput value={phone} onChangeText={(v) => setPhone(cleanPhone(v))} placeholder="10 digit mobile number" keyboardType="phone-pad" maxLength={10} style={s.phoneInput} placeholderTextColor="#94A3B8" /></View></View>
-            {tab === "register" && <Input label={role === "seeker" ? "Area / Location *" : "Business Area / Location *"} value={location} onChangeText={setLocation} placeholder="Ambernath East / West" />}
-            {tab === "register" && <View style={s.infoBox}><Feather name="info" size={15} color={ORANGE} /><Text style={s.infoText}>Complete photo, DOB, skills, company details and resume from Profile after login.</Text></View>}
-            {!!error && <View style={s.errorBox}><Feather name="alert-circle" size={16} color="#DC2626" /><Text style={s.errorText}>{error}</Text></View>}
-            <TouchableOpacity style={[s.primaryBtn, loading && s.primaryBtnDisabled]} disabled={loading} onPress={submit} activeOpacity={0.9}><Text style={s.primaryText}>{loading ? "Please wait..." : tab === "login" ? "Continue" : "Create Account"}</Text><Feather name="arrow-right" size={18} color="white" /></TouchableOpacity>
-            <Text style={s.note}>{tab === "login" ? "Use your registered mobile number." : "Only basic details now. Full profile can be completed later."}</Text>
+            <View style={s.segment}>{(["seeker", "employer"] as JobsUserRole[]).map((r) => <TouchableOpacity key={r} style={[s.segmentBtn, role === r && s.segmentActive]} onPress={() => { setRole(r); setError(""); setStep("form"); }} activeOpacity={0.9}><Feather name={r === "seeker" ? "user" : "briefcase"} size={14} color={role === r ? "white" : ORANGE} /><Text style={[s.segmentText, role === r && s.segmentTextActive]}>{r === "seeker" ? "Job Seeker" : "Employer"}</Text></TouchableOpacity>)}</View>
+            <View style={s.tabWrap}>{(["login", "register"] as Tab[]).map((t) => <TouchableOpacity key={t} style={[s.tab, tab === t && s.tabActive]} onPress={() => { setTab(t); setError(""); setStep("form"); }} activeOpacity={0.9}><Text style={[s.tabText, tab === t && s.tabTextActive]}>{t === "login" ? "Login" : "Register"}</Text></TouchableOpacity>)}</View>
+            {step === "form" ? <>
+              <Section title={tab === "login" ? "Mobile Login" : role === "seeker" ? "Basic Job Seeker Details" : "Basic Employer Details"} />
+              {tab === "register" && role === "seeker" && <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your full name" />}
+              {tab === "register" && role === "employer" && <><Input label="Company / Shop Name *" value={company} onChangeText={setCompany} placeholder="Company / shop name" /><Input label="Contact Person *" value={contactPerson} onChangeText={setContactPerson} placeholder="Owner / HR / manager" /></>}
+              <View style={s.inputGroup}><Text style={s.label}>Mobile Number *</Text><View style={s.phoneRow}><View style={s.countryBox}><Text style={s.countryText}>+91</Text></View><TextInput value={phone} onChangeText={(v) => setPhone(cleanPhone(v))} placeholder="10 digit mobile number" keyboardType="phone-pad" maxLength={10} style={s.phoneInput} placeholderTextColor="#94A3B8" /></View></View>
+              {tab === "register" && <Input label={role === "seeker" ? "Area / Location *" : "Business Area / Location *"} value={location} onChangeText={setLocation} placeholder="Ambernath East / West" />}
+              {tab === "register" && <View style={s.infoBox}><Feather name="info" size={15} color={ORANGE} /><Text style={s.infoText}>Complete photo, DOB, skills and company details from Profile after login.</Text></View>}
+              {!!error && <View style={s.errorBox}><Feather name="alert-circle" size={16} color="#DC2626" /><Text style={s.errorText}>{error}</Text></View>}
+              <TouchableOpacity style={s.primaryBtn} onPress={continueToOtp} activeOpacity={0.9}><Text style={s.primaryText}>Continue to OTP</Text><Feather name="arrow-right" size={18} color="white" /></TouchableOpacity>
+              <Text style={s.note}>{tab === "login" ? "Use your registered mobile number." : "Only basic details now. Full profile can be completed later."}</Text>
+            </> : <>
+              <Section title="4 Digit Demo OTP" />
+              <Text style={s.otpSub}>Enter demo OTP {DEMO_OTP} for +91 {phone10}</Text>
+              <TextInput value={otp} onChangeText={(v) => setOtp(v.replace(/\D/g, "").slice(0, 4))} placeholder="1234" keyboardType="number-pad" maxLength={4} style={s.otpInput} placeholderTextColor="#94A3B8" textAlign="center" />
+              {!!error && <View style={s.errorBox}><Feather name="alert-circle" size={16} color="#DC2626" /><Text style={s.errorText}>{error}</Text></View>}
+              <TouchableOpacity style={[s.primaryBtn, loading && s.primaryBtnDisabled]} disabled={loading} onPress={submit} activeOpacity={0.9}><Text style={s.primaryText}>{loading ? "Please wait..." : tab === "login" ? "Verify & Login" : "Verify & Create Account"}</Text><Feather name="check" size={18} color="white" /></TouchableOpacity>
+              <TouchableOpacity onPress={() => setStep("form")} activeOpacity={0.8}><Text style={s.backLink}>← Change details</Text></TouchableOpacity>
+            </>}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -128,10 +145,13 @@ const s = StyleSheet.create({
   sectionRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 4, marginBottom: 10 }, sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ORANGE }, sectionTitle: { fontSize: 13, color: "#0F172A", fontFamily: "Inter_700Bold" },
   inputGroup: { marginBottom: 11 }, label: { fontSize: 11, color: "#334155", fontFamily: "Inter_700Bold", marginBottom: 6 },
   input: { height: 48, backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 13, color: "#0F172A", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  otpInput: { height: 58, backgroundColor: "#FFF7ED", borderRadius: 16, borderWidth: 1.5, borderColor: "#FED7AA", color: DARK, fontSize: 24, letterSpacing: 8, fontFamily: "Inter_700Bold", marginBottom: 12 },
+  otpSub: { fontSize: 12, color: "#64748B", fontFamily: "Inter_600SemiBold", marginBottom: 10, textAlign: "center" },
   phoneRow: { flexDirection: "row", gap: 9 }, countryBox: { width: 68, height: 48, borderRadius: 14, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", alignItems: "center", justifyContent: "center" }, countryText: { fontSize: 13, color: DARK, fontFamily: "Inter_700Bold" },
   phoneInput: { flex: 1, height: 48, backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 13, color: "#0F172A", fontSize: 13, fontFamily: "Inter_600SemiBold" },
   infoBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", padding: 10, borderRadius: 14, marginBottom: 11 }, infoText: { flex: 1, fontSize: 11, color: "#9A3412", fontFamily: "Inter_500Medium", lineHeight: 15 },
   errorBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA", padding: 10, borderRadius: 14, marginBottom: 11 }, errorText: { flex: 1, fontSize: 12, color: "#DC2626", fontFamily: "Inter_600SemiBold" },
   primaryBtn: { height: 52, backgroundColor: ORANGE, borderRadius: 16, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, shadowColor: DARK, shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }, primaryBtnDisabled: { opacity: 0.6 }, primaryText: { fontSize: 14, color: "white", fontFamily: "Inter_700Bold" },
   note: { fontSize: 11, color: "#64748B", textAlign: "center", marginTop: 11, fontFamily: "Inter_500Medium" },
+  backLink: { textAlign: "center", color: ORANGE, fontSize: 13, fontFamily: "Inter_700Bold", marginTop: 14 },
 });
