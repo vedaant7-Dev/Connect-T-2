@@ -36,7 +36,6 @@ function JobsTabBar() {
         { name: "index", label: "Home", icon: "home", path: "/jobs/(tabs)" },
         { name: "applied", label: "Applied", icon: "check-circle", path: "/jobs/(tabs)/applied" },
         { name: "messages", label: "Chats", icon: "message-circle", path: "/jobs/(tabs)/messages" },
-        { name: "resume", label: "Resume", icon: "file-text", path: "/jobs/(tabs)/resume" },
         { name: "profile", label: "Profile", icon: "user", path: "/jobs/(tabs)/profile" },
       ];
 
@@ -64,7 +63,7 @@ export default function JobsTabLayout() {
       <Tabs.Screen name="post" />
       <Tabs.Screen name="applied" />
       <Tabs.Screen name="messages" />
-      <Tabs.Screen name="resume" />
+      <Tabs.Screen name="resume" options={{ href: null }} />
       <Tabs.Screen name="profile" />
     </Tabs>
   );
@@ -85,6 +84,6 @@ const styles = StyleSheet.create({
   tabItem: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2, paddingTop: 8, minWidth: 0 },
   tabIconWrap: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   tabIconWrapActive: { backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" },
-  tabLabel: { fontSize: 9.3, fontWeight: "600", color: MUTED, fontFamily: "Inter_600SemiBold" },
+  tabLabel: { fontSize: 9.8, fontWeight: "600", color: MUTED, fontFamily: "Inter_600SemiBold" },
   tabLabelActive: { color: ORANGE, fontFamily: "Inter_700Bold" },
 });
