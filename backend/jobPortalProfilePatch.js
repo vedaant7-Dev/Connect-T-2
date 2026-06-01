@@ -53,6 +53,10 @@ let pool = null;
 let ensurePromise = null;
 let patchHealthInstalled = false;
 
+function q(column) {
+  return `\`${String(column).replace(/`/g, "")}\``;
+}
+
 function cleanValue(value) {
   if (value === undefined) return undefined;
   if (value === null) return null;
@@ -159,7 +163,7 @@ async function ensureExtraColumns() {
           );
 
           if (!rows.length) {
-            await pool.query(`ALTER TABLE job_portal_users ADD COLUMN ${field.column} ${field.definition}`);
+            await pool.query(`ALTER TABLE job_portal_users ADD COLUMN ${q(field.column)} ${field.definition}`);
           }
         } catch (err) {
           console.warn(`[JobPortalPatch] Could not ensure ${field.column}:`, err.message);
@@ -181,7 +185,7 @@ async function updateExtraFields(userId, body) {
 
   await ensureExtraColumns();
 
-  const sets = entries.map(([column]) => `${column} = ?`).join(", ");
+  const sets = entries.map(([column]) => `${q(column)} = ?`).join(", ");
   const values = entries.map(([, value]) => value);
 
   await pool.query(
@@ -197,7 +201,7 @@ async function enrichUser(user) {
     await ensureExtraColumns();
 
     const [rows] = await pool.query(
-      `SELECT ${COLUMNS.join(", ")}
+      `SELECT ${COLUMNS.map(q).join(", ")}
        FROM job_portal_users
        WHERE id = ?
        LIMIT 1`,
@@ -388,3 +392,5 @@ try {
 } catch (err) {
   console.warn("[JobPortalPatch] express patch disabled:", err.message);
 }
+
+module.exports = {};
