@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "postinstall": "node scripts/ensure-hermesc.js && node scripts/remove-resume-action.js && node scripts/super-admin-dashboard-patch.js && node scripts/nagarsevak-dashboard-patch.js"
+    "postinstall": "node scripts/ensure-hermesc.js && node scripts/remove-resume-action.js && node scripts/super-admin-dashboard-patch.js && node scripts/nagarsevak-dashboard-patch.js && node scripts/clean-generated-patches.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
