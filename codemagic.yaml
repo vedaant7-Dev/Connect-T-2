@@ -6,7 +6,7 @@ workflows:
     environment:
       java: 21
       vars:
-        EXPO_PUBLIC_API_URL: "https://connect-t-2.onrender.com"
+        EXPO_PUBLIC_API_URL: "https://saddlebrown-pheasant-544481.hostingersite.com"
 
     scripts:
       - name: Show exact source commit and tool versions
