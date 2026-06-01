@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "https://connect-t-2.onrender.com";
+const DEFAULT_API_BASE_URL = "https://saddlebrown-pheasant-544481.hostingersite.com";
 
 export const API_BASE_URL =
   (process.env.EXPO_PUBLIC_API_URL && process.env.EXPO_PUBLIC_API_URL.trim()) ||
