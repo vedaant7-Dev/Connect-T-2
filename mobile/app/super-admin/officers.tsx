@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   Platform,
   TextInput,
-  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useOfficers } from "@/hooks/useOfficers";
 import { useComplaints } from "@/context/ComplaintContext";
 
@@ -26,9 +26,9 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
 export default function OfficersScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const router = useRouter();
   const { complaints } = useComplaints();
   const [search, setSearch] = useState("");
-  const [selectedOfficer, setSelectedOfficer] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"officers" | "wards">("officers");
 
   const { officers: allOfficers, loading: officersLoading, approveOfficer, refetch } = useOfficers();
@@ -203,20 +203,18 @@ export default function OfficersScreen() {
             </View>
 
             <SectionHeader title={`All Officers (${filteredOfficers.length})`} sub="Tap to view officer details" />
-            {filteredOfficers.map((officer, idx) => {
+            {filteredOfficers.map((officer) => {
               const stats = getOfficerStats(officer);
               return (
                 <TouchableOpacity
                   key={officer.id}
-                  onPress={() => setSelectedOfficer(officer)}
+                  onPress={() => router.push({ pathname: "/super-admin/officer/[id]" as any, params: { id: officer.id } })}
                   style={{ backgroundColor: "white", borderRadius: 16, padding: 16, marginBottom: 8, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}
                   activeOpacity={0.85}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
-                      <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#16A34A" }}>
-                        {officer.name.charAt(0)}
-                      </Text>
+                      <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#16A34A" }}>{officer.name.charAt(0)}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#0F172A" }} numberOfLines={1}>{officer.name}</Text>
@@ -236,181 +234,84 @@ export default function OfficersScreen() {
                         { label: "Pending", value: stats.pending, color: "#D97706", bg: "#FEF3C7" },
                         { label: "Active", value: stats.active, color: "#7C3AED", bg: "#EDE9FE" },
                         { label: "Resolved", value: stats.resolved, color: "#059669", bg: "#D1FAE5" },
-                      ].map((s) => (
-                        <View key={s.label} style={{ flex: 1, backgroundColor: s.bg, borderRadius: 8, padding: 6, alignItems: "center" }}>
-                          <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: s.color }}>{s.value}</Text>
-                          <Text style={{ fontSize: 9, fontFamily: "Inter_400Regular", color: s.color + "AA" }}>{s.label}</Text>
+                      ].map((stat) => (
+                        <View key={stat.label} style={{ flex: 1, backgroundColor: stat.bg, borderRadius: 8, paddingVertical: 7, alignItems: "center" }}>
+                          <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: stat.color }}>{stat.value}</Text>
+                          <Text style={{ fontSize: 9, fontFamily: "Inter_400Regular", color: stat.color }}>{stat.label}</Text>
                         </View>
                       ))}
                     </View>
                   )}
+
                   {activeStatus === "pending" && (
                     <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-                      <TouchableOpacity
-                        onPress={() => handleApprove(officer.id, "approved")}
-                        style={{ flex: 1, backgroundColor: "#D1FAE5", borderRadius: 10, paddingVertical: 9, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
-                        activeOpacity={0.8}
-                      >
-                        <Feather name="check" size={14} color="#059669" />
-                        <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#059669" }}>Approve</Text>
+                      <TouchableOpacity onPress={() => handleApprove(officer.id, "approved")} style={{ flex: 1, backgroundColor: "#16A34A", borderRadius: 10, paddingVertical: 9, alignItems: "center" }} activeOpacity={0.8}>
+                        <Text style={{ color: "white", fontFamily: "Inter_700Bold", fontSize: 12 }}>Approve</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => handleApprove(officer.id, "rejected")}
-                        style={{ flex: 1, backgroundColor: "#FEE2E2", borderRadius: 10, paddingVertical: 9, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
-                        activeOpacity={0.8}
-                      >
-                        <Feather name="x" size={14} color="#DC2626" />
-                        <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#DC2626" }}>Reject</Text>
+                      <TouchableOpacity onPress={() => handleApprove(officer.id, "rejected")} style={{ flex: 1, backgroundColor: "#DC2626", borderRadius: 10, paddingVertical: 9, alignItems: "center" }} activeOpacity={0.8}>
+                        <Text style={{ color: "white", fontFamily: "Inter_700Bold", fontSize: 12 }}>Reject</Text>
                       </TouchableOpacity>
                     </View>
                   )}
                 </TouchableOpacity>
               );
             })}
+
+            {officersLoading && <Text style={{ color: "#64748B", textAlign: "center", marginTop: 20 }}>Loading officers...</Text>}
+            {!officersLoading && filteredOfficers.length === 0 && <Text style={{ color: "#64748B", textAlign: "center", marginTop: 20 }}>No officers found</Text>}
           </>
         ) : (
           <>
-            <SectionHeader title="Most Active Wards" sub="Wards with highest pending complaints" />
-            <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+            <SectionHeader title="Ward Coverage" sub="All active ward officer assignments" />
+            {wardRows.map(({ officer, stats }) => (
+              <View key={officer.id} style={{ backgroundColor: "white", borderRadius: 16, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{officer.ward}</Text>
+                    <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "#64748B", marginTop: 2 }}>{officer.name} · {officer.mobile}</Text>
+                  </View>
+                  <View style={{ backgroundColor: "#DCFCE7", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}>
+                    <Text style={{ fontSize: 11, fontFamily: "Inter_700Bold", color: "#16A34A" }}>{officer.wardCode}</Text>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {[
+                    { label: "Total", value: stats.total, color: "#3B82F6" },
+                    { label: "Pending", value: stats.pending, color: "#D97706" },
+                    { label: "Resolved", value: stats.resolved, color: "#059669" },
+                  ].map((stat) => (
+                    <View key={stat.label} style={{ flex: 1, backgroundColor: "#F8FAFC", borderRadius: 10, paddingVertical: 10, alignItems: "center" }}>
+                      <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: stat.color }}>{stat.value}</Text>
+                      <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: "#64748B" }}>{stat.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+
+            <SectionHeader title="Busy Wards" sub="Wards with highest pending complaint load" />
+            <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
               {busyWards.length === 0 ? (
-                <Text style={{ color: "#94A3B8", textAlign: "center", paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 13 }}>No data yet</Text>
+                <Text style={{ color: "#94A3B8", textAlign: "center", paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 13 }}>No complaint data available</Text>
               ) : (
                 busyWards.map(({ officer, stats }, idx) => (
-                  <View key={officer.id} style={{ paddingVertical: 11, borderBottomWidth: idx < busyWards.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#FEF3C7", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
-                        <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#D97706" }}>{idx + 1}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }}>{officer.ward}</Text>
-                        <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" }}>{officer.name}</Text>
-                      </View>
-                      <View style={{ backgroundColor: "#FEE2E2", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 12, fontFamily: "Inter_700Bold", color: "#DC2626" }}>{stats.pending} pending</Text>
-                      </View>
+                  <View key={officer.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: idx < busyWards.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: "#FEF3C7", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                      <Feather name="alert-circle" size={15} color="#D97706" />
                     </View>
-                    <View style={{ height: 6, backgroundColor: "#F1F5F9", borderRadius: 3, marginLeft: 38 }}>
-                      <View style={{ height: 6, width: stats.total > 0 ? `${(stats.pending / Math.max(...busyWards.map((w) => w.stats.pending), 1)) * 100}%` : "0%", backgroundColor: "#F59E0B", borderRadius: 3 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }}>{officer.ward}</Text>
+                      <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" }}>{officer.name}</Text>
                     </View>
+                    <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: "#D97706" }}>{stats.pending}</Text>
                   </View>
                 ))
               )}
             </View>
-
-            <SectionHeader title="All Wards Overview" sub={`${wardOfficers.filter((o) => o.wardCode).length} wards · Officer mapping`} />
-            {wardOfficers.filter((o) => o.wardCode).map((officer, idx) => {
-              const stats = getOfficerStats(officer);
-              const resolutionRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
-              return (
-                <View key={officer.id} style={{ backgroundColor: "white", borderRadius: 14, padding: 14, marginBottom: 8, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
-                      <Feather name="map-pin" size={15} color="#16A34A" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{officer.ward}</Text>
-                      <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" }}>{officer.name} · {officer.id}</Text>
-                    </View>
-                    <View style={{ backgroundColor: resolutionRate >= 60 ? "#D1FAE5" : resolutionRate >= 30 ? "#FEF3C7" : "#FEE2E2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                      <Text style={{ fontSize: 12, fontFamily: "Inter_700Bold", color: resolutionRate >= 60 ? "#059669" : resolutionRate >= 30 ? "#D97706" : "#DC2626" }}>
-                        {resolutionRate}%
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: "row", gap: 6 }}>
-                    {[
-                      { label: "Total", value: stats.total, color: "#3B82F6", bg: "#DBEAFE" },
-                      { label: "Pending", value: stats.pending, color: "#D97706", bg: "#FEF3C7" },
-                      { label: "Active", value: stats.active, color: "#7C3AED", bg: "#EDE9FE" },
-                      { label: "Resolved", value: stats.resolved, color: "#059669", bg: "#D1FAE5" },
-                    ].map((s) => (
-                      <View key={s.label} style={{ flex: 1, backgroundColor: s.bg, borderRadius: 8, padding: 6, alignItems: "center" }}>
-                        <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: s.color }}>{s.value}</Text>
-                        <Text style={{ fontSize: 9, fontFamily: "Inter_400Regular", color: s.color + "BB" }}>{s.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              );
-            })}
           </>
         )}
       </ScrollView>
-
-      <Modal visible={!!selectedOfficer} transparent animationType="slide" onRequestClose={() => setSelectedOfficer(null)}>
-        {selectedOfficer && (() => {
-          const stats = getOfficerStats(selectedOfficer);
-          const resolutionRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
-          return (
-            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-              <View style={{ backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30, maxHeight: "88%" }}>
-                <View style={{ width: 36, height: 4, backgroundColor: "#E2E8F0", borderRadius: 2, alignSelf: "center", marginBottom: 20 }} />
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
-                  <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginRight: 14 }}>
-                    <Text style={{ fontSize: 20, fontFamily: "Inter_700Bold", color: "#16A34A" }}>{selectedOfficer.name.charAt(0)}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{selectedOfficer.name}</Text>
-                    <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "#64748B" }}>{selectedOfficer.ward} · {selectedOfficer.id}</Text>
-                  </View>
-                </View>
-                {[
-                  { label: "Mobile", value: selectedOfficer.mobile ? "+91 " + selectedOfficer.mobile : "Not added", icon: "phone" },
-                  { label: "DOB", value: selectedOfficer.dob || "Not added", icon: "calendar" },
-                  { label: "Ward", value: selectedOfficer.ward || "Not added", icon: "map-pin" },
-                  { label: "Ward Code", value: selectedOfficer.wardCode || "Not added", icon: "hash" },
-                  { label: "Nagarsevak ID", value: selectedOfficer.id || "Not added", icon: "credit-card" },
-                  { label: "Role", value: selectedOfficer.role === "super_admin" ? "Super Admin" : "Nagarsevak", icon: "briefcase" },
-                  { label: "Contact Person", value: selectedOfficer.contactName || selectedOfficer.name || "Not added", icon: "user-check" },
-                  { label: "Contact Number", value: selectedOfficer.contactNumber ? "+91 " + selectedOfficer.contactNumber : "Not added", icon: "phone-call" },
-                  { label: "Office Address", value: selectedOfficer.officeAddress || "Not added", icon: "map" },
-                  { label: "Residence Address", value: selectedOfficer.residenceAddress || selectedOfficer.address || "Not added", icon: "home" },
-                  { label: "Office Timings", value: selectedOfficer.officeTimings || "Not added", icon: "clock" },
-                  { label: "Verification", value: selectedOfficer.approvalStatus || "pending", icon: "shield" },
-                  { label: "Registered On", value: selectedOfficer.createdAt ? new Date(selectedOfficer.createdAt).toLocaleDateString() : "Not added", icon: "calendar" },
-                ].map((item, idx, arr) => (
-                  <View key={item.label} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: idx < arr.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
-                      <Feather name={item.icon as any} size={14} color="#64748B" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#94A3B8" }}>{item.label}</Text>
-                      <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A", lineHeight: 18 }}>{item.value}</Text>
-                    </View>
-                  </View>
-                ))}
-                {selectedOfficer.wardCode && (
-                  <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 12, fontFamily: "Inter_700Bold", color: "#94A3B8", letterSpacing: 1, marginBottom: 10 }}>PERFORMANCE STATS</Text>
-                    <View style={{ flexDirection: "row", gap: 8 }}>
-                      {[
-                        { label: "Total", value: stats.total, color: "#3B82F6", bg: "#DBEAFE" },
-                        { label: "Pending", value: stats.pending, color: "#D97706", bg: "#FEF3C7" },
-                        { label: "Active", value: stats.active, color: "#7C3AED", bg: "#EDE9FE" },
-                        { label: "Resolved", value: stats.resolved, color: "#059669", bg: "#D1FAE5" },
-                      ].map((s) => (
-                        <View key={s.label} style={{ flex: 1, backgroundColor: s.bg, borderRadius: 10, padding: 10, alignItems: "center" }}>
-                          <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: s.color }}>{s.value}</Text>
-                          <Text style={{ fontSize: 9, fontFamily: "Inter_400Regular", color: s.color }}>{s.label}</Text>
-                        </View>
-                      ))}
-                    </View>
-                    <View style={{ marginTop: 12, backgroundColor: "#F8FAFC", borderRadius: 10, padding: 12, flexDirection: "row", alignItems: "center" }}>
-                      <Feather name="trending-up" size={16} color="#16A34A" />
-                      <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A", marginLeft: 8 }}>
-                        Resolution Rate: <Text style={{ color: resolutionRate >= 60 ? "#059669" : resolutionRate >= 30 ? "#D97706" : "#DC2626" }}>{resolutionRate}%</Text>
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                <TouchableOpacity onPress={() => setSelectedOfficer(null)} style={{ marginTop: 20, paddingVertical: 14, borderRadius: 14, backgroundColor: "#F1F5F9", alignItems: "center" }} activeOpacity={0.8}>
-                  <Text style={{ fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#64748B" }}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })()}
-      </Modal>
     </View>
   );
 }
