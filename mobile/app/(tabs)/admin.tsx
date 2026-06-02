@@ -251,7 +251,7 @@ export default function AdminScreen() {
   const openComplaintTab = (nextFilter: ComplaintStatus) => {
     if (Platform.OS !== "web") Haptics.selectionAsync();
     setFilter(nextFilter);
-    setTimeout(() => complaintListRef.current?.scrollToOffset({ offset: 0, animated: true }), 80);
+    router.push({ pathname: "/complaint/list" as any, params: { status: nextFilter } });
   };
 
   const handleLogout = async () => {

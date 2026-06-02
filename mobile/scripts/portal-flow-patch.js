@@ -52,7 +52,7 @@ function fixNagarsevakTabs(source) {
         const label = labelMap[name] || descriptors[route.key]?.options?.title || name;
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-          if (!isFocused && !event.defaultPrevented) navigation.navigate(name);
+          if (isFocused || event.defaultPrevented) return;\n          if (typeof navigation.jumpTo === "function") {\n            navigation.jumpTo(route.name, route.params);\n          } else {\n            navigation.navigate(route.name, route.params);\n          }
         };
         return <TouchableOpacity key={route.key} onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 3 }} activeOpacity={0.72}><View style={{ width: 42, height: 32, alignItems: "center", justifyContent: "center", backgroundColor: isFocused ? "rgba(22,163,74,0.12)" : "transparent", borderRadius: 16, borderWidth: isFocused ? 1 : 0, borderColor: "rgba(22,163,74,0.18)" }}><Feather name={(iconMap[name] || "circle") as any} size={20} color={isFocused ? GREEN : MUTED} /></View><Text numberOfLines={1} style={{ fontSize: 10.5, fontFamily: isFocused ? "Inter_700Bold" : "Inter_600SemiBold", color: isFocused ? GREEN : MUTED, marginTop: 2 }}>{label}</Text></TouchableOpacity>;
       })}
@@ -88,7 +88,7 @@ edit('app/(tabs)/admin.tsx', s => {
   let next = s
     .replace('await logout();\n    router.replace("/login");', 'await logout("/nagarsevak/login");\n    router.replace("/nagarsevak/login" as any);')
     .replace('onPress={() => router.push("/login")}', 'onPress={() => router.replace("/nagarsevak/login" as any)}')
-    .replace('router.push({ pathname: "/complaint/list", params: { status: nextFilter } } as any);', 'setFilter(nextFilter);\n    setTimeout(() => complaintListRef.current?.scrollToOffset({ offset: 0, animated: true }), 80);');
+    .replace('setTimeout(() => complaintListRef.current?.scrollToOffset({ offset: 0, animated: true }), 80);', 'router.push({ pathname: "/complaint/list" as any, params: { status: nextFilter } });');
   if (!next.includes('complaintIdText:')) {
     next = next.replace(/(cmpMeta:\s*\{[^\n]*\},)/, '$1\n  complaintIdText: { fontSize: 10, color: "#16A34A", fontFamily: "Inter_700Bold", marginTop: 1 },');
   }
