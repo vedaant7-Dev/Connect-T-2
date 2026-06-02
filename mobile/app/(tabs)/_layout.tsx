@@ -72,7 +72,7 @@ export default function TabLayout() {
   const isNagarsevak = user?.role === "nagarsevak";
 
   return (
-    <Tabs tabBar={(props) => isNagarsevak ? <NagarsevakTabBar {...props} /> : <AnimatedTabBar {...props} />} screenOptions={{ headerShown: false, tabBarActiveTintColor: isNagarsevak ? GREEN : ORANGE, tabBarInactiveTintColor: MUTED }}>
+    <Tabs backBehavior="history" tabBar={(props) => isNagarsevak ? <NagarsevakTabBar {...props} /> : <AnimatedTabBar {...props} />} screenOptions={{ headerShown: false, tabBarActiveTintColor: isNagarsevak ? GREEN : ORANGE, tabBarInactiveTintColor: MUTED }}>
       <Tabs.Screen name="index" options={{ title: t("home"), href: isNagarsevak ? null : undefined }} />
       <Tabs.Screen name="emergency" options={{ href: null }} />
       <Tabs.Screen name="complaints" options={{ title: t("complaints"), href: isNagarsevak ? null : undefined }} />
