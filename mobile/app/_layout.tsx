@@ -14,6 +14,7 @@ import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplash, SplashPortal } from "@/components/AppSplash";
@@ -27,13 +28,21 @@ import { TabBarVisibilityProvider } from "@/context/TabBarVisibilityContext";
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+const JOB_SESSION_KEY = "connectt_jobs_session_v2";
 
 function isSuperAdminUser(user: any) {
   return user?.role === "super_admin" || user?.isSuperAdmin === true;
 }
 
+function dashboardForUser(user: any) {
+  if (!user) return "/portal-select";
+  if (isSuperAdminUser(user)) return "/super-admin";
+  if (user.role === "nagarsevak") return "/(tabs)/admin";
+  return "/(tabs)";
+}
+
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, logoutTarget, clearLogoutTarget } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
@@ -50,33 +59,70 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const inSuperAdmin = first === "super-admin";
     const inNagarsevak = first === "nagarsevak";
     const currentTab = inTabs ? segments[1] : undefined;
+    const isPublicRoute = !first || inLogin || inJobs || inPortalSelect || inSecretAccess || inSuperAdminLogin || inNagarsevak;
 
-    if (inJobs || inPortalSelect || inSecretAccess || inSuperAdminLogin || inNagarsevak) return;
-    if (inSuperAdmin && user && isSuperAdminUser(user)) return;
+    if (!user && !isPublicRoute) {
+      const target = logoutTarget || "/portal-select";
+      router.replace(target as any);
+      if (logoutTarget) clearLogoutTarget();
+      return;
+    }
 
-    if (!user && !inLogin) {
-      router.replace("/portal-select" as any);
-    } else if (user && inLogin) {
-      if (isSuperAdminUser(user)) {
-        router.replace("/super-admin" as any);
-      } else if (user.role === "nagarsevak") {
-        router.replace("/(tabs)/admin" as any);
-      } else {
-        router.replace("/(tabs)" as any);
-      }
-    } else if (user && isSuperAdminUser(user) && !inSuperAdmin) {
+    if (!user) return;
+
+    if (inLogin || inSuperAdminLogin || inNagarsevak) {
+      router.replace(dashboardForUser(user) as any);
+      return;
+    }
+
+    if (isSuperAdminUser(user) && !inSuperAdmin) {
       router.replace("/super-admin" as any);
-    } else if (user && user.role === "nagarsevak" && !isSuperAdminUser(user) && inTabs && currentTab !== "admin") {
+    } else if (user.role === "nagarsevak" && !isSuperAdminUser(user) && inTabs && currentTab !== "admin") {
       router.replace("/(tabs)/admin" as any);
     }
-  }, [user, loading, segments, router]);
+  }, [user, loading, logoutTarget, clearLogoutTarget, segments, router]);
 
   return <>{children}</>;
 }
 
 function AppShell({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
   const [splashDone, setSplashDone] = useState(false);
-  const { user } = useAuth();
+  const [bootChecked, setBootChecked] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+    let alive = true;
+
+    const boot = async () => {
+      if (user) {
+        if (!alive) return;
+        setSplashDone(true);
+        staticRouter.replace(dashboardForUser(user) as any);
+        setBootChecked(true);
+        return;
+      }
+
+      try {
+        const savedJobUser = await AsyncStorage.getItem(JOB_SESSION_KEY);
+        if (savedJobUser) {
+          if (!alive) return;
+          setSplashDone(true);
+          staticRouter.replace("/jobs/(tabs)" as any);
+          setBootChecked(true);
+          return;
+        }
+      } catch {
+        // Ignore stored job-session read failures and show default splash.
+      }
+
+      if (!alive) return;
+      setBootChecked(true);
+    };
+
+    boot();
+    return () => { alive = false; };
+  }, [user, loading]);
 
   const handleFinish = async (portal: SplashPortal) => {
     setSplashDone(true);
@@ -91,26 +137,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if ((portal as string) === "super_admin") {
-      if (user && isSuperAdminUser(user)) staticRouter.replace("/super-admin" as any);
-      else staticRouter.replace("/super-admin-login" as any);
-      return;
-    }
-
-    if ((portal as string) === "nagarsevak") {
-      if (user && user.role === "nagarsevak" && !isSuperAdminUser(user)) staticRouter.replace("/(tabs)/admin" as any);
-      else if (user && isSuperAdminUser(user)) staticRouter.replace("/super-admin" as any);
-      else staticRouter.replace("/nagarsevak/login" as any);
-      return;
-    }
-
     staticRouter.replace("/portal-select" as any);
   };
 
   return (
     <>
       {children}
-      {!splashDone && <AppSplash onFinish={handleFinish} />}
+      {bootChecked && !splashDone && !user && <AppSplash onFinish={handleFinish} />}
     </>
   );
 }
