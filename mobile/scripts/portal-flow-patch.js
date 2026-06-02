@@ -14,6 +14,21 @@ function edit(name, fn) {
   }
 }
 
+function ensureOtpImport(source) {
+  if (source.includes('@/components/OtpDigitInput')) return source;
+  return source.replace('import TopShade from "@/components/TopShade";', 'import TopShade from "@/components/TopShade";\nimport OtpDigitInput from "@/components/OtpDigitInput";');
+}
+
+function ensureOtpImportAfterDecorative(source) {
+  if (source.includes('@/components/OtpDigitInput')) return source;
+  return source.replace('import TopShade from "@/components/TopShade";', 'import TopShade from "@/components/TopShade";\nimport OtpDigitInput from "@/components/OtpDigitInput";');
+}
+
+function ensureOtpImportSuperAdmin(source) {
+  if (source.includes('@/components/OtpDigitInput')) return source;
+  return source.replace('import { useAuth } from "@/context/AuthContext";', 'import { useAuth } from "@/context/AuthContext";\nimport OtpDigitInput from "@/components/OtpDigitInput";');
+}
+
 edit('app/(tabs)/_layout.tsx', s => s.replace(
   '<Tabs tabBar={(props) => isNagarsevak ? <NagarsevakTabBar {...props} /> : <AnimatedTabBar {...props} />} screenOptions={{ headerShown: false, tabBarActiveTintColor: isNagarsevak ? GREEN : ORANGE, tabBarInactiveTintColor: MUTED }}>',
   '<Tabs backBehavior="history" tabBar={(props) => isNagarsevak ? <NagarsevakTabBar {...props} /> : <AnimatedTabBar {...props} />} screenOptions={{ headerShown: false, tabBarActiveTintColor: isNagarsevak ? GREEN : ORANGE, tabBarInactiveTintColor: MUTED }}>'
@@ -37,6 +52,33 @@ edit('app/jobs/(tabs)/profile.tsx', s => s
   .replace('await logoutJobs();\n    },', 'await logoutJobs();\n      router.replace("/jobs/login" as any);\n    },')
   .replace('\n        { icon: "file-text" as const, label: "Resume Builder", sub: "Create resume from profile", color: "#7C3AED", bg: "#F5F3FF", onPress: () => router.push("/jobs/resume" as any) },', '')
 );
+
+edit('app/login.tsx', s => {
+  let next = ensureOtpImport(s);
+  next = next.replace(
+    '<TextInput value={otp} onChangeText={(v) => setOtp(v.replace(/\\D/g, "").slice(0, 4))} keyboardType="number-pad" maxLength={4} placeholder="1234" placeholderTextColor="#94A3B8" style={s.otpInput} textAlign="center" />',
+    '<OtpDigitInput value={otp} onChange={setOtp} autoFocus />'
+  );
+  return next;
+});
+
+edit('app/jobs/login.tsx', s => {
+  let next = ensureOtpImportAfterDecorative(s);
+  next = next.replace(
+    '<TextInput value={otp} onChangeText={(v) => setOtp(v.replace(/\\D/g, "").slice(0, 4))} placeholder="1234" keyboardType="number-pad" maxLength={4} style={s.otpInput} placeholderTextColor="#94A3B8" textAlign="center" />',
+    '<OtpDigitInput value={otp} onChange={setOtp} autoFocus />'
+  );
+  return next;
+});
+
+edit('app/super-admin-login.tsx', s => {
+  let next = ensureOtpImportSuperAdmin(s);
+  next = next.replace(
+    '{otpStep && <View style={styles.inputBlock}><Text style={styles.label}>4 Digit Demo OTP</Text><View style={styles.inputShell}><View style={styles.inputPrefix}><Feather name="hash" size={14} color="#047857" /></View><TextInput value={otp} onChangeText={(value) => setOtp(value.replace(/\\D/g, "").slice(0, 4))} placeholder="1234" placeholderTextColor="#94A3B8" keyboardType="number-pad" maxLength={4} style={[styles.input, { letterSpacing: 8, fontSize: 20, fontFamily: "Inter_800ExtraBold" }]} /></View></View>}',
+    '{otpStep && <View style={styles.inputBlock}><Text style={styles.label}>4 Digit Demo OTP</Text><OtpDigitInput value={otp} onChange={setOtp} autoFocus /></View>}'
+  );
+  return next;
+});
 
 edit('app/nagarsevak/login.tsx', s => s
   .replace('router.replace("/" as any)', 'router.replace("/secret-access" as any)')
