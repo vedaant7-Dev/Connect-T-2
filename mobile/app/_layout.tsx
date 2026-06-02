@@ -29,6 +29,7 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 const JOB_SESSION_KEY = "connectt_jobs_session_v2";
+const NAGARSEVAK_ALLOWED_TABS = new Set(["admin", "ward", "news", "profile"]);
 
 function isSuperAdminUser(user: any) {
   return user?.role === "super_admin" || user?.isSuperAdmin === true;
@@ -58,7 +59,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const inSuperAdminLogin = first === "super-admin-login";
     const inSuperAdmin = first === "super-admin";
     const inNagarsevak = first === "nagarsevak";
-    const currentTab = inTabs ? segments[1] : undefined;
+    const currentTab = inTabs ? String(segments[1] || "") : undefined;
     const isPublicRoute = !first || inLogin || inJobs || inPortalSelect || inSecretAccess || inSuperAdminLogin || inNagarsevak;
 
     if (!user && !isPublicRoute) {
@@ -77,7 +78,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
     if (isSuperAdminUser(user) && !inSuperAdmin) {
       router.replace("/super-admin" as any);
-    } else if (user.role === "nagarsevak" && !isSuperAdminUser(user) && inTabs && currentTab !== "admin") {
+    } else if (user.role === "nagarsevak" && !isSuperAdminUser(user) && inTabs && !NAGARSEVAK_ALLOWED_TABS.has(currentTab || "")) {
       router.replace("/(tabs)/admin" as any);
     }
   }, [user, loading, logoutTarget, clearLogoutTarget, segments, router]);
