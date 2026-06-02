@@ -47,6 +47,16 @@ workflows:
           rm -f package-lock.json
           npm install --legacy-peer-deps --no-audit --no-fund
 
+      - name: Apply generated mobile patches
+        script: |
+          cd "$CM_BUILD_DIR/mobile"
+          node scripts/clean-generated-patches.js
+          node scripts/portal-flow-patch.js
+          node scripts/super-admin-dashboard-patch.js
+          node scripts/nagarsevak-dashboard-patch.js
+          node scripts/super-admin-ui-polish.js
+          grep -n "complaintIdText" "app/(tabs)/admin.tsx" || true
+
       - name: Install Android SDK packages
         script: |
           echo "ANDROID_HOME=$ANDROID_HOME"
