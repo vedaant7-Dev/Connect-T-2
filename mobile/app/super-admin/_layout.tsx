@@ -88,7 +88,7 @@ export default function SuperAdminLayout() {
     <JobsAuthProvider>
       <JobsProvider>
         <View style={{ flex: 1 }}>
-          <Tabs tabBar={(props) => <SuperAdminTabBar {...props} />} screenOptions={{ headerShown: false }}>
+          <Tabs backBehavior="history" tabBar={(props) => <SuperAdminTabBar {...props} />} screenOptions={{ headerShown: false }}>
             <Tabs.Screen name="index" />
             <Tabs.Screen name="officers" />
             <Tabs.Screen name="jobs" />
