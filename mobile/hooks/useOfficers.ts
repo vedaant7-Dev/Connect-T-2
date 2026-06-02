@@ -11,6 +11,8 @@ export interface Officer {
   role: string;
   isSuperAdmin: boolean;
   approvalStatus: "pending" | "approved" | "rejected";
+  dob?: string | null;
+  address?: string | null;
   officeAddress?: string | null;
   residenceAddress?: string | null;
   officeTimings?: string | null;
@@ -46,9 +48,9 @@ async function readJson(res: Response) {
 
 function normalizeOfficer(item: any): Officer {
   return {
-    id: String(item.id || ""),
+    id: String(item.id || item.nagarsevakId || item.nagarsevak_id || ""),
     name: String(item.name || "Unknown Officer"),
-    mobile: String(item.mobile || ""),
+    mobile: String(item.mobile || item.phone || ""),
     ward: String(item.ward || "Not assigned"),
     wardCode: item.wardCode || item.ward_code || null,
     role: item.role || "nagarsevak",
@@ -58,12 +60,16 @@ function normalizeOfficer(item: any): Officer {
       item.approvalStatus === "rejected" ||
       item.approvalStatus === "pending"
         ? item.approvalStatus
-        : "pending",
+        : item.approval_status === "approved" || item.approval_status === "rejected" || item.approval_status === "pending"
+          ? item.approval_status
+          : "pending",
+    dob: item.dob || item.dateOfBirth || item.date_of_birth || null,
+    address: item.address || null,
     officeAddress: item.officeAddress || item.office_address || null,
-    residenceAddress: item.residenceAddress || item.residence_address || null,
+    residenceAddress: item.residenceAddress || item.residence_address || item.address || null,
     officeTimings: item.officeTimings || item.office_timings || null,
-    contactName: item.contactName || item.contact_name || null,
-    contactNumber: item.contactNumber || item.contact_number || item.mobile || null,
+    contactName: item.contactName || item.contact_name || item.name || null,
+    contactNumber: item.contactNumber || item.contact_number || item.mobile || item.phone || null,
     profilePhoto: item.profilePhoto || item.profile_photo || null,
     createdAt: item.createdAt || item.created_at,
   };
