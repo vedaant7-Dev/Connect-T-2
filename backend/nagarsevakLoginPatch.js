@@ -2,13 +2,14 @@
  * Nagarsevak compatibility patch.
  *
  * Loaded before backend/server.js. It guarantees Nagarsevak login, register,
- * and ward-check routes exist and keeps the ward workflow practical for
- * production review: only approved officers reserve a ward. Pending/rejected
+ * ward-check, and officers routes exist and keeps the ward workflow practical
+ * for production review: only approved officers reserve a ward. Pending/rejected
  * test registrations do not incorrectly make a ward look taken.
  */
 
 let pool = null;
 let installed = false;
+let columnsEnsured = false;
 
 function normalizeMobile(value) {
   return String(value || "").replace(/\D/g, "").slice(-10);
@@ -45,9 +46,64 @@ function mobileSql(column) {
   return `RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(${column},''), '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', ''), 10)`;
 }
 
+async function ensureColumn(db, table, column, definition) {
+  const [rows] = await db.query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = ?
+       AND COLUMN_NAME = ?
+     LIMIT 1`,
+    [table, column],
+  );
+
+  if (!rows.length) {
+    await db.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+async function ensureUsersProfileColumns() {
+  if (columnsEnsured) return;
+  const db = getPool();
+  await ensureColumn(db, "users", "dob", "VARCHAR(20) NULL");
+  await ensureColumn(db, "users", "approval_status", "VARCHAR(20) DEFAULT 'approved'");
+  await ensureColumn(db, "users", "office_address", "TEXT NULL");
+  await ensureColumn(db, "users", "residence_address", "TEXT NULL");
+  await ensureColumn(db, "users", "office_timings", "VARCHAR(120) NULL");
+  await ensureColumn(db, "users", "contact_name", "VARCHAR(160) NULL");
+  await ensureColumn(db, "users", "contact_number", "VARCHAR(20) NULL");
+  columnsEnsured = true;
+}
+
+function mapOfficer(row) {
+  return {
+    id: String(row.id || row.nagarsevak_id || row.mobile || ""),
+    name: row.name || "Unknown Officer",
+    mobile: normalizeMobile(row.mobile),
+    role: row.role || "nagarsevak",
+    ward: row.ward || "Not assigned",
+    wardCode: row.ward_code || row.wardCode || null,
+    wardNumber: row.ward_number || row.wardNumber || null,
+    isSuperAdmin: !!(row.is_super_admin || row.isSuperAdmin),
+    approvalStatus: normalizeApproval(row.approval_status || row.approvalStatus),
+    dob: row.dob || null,
+    address: row.address || null,
+    nagarsevakId: row.nagarsevak_id || row.nagarsevakId || row.id || null,
+    avatarColor: row.avatar_color || row.avatarColor || "#16A34A",
+    profilePhoto: row.profile_photo || row.profilePhoto || null,
+    officeAddress: row.office_address || row.officeAddress || null,
+    residenceAddress: row.residence_address || row.residenceAddress || row.address || null,
+    officeTimings: row.office_timings || row.officeTimings || null,
+    contactName: row.contact_name || row.contactName || row.name || null,
+    contactNumber: normalizeMobile(row.contact_number || row.contactNumber || row.mobile),
+    createdAt: row.created_at || row.createdAt || null,
+  };
+}
+
 async function wardCheck(req, res) {
   try {
     const db = getPool();
+    await ensureUsersProfileColumns();
     const ward = String(req.query?.ward || "").trim();
     const wardCode = normalizeWardCode(req.query?.ward_code || req.query?.wardCode || ward);
 
@@ -85,10 +141,12 @@ async function wardCheck(req, res) {
 async function nagarsevakRegister(req, res) {
   try {
     const db = getPool();
+    await ensureUsersProfileColumns();
     const mobile = normalizeMobile(req.body?.mobile || req.body?.phone);
     const name = String(req.body?.name || "").trim();
     const ward = String(req.body?.ward || "").trim();
     const wardCode = normalizeWardCode(req.body?.wardCode || req.body?.ward_code || ward);
+    const dob = String(req.body?.dob || req.body?.dateOfBirth || req.body?.date_of_birth || "").trim() || null;
 
     if (!name || name.length < 2 || mobile.length !== 10) {
       return sendJson(res, 400, {
@@ -142,11 +200,11 @@ async function nagarsevakRegister(req, res) {
     await db.query(
       `INSERT INTO users
        (id, name, mobile, role, ward, ward_code, ward_number, is_super_admin,
-        approval_status, address, nagarsevak_id, office_address,
+        approval_status, dob, address, nagarsevak_id, office_address,
         residence_address, office_timings, contact_name, contact_number,
         profile_photo)
        VALUES (?, ?, ?, 'nagarsevak', ?, ?, ?, 0,
-        'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         name,
@@ -154,6 +212,7 @@ async function nagarsevakRegister(req, res) {
         ward,
         wardCode || null,
         wardCode ? wardCode.replace(/[A-Z]/g, "") : null,
+        dob,
         req.body?.address || null,
         id,
         req.body?.officeAddress || req.body?.office_address || null,
@@ -183,6 +242,7 @@ async function nagarsevakRegister(req, res) {
 async function nagarsevakLogin(req, res) {
   try {
     const db = getPool();
+    await ensureUsersProfileColumns();
     const mobile = normalizeMobile(req.body?.mobile || req.body?.phone);
 
     if (mobile.length !== 10) {
@@ -231,30 +291,40 @@ async function nagarsevakLogin(req, res) {
 
     return sendJson(res, 200, {
       success: true,
-      user: {
-        id: String(row.id || row.nagarsevak_id || mobile),
-        name: row.name || "Nagarsevak",
-        mobile,
-        role: "nagarsevak",
-        ward: row.ward || "",
-        wardCode: row.ward_code || row.wardCode || null,
-        wardNumber: row.ward_number || null,
-        address: row.address || row.office_address || row.residence_address || "",
-        profilePhoto: row.profile_photo || null,
-        isSuperAdmin: !!row.is_super_admin,
-        approvalStatus: "approved",
-        nagarsevakId: row.nagarsevak_id || row.id || null,
-        officeAddress: row.office_address || "",
-        residenceAddress: row.residence_address || "",
-        officeTimings: row.office_timings || "",
-        contactName: row.contact_name || row.name || "",
-        contactNumber: normalizeMobile(row.contact_number || row.mobile),
-      },
+      user: mapOfficer({ ...row, approval_status: "approved" }),
     });
   } catch (err) {
     return sendJson(res, 500, {
       success: false,
       message: err.message || "LOGIN_FAILED",
+    });
+  }
+}
+
+async function listOfficers(req, res) {
+  try {
+    const db = getPool();
+    await ensureUsersProfileColumns();
+    const status = req.query?.status ? normalizeApproval(req.query.status) : null;
+    const params = [];
+    let sql = `SELECT * FROM users WHERE role = 'nagarsevak'`;
+
+    if (status) {
+      sql += " AND approval_status = ?";
+      params.push(status);
+    }
+
+    sql += " ORDER BY created_at DESC";
+    const [rows] = await db.query(sql, params);
+
+    return sendJson(res, 200, {
+      success: true,
+      officers: rows.map(mapOfficer),
+    });
+  } catch (err) {
+    return sendJson(res, 500, {
+      success: false,
+      message: err.message || "OFFICERS_FAILED",
     });
   }
 }
@@ -280,12 +350,13 @@ try {
     if (installed) return;
     installed = true;
     originalGet.call(app, "/api/auth/ward-check", wardCheck);
+    originalGet.call(app, "/api/auth/officers", listOfficers);
     originalPost.call(app, "/api/auth/nagarsevak-register", nagarsevakRegister);
     originalPost.call(app, "/api/auth/nagarsevak-login", nagarsevakLogin);
   }
 
   express.application.get = function patchedGet(path, ...handlers) {
-    if (path === "/api/auth/ward-check") install(this);
+    if (path === "/api/auth/ward-check" || path === "/api/auth/officers") install(this);
     return originalGet.call(this, path, ...handlers);
   };
 
@@ -294,7 +365,7 @@ try {
     return originalPost.call(this, path, ...handlers);
   };
 
-  console.log("[NagarsevakPatch] login/register/ward-check compatibility routes active");
+  console.log("[NagarsevakPatch] login/register/ward-check/officers compatibility routes active");
 } catch (err) {
   console.warn("[NagarsevakPatch] express patch disabled:", err.message);
 }
