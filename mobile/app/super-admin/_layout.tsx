@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Platform } from "react-native";
-import { Tabs, useRouter } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
@@ -81,6 +81,8 @@ function FloatingSettingsButton() {
 
 export default function SuperAdminLayout() {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const hideFloatingSettings = pathname.startsWith("/super-admin/officer");
 
   if (!user || (user.role !== "super_admin" && !user.isSuperAdmin)) return null;
 
@@ -97,7 +99,7 @@ export default function SuperAdminLayout() {
             <Tabs.Screen name="settings" options={{ href: null }} />
             <Tabs.Screen name="access" options={{ href: null }} />
           </Tabs>
-          <FloatingSettingsButton />
+          {!hideFloatingSettings && <FloatingSettingsButton />}
         </View>
       </JobsProvider>
     </JobsAuthProvider>

@@ -494,69 +494,6 @@ export default function SettingsScreen() {
             marginBottom: 10,
           }}
         >
-          COMPLAINT CATEGORIES
-        </Text>
-        <View
-          style={{
-            backgroundColor: "white",
-            borderRadius: 16,
-            padding: 16,
-            marginBottom: 20,
-            shadowColor: "#000",
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 12,
-              fontFamily: "Inter_400Regular",
-              color: "#64748B",
-              marginBottom: 12,
-            }}
-          >
-            Active complaint categories in the system. Contact your backend team
-            to add or remove categories.
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {COMPLAINT_CATEGORIES.map((cat) => (
-              <View
-                key={cat.key}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: cat.color + "18",
-                  borderRadius: 10,
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                }}
-              >
-                <Feather name={cat.icon as any} size={12} color={cat.color} />
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontFamily: "Inter_500Medium",
-                    color: cat.color,
-                    marginLeft: 5,
-                  }}
-                >
-                  {cat.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <Text
-          style={{
-            fontSize: 12,
-            fontFamily: "Inter_700Bold",
-            color: "#94A3B8",
-            letterSpacing: 1,
-            marginBottom: 10,
-          }}
-        >
           BACKEND & API
         </Text>
         <View

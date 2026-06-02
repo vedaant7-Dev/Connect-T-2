@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { AppAlert, AlertPriority, AlertType, useAlerts } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "expo-router";
 
 const GREEN = "#16A34A";
 const ORANGE = "#EA580C";
@@ -28,6 +29,7 @@ export default function NagarsevakNewsScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 54 : insets.top;
   const { user } = useAuth();
+  const router = useRouter();
   const { alerts, addAlert, removeAlert } = useAlerts();
   const [modal, setModal] = useState(false);
   const [mode, setMode] = useState<Mode>("create");
@@ -47,15 +49,7 @@ export default function NagarsevakNewsScreen() {
   }, [alerts, user?.id, user?.name]);
 
   const openCreate = () => {
-    setMode("create");
-    setEditingId(null);
-    setType("news");
-    setPriority("normal");
-    setTitle("");
-    setBody("");
-    setLocation(user?.ward || "");
-    setError("");
-    setModal(true);
+    router.push("/alert/new" as any);
   };
 
   const openEdit = (item: AppAlert) => {

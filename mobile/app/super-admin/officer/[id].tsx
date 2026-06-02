@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
-import { Image, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Image, Modal, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { API_BASE_URL } from "@/constants/api";
 import { useComplaints } from "@/context/ComplaintContext";
 import { Officer, useOfficers } from "@/hooks/useOfficers";
 
@@ -33,21 +34,15 @@ function dateValue(value?: string | null) {
   return date.toLocaleDateString();
 }
 
-function statusTheme(status?: Officer["approvalStatus"]) {
-  if (status === "approved") return { color: GREEN, bg: "#DCFCE7", label: "Approved", icon: "check-circle" as const };
-  if (status === "rejected") return { color: "#DC2626", bg: "#FEE2E2", label: "Rejected", icon: "x-circle" as const };
-  return { color: "#D97706", bg: "#FEF3C7", label: "Pending", icon: "clock" as const };
-}
-
 function DetailRow({ icon, label, value }: { icon: keyof typeof Feather.glyphMap; label: string; value?: string | null }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" }}>
-      <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center" }}>
-        <Feather name={icon} size={16} color={GREEN} />
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" }}>
+      <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center" }}>
+        <Feather name={icon} size={15} color={GREEN} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 11, color: "#94A3B8", fontFamily: "Inter_600SemiBold" }}>{label}</Text>
-        <Text style={{ fontSize: 14, color: "#0F172A", fontFamily: "Inter_700Bold", marginTop: 2 }}>{textValue(value)}</Text>
+        <Text style={{ fontSize: 10.5, color: "#94A3B8", fontFamily: "Inter_600SemiBold" }}>{label}</Text>
+        <Text style={{ fontSize: 13.5, color: "#0F172A", fontFamily: "Inter_700Bold", marginTop: 2 }}>{textValue(value)}</Text>
       </View>
     </View>
   );
@@ -55,9 +50,9 @@ function DetailRow({ icon, label, value }: { icon: keyof typeof Feather.glyphMap
 
 function StatCard({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: bg, borderRadius: 14, paddingVertical: 12, alignItems: "center" }}>
-      <Text style={{ fontSize: 20, color, fontFamily: "Inter_700Bold" }}>{value}</Text>
-      <Text style={{ fontSize: 10, color, fontFamily: "Inter_600SemiBold", marginTop: 2 }}>{label}</Text>
+    <View style={{ flex: 1, backgroundColor: bg, borderRadius: 13, paddingVertical: 9, alignItems: "center" }}>
+      <Text style={{ fontSize: 18, color, fontFamily: "Inter_700Bold" }}>{value}</Text>
+      <Text style={{ fontSize: 9.5, color, fontFamily: "Inter_600SemiBold", marginTop: 1 }}>{label}</Text>
     </View>
   );
 }
@@ -68,8 +63,10 @@ export default function OfficerDetailScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const officerId = String(params.id || "");
 
-  const { officers, loading } = useOfficers();
+  const { officers, loading, approveOfficer, refetch } = useOfficers();
   const { complaints } = useComplaints();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [actionMsg, setActionMsg] = useState("");
 
   const officer = useMemo(() => officers.find((item) => String(item.id) === officerId), [officers, officerId]);
 
@@ -88,18 +85,46 @@ export default function OfficerDetailScreen() {
   const active = wardComplaints.filter((item) => item.status === "assigned" || item.status === "in_progress").length;
   const resolved = wardComplaints.filter((item) => item.status === "resolved").length;
   const rejected = wardComplaints.filter((item) => item.status === "rejected").length;
-  const theme = statusTheme(officer?.approvalStatus);
+
+  const suspendOfficer = async () => {
+    if (!officer) return;
+    setActionMsg("");
+    const result = await approveOfficer(officer.id, "rejected");
+    if (result?.success === false) {
+      setActionMsg(result.message || "Suspend failed.");
+      return;
+    }
+    await refetch();
+    setMenuVisible(false);
+  };
+
+  const deleteOfficer = async () => {
+    if (!officer) return;
+    setActionMsg("");
+    try {
+      const base = API_BASE_URL.replace(/\/$/, "");
+      const res = await fetch(`${base}/api/auth/officers/${encodeURIComponent(officer.id)}`, { method: "DELETE" });
+      if (!res.ok) {
+        setActionMsg("Delete API is not enabled on backend yet.");
+        return;
+      }
+      await refetch();
+      setMenuVisible(false);
+      router.back();
+    } catch {
+      setActionMsg("Delete API is not enabled on backend yet.");
+    }
+  };
 
   if (!loading && !officer) {
     return (
       <View style={{ flex: 1, backgroundColor: BG }}>
-        <LinearGradient colors={["#052E16", DARK_GREEN, GREEN]} style={{ paddingTop: topPad + 12, paddingHorizontal: 20, paddingBottom: 24 }}>
+        <LinearGradient colors={["#052E16", DARK_GREEN, GREEN]} style={{ paddingTop: topPad + 12, paddingHorizontal: 20, paddingBottom: 22 }}>
           <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Feather name="chevron-left" size={22} color="white" />
             <Text style={{ color: "white", fontSize: 14, fontFamily: "Inter_700Bold" }}>Back</Text>
           </TouchableOpacity>
           <Text style={{ color: "white", fontSize: 22, fontFamily: "Inter_700Bold", marginTop: 24 }}>Officer not found</Text>
-          <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 6 }}>This officer record could not be loaded.</Text>
         </LinearGradient>
       </View>
     );
@@ -107,34 +132,44 @@ export default function OfficerDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: BG }}>
-      <LinearGradient colors={["#052E16", DARK_GREEN, GREEN]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: topPad + 12, paddingHorizontal: 20, paddingBottom: 24, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}>
+      <LinearGradient
+        colors={["#052E16", DARK_GREEN, GREEN]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ paddingTop: topPad + 10, paddingHorizontal: 20, paddingBottom: 18, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}
+      >
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: "row", alignItems: "center", gap: 4 }} activeOpacity={0.85}>
             <Feather name="chevron-left" size={22} color="white" />
             <Text style={{ color: "white", fontSize: 14, fontFamily: "Inter_700Bold" }}>Back</Text>
           </TouchableOpacity>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: theme.bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
-            <Feather name={theme.icon} size={12} color={theme.color} />
-            <Text style={{ color: theme.color, fontSize: 11, fontFamily: "Inter_700Bold" }}>{theme.label}</Text>
-          </View>
+
+          <TouchableOpacity onPress={() => setMenuVisible(true)} activeOpacity={0.85} style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" }}>
+            <Feather name="menu" size={22} color="white" />
+          </TouchableOpacity>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 22 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 18 }}>
           {officer?.profilePhoto ? (
-            <Image source={{ uri: officer.profilePhoto }} style={{ width: 74, height: 74, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)" }} />
+            <Image source={{ uri: officer.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)" }} />
           ) : (
-            <View style={{ width: 74, height: 74, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.24)" }}>
-              <Text style={{ color: "white", fontSize: 26, fontFamily: "Inter_700Bold" }}>{initials(officer?.name)}</Text>
+            <View style={{ width: 60, height: 60, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.24)" }}>
+              <Text style={{ color: "white", fontSize: 22, fontFamily: "Inter_700Bold" }}>{initials(officer?.name)}</Text>
             </View>
           )}
+
           <View style={{ flex: 1 }}>
-            <Text style={{ color: "rgba(255,255,255,0.64)", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.4 }}>OFFICER FULL DETAILS</Text>
-            <Text style={{ color: "white", fontSize: 24, fontFamily: "Inter_700Bold", marginTop: 4 }} numberOfLines={1}>{officer?.name || "Loading..."}</Text>
-            <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 3 }}>{textValue(officer?.ward, "Ward not assigned")} · {textValue(officer?.id, "ID not added")}</Text>
+            <Text style={{ color: "rgba(255,255,255,0.64)", fontSize: 9.5, fontFamily: "Inter_700Bold", letterSpacing: 1.3 }}>OFFICER FULL DETAILS</Text>
+            <Text style={{ color: "white", fontSize: 21, fontFamily: "Inter_700Bold", marginTop: 3 }} numberOfLines={1}>
+              {officer?.name || "Loading..."}
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 11.5, fontFamily: "Inter_400Regular", marginTop: 2 }}>
+              {textValue(officer?.ward, "Ward not assigned")} · {textValue(officer?.id, "ID not added")}
+            </Text>
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 18 }}>
+        <View style={{ flexDirection: "row", gap: 7, marginTop: 16 }}>
           <StatCard label="Total" value={total} color="#2563EB" bg="#DBEAFE" />
           <StatCard label="Pending" value={pending} color="#D97706" bg="#FEF3C7" />
           <StatCard label="Active" value={active} color="#7C3AED" bg="#EDE9FE" />
@@ -174,28 +209,41 @@ export default function OfficerDetailScreen() {
             <StatCard label="Closed" value={resolved + rejected} color="#166534" bg="#DCFCE7" />
           </View>
         </View>
-
-        {wardComplaints.slice(0, 8).map((complaint) => (
-          <TouchableOpacity key={complaint.id} onPress={() => router.push({ pathname: "/complaint/[id]" as any, params: { id: complaint.id } })} activeOpacity={0.9} style={{ backgroundColor: "white", borderRadius: 16, padding: 14, marginBottom: 9, flexDirection: "row", alignItems: "center", gap: 10, elevation: 1, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center" }}>
-              <Feather name="file-text" size={16} color={GREEN} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, color: "#0F172A", fontFamily: "Inter_700Bold" }} numberOfLines={1}>{complaint.title}</Text>
-              <Text style={{ fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{complaint.status.replace("_", " ")} · {complaint.location}</Text>
-            </View>
-            <Feather name="chevron-right" size={16} color="#CBD5E1" />
-          </TouchableOpacity>
-        ))}
-
-        {!loading && wardComplaints.length === 0 && (
-          <View style={{ alignItems: "center", backgroundColor: "white", borderRadius: 18, padding: 24 }}>
-            <Feather name="file-text" size={36} color="#CBD5E1" />
-            <Text style={{ marginTop: 10, fontSize: 15, color: "#475569", fontFamily: "Inter_700Bold" }}>No complaints yet</Text>
-            <Text style={{ marginTop: 4, fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular", textAlign: "center" }}>Complaints assigned to this officer's ward will appear here.</Text>
-          </View>
-        )}
       </ScrollView>
+
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.45)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Math.max(insets.bottom, 12) + 18 }}>
+            <View style={{ width: 44, height: 4, borderRadius: 2, backgroundColor: "#CBD5E1", alignSelf: "center", marginBottom: 16 }} />
+            <Text style={{ fontSize: 18, color: "#0F172A", fontFamily: "Inter_700Bold" }}>Officer Actions</Text>
+            <Text style={{ fontSize: 12, color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 3, marginBottom: 14 }}>
+              {officer?.name} · {officer?.id}
+            </Text>
+
+            {!!actionMsg && <Text style={{ fontSize: 12, color: "#DC2626", fontFamily: "Inter_600SemiBold", marginBottom: 10 }}>{actionMsg}</Text>}
+
+            <TouchableOpacity onPress={suspendOfficer} activeOpacity={0.85} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#FEF3C7", borderRadius: 14, padding: 15, marginBottom: 10 }}>
+              <Feather name="pause-circle" size={20} color="#D97706" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, color: "#92400E", fontFamily: "Inter_700Bold" }}>Suspend ID</Text>
+                <Text style={{ fontSize: 11, color: "#B45309", fontFamily: "Inter_400Regular", marginTop: 2 }}>Move officer to rejected/suspended status</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={deleteOfficer} activeOpacity={0.85} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#FEE2E2", borderRadius: 14, padding: 15, marginBottom: 10 }}>
+              <Feather name="trash-2" size={20} color="#DC2626" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, color: "#991B1B", fontFamily: "Inter_700Bold" }}>Delete Officer</Text>
+                <Text style={{ fontSize: 11, color: "#B91C1C", fontFamily: "Inter_400Regular", marginTop: 2 }}>Requires DELETE API on backend</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setMenuVisible(false)} activeOpacity={0.85} style={{ alignItems: "center", paddingVertical: 14 }}>
+              <Text style={{ fontSize: 14, color: "#64748B", fontFamily: "Inter_700Bold" }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

@@ -284,9 +284,7 @@ export default function AdminScreen() {
             <Text style={styles.headerTitle}>{user?.name}</Text>
             <Text style={styles.headerSub}>{user?.ward || "Ambernath"}</Text>
           </View>
-          <TouchableOpacity onPress={() => setShowProfile(true)} style={styles.profileAvatarBtn} activeOpacity={0.8}>
-            <Text style={styles.profileAvatarText}>{user?.name?.charAt(0)?.toUpperCase() || "N"}</Text>
-          </TouchableOpacity>
+          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.statPills}>
