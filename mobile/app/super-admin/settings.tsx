@@ -805,8 +805,8 @@ export default function SettingsScreen() {
               <TouchableOpacity
                 onPress={async () => {
                   setShowLogout(false);
-                  await logout();
-                  router.replace("/login");
+                  await logout("/super-admin-login");
+                  router.replace("/super-admin-login" as any);
                 }}
                 style={{
                   flex: 1,

@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import TopShade from "@/components/TopShade";
+import OtpDigitInput from "@/components/OtpDigitInput";
 import { useAuth } from "@/context/AuthContext";
 import { ambernathWards } from "@/data/mumbaiServices";
 
@@ -180,7 +181,7 @@ export default function LoginScreen() {
               <View style={s.otpIconWrap}><Feather name="smartphone" size={28} color={ORANGE} /></View>
               <Text style={s.otpTitle}>OTP Verification</Text>
               <Text style={s.otpSub}>Use 4 digit demo OTP {DEMO_OTP} for +91 {phone}</Text>
-              <TextInput value={otp} onChangeText={(v) => setOtp(v.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" maxLength={4} placeholder="1234" placeholderTextColor="#94A3B8" style={s.otpInput} textAlign="center" />
+              <OtpDigitInput value={otp} onChange={setOtp} autoFocus />
               <Text style={s.otpHint}>Real OTP will be enabled after final app testing.</Text>
               {error ? <Text style={s.errorText}>{error}</Text> : null}
               <PrimaryButton loading={loading} label="Verify OTP" icon="check" onPress={verifyOtp} />

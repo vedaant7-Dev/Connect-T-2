@@ -185,7 +185,7 @@ export default function OfficersScreen() {
                 <Text style={{ color: "#94A3B8", textAlign: "center", paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 13 }}>No data yet</Text>
               ) : (
                 topPerformers.map(({ officer, stats }, idx) => (
-                  <View key={officer.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: idx < topPerformers.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
+                  <View key={officer.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: idx < topPerformers.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
                     <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: idx === 0 ? "#FEF3C7" : "#F1F5F9", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
                       <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: idx === 0 ? "#D97706" : "#64748B" }}>#{idx + 1}</Text>
                     </View>
@@ -276,7 +276,7 @@ export default function OfficersScreen() {
                 <Text style={{ color: "#94A3B8", textAlign: "center", paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 13 }}>No data yet</Text>
               ) : (
                 busyWards.map(({ officer, stats }, idx) => (
-                  <View key={officer.id} style={{ paddingVertical: 10, borderBottomWidth: idx < busyWards.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
+                  <View key={officer.id} style={{ paddingVertical: 11, borderBottomWidth: idx < busyWards.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
                     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
                       <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#FEF3C7", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#D97706" }}>{idx + 1}</Text>
@@ -343,7 +343,7 @@ export default function OfficersScreen() {
           const resolutionRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
           return (
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-              <View style={{ backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
+              <View style={{ backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30, maxHeight: "88%" }}>
                 <View style={{ width: 36, height: 4, backgroundColor: "#E2E8F0", borderRadius: 2, alignSelf: "center", marginBottom: 20 }} />
                 <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
                   <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginRight: 14 }}>
@@ -355,18 +355,27 @@ export default function OfficersScreen() {
                   </View>
                 </View>
                 {[
-                  { label: "Mobile", value: "+91 " + selectedOfficer.mobile, icon: "phone" },
-                  { label: "Ward", value: selectedOfficer.ward, icon: "map-pin" },
-                  { label: "Ward Code", value: selectedOfficer.wardCode || "N/A", icon: "hash" },
+                  { label: "Mobile", value: selectedOfficer.mobile ? "+91 " + selectedOfficer.mobile : "Not added", icon: "phone" },
+                  { label: "DOB", value: selectedOfficer.dob || "Not added", icon: "calendar" },
+                  { label: "Ward", value: selectedOfficer.ward || "Not added", icon: "map-pin" },
+                  { label: "Ward Code", value: selectedOfficer.wardCode || "Not added", icon: "hash" },
+                  { label: "Nagarsevak ID", value: selectedOfficer.id || "Not added", icon: "credit-card" },
                   { label: "Role", value: selectedOfficer.role === "super_admin" ? "Super Admin" : "Nagarsevak", icon: "briefcase" },
+                  { label: "Contact Person", value: selectedOfficer.contactName || selectedOfficer.name || "Not added", icon: "user-check" },
+                  { label: "Contact Number", value: selectedOfficer.contactNumber ? "+91 " + selectedOfficer.contactNumber : "Not added", icon: "phone-call" },
+                  { label: "Office Address", value: selectedOfficer.officeAddress || "Not added", icon: "map" },
+                  { label: "Residence Address", value: selectedOfficer.residenceAddress || selectedOfficer.address || "Not added", icon: "home" },
+                  { label: "Office Timings", value: selectedOfficer.officeTimings || "Not added", icon: "clock" },
+                  { label: "Verification", value: selectedOfficer.approvalStatus || "pending", icon: "shield" },
+                  { label: "Registered On", value: selectedOfficer.createdAt ? new Date(selectedOfficer.createdAt).toLocaleDateString() : "Not added", icon: "calendar" },
                 ].map((item, idx, arr) => (
-                  <View key={item.label} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: idx < arr.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
-                    <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                  <View key={item.label} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: idx < arr.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
                       <Feather name={item.icon as any} size={14} color="#64748B" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#94A3B8" }}>{item.label}</Text>
-                      <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#0F172A" }}>{item.value}</Text>
+                      <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A", lineHeight: 18 }}>{item.value}</Text>
                     </View>
                   </View>
                 ))}

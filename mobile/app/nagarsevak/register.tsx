@@ -7,7 +7,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { NAGARSEVAK_WARDS } from "@/data/wards";
 import { getApiUrl } from "@/utils/apiUrl";
 
-type Step = "form" | "otp" | "pending";
+type Step = "form" | "otp";
 const DEMO_OTP = "1234";
 
 function cleanMobile(value: string) {
@@ -116,8 +116,8 @@ export default function NagarsevakRegisterScreen() {
         }),
       });
       const regData = await regRes.json();
-      if (regData.success || regData.message === "ALREADY_PENDING") {
-        setStep("pending");
+      if (regData.success || regData.message === "ALREADY_PENDING" || regData.message === "Officer already registered") {
+        router.replace({ pathname: "/nagarsevak/status" as any, params: { phone: cleanMobile(mobile), from: "register" } });
       } else if (regData.message === "WARD_TAKEN") {
         setStep("form");
         setWardAvailable(false);
@@ -172,7 +172,7 @@ export default function NagarsevakRegisterScreen() {
               <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.7 }]} onPress={verifyAndRegister} disabled={loading} activeOpacity={0.85}><LinearGradient colors={["#C2410C", "#EA580C"]} style={styles.btnGrad}>{loading ? <ActivityIndicator color="white" /> : <><Feather name="check" size={17} color="white" /><Text style={styles.btnText}>Submit for Approval</Text></>}</LinearGradient></TouchableOpacity>
               <TouchableOpacity onPress={() => setStep("form")} style={styles.changeBtn}><Text style={styles.changeBtnText}>← Edit details</Text></TouchableOpacity>
             </>}
-            {step === "pending" && <View style={styles.statusWrap}><View style={[styles.statusIcon, { backgroundColor: "#FEF3C7" }]}><Feather name="clock" size={36} color="#D97706" /></View><Text style={[styles.statusTitle, { color: "#92400E" }]}>Verification Pending</Text><Text style={styles.statusMsg}>Your Nagarsevak request is submitted. Once Super Admin approves it, you will be able to login with OTP. You cannot submit another request while this one is pending.</Text><TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/nagarsevak/login" as any)}><Text style={styles.backToHomeBtnText}>Back to Login</Text></TouchableOpacity></View>}
+            
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

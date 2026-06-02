@@ -197,48 +197,6 @@ export default function BroadcastScreen() {
               {alerts.length} total · {emergencyAlerts.length} emergency
             </Text>
           </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => router.push("/super-admin/settings" as any)}
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                backgroundColor: "rgba(255,255,255,0.15)",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              activeOpacity={0.8}
-            >
-              <Feather name="settings" size={18} color="white" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setShowCompose(true)}
-              style={{
-                backgroundColor: "rgba(255,255,255,0.15)",
-                borderRadius: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-              activeOpacity={0.8}
-            >
-              <Feather name="plus" size={16} color="white" />
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontFamily: "Inter_600SemiBold",
-                  color: "white",
-                  marginLeft: 6,
-                }}
-              >
-                Compose
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View style={{ flexDirection: "row", gap: 10 }}>
@@ -290,6 +248,21 @@ export default function BroadcastScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
+        <TouchableOpacity
+          onPress={() => setShowCompose(true)}
+          activeOpacity={0.86}
+          style={{ backgroundColor: "white", borderRadius: 16, padding: 15, marginBottom: 16, flexDirection: "row", alignItems: "center", shadowColor: "#166534", shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 }}
+        >
+          <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+            <Feather name="plus-circle" size={20} color="#16A34A" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: "#0F172A" }}>Post Alert / News</Text>
+            <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B", marginTop: 2 }}>Create a broadcast for all citizens or selected ward</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color="#CBD5E1" />
+        </TouchableOpacity>
+
         <View style={{ marginBottom: 8 }}>
           <Text
             style={{

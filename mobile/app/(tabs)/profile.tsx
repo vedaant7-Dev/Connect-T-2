@@ -98,7 +98,7 @@ export default function ProfileScreen() {
     setShowEditModal(false);
     setNotice({ visible: true, title: "Profile saved", message: "Your civic profile has been updated.", tone: "success" });
   };
-  const confirmLogout = async () => { setShowLogoutModal(false); await logout(); router.replace("/portal-select" as any); };
+  const confirmLogout = async () => { setShowLogoutModal(false); await logout("/login"); router.replace("/login" as any); };
   const switchToPortal = () => router.replace("/portal-select" as any);
 
   const quickActions = [

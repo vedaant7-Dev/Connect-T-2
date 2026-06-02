@@ -256,6 +256,7 @@ export default function JobPortalProfileScreen() {
     onConfirm: async () => {
       setNotice((prev) => ({ ...prev, visible: false }));
       await logoutJobs();
+      router.replace("/jobs/login" as any);
     },
   });
 
@@ -268,7 +269,6 @@ export default function JobPortalProfileScreen() {
     : [
         { icon: "search" as const, label: "Search Jobs", sub: "Find nearby verified jobs", color: ORANGE, bg: "#FFF7ED", onPress: () => router.push("/jobs/search" as any) },
         { icon: "check-circle" as const, label: "Applied Jobs", sub: "Track applications", color: "#2563EB", bg: "#EFF6FF", onPress: () => router.push("/jobs/(tabs)/applied" as any) },
-        { icon: "file-text" as const, label: "Resume Builder", sub: "Create resume from profile", color: "#7C3AED", bg: "#F5F3FF", onPress: () => router.push("/jobs/resume" as any) },
       ];
 
   return (

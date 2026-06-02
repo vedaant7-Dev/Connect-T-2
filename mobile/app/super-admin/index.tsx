@@ -8,6 +8,7 @@ import {
   Dimensions,
   Modal,
   FlatList,
+  TextInput,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -92,6 +93,7 @@ const ComplaintRow = memo(function ComplaintRow({ c, onPress }: { c: Complaint; 
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }} numberOfLines={1}>{c.title}</Text>
+        <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A", marginTop: 1 }}>ID: {c.id}</Text>
         <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" }}>
           {c.ward} · {c.userName || "Unknown"} · {timeAgo(c.createdAt)}
         </Text>
@@ -134,7 +136,7 @@ function ComplaintDetail({ c, onBack, officers }: { c: Complaint; onBack: () => 
       </View>
 
       <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
-        <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 10 }}>Citizen Details</Text>
+        <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 10 }}>Complaint Issued User Detail</Text>
         {[
           { label: "Name", value: c.userName || "—", icon: "user" },
           { label: "Mobile", value: c.userMobile || "—", icon: "phone" },
@@ -155,15 +157,23 @@ function ComplaintDetail({ c, onBack, officers }: { c: Complaint; onBack: () => 
       </View>
 
       {officer && (
-        <View style={{ backgroundColor: "#DCFCE7", borderRadius: 14, padding: 14, marginBottom: 12, flexDirection: "row", alignItems: "center" }}>
-          <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#16A34A", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
-            <Feather name="user-check" size={18} color="white" />
-          </View>
-          <View>
-            <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#166534" }}>Ward Officer</Text>
-            <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{officer.name}</Text>
-            <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "#16A34A" }}>{officer.ward} · {officer.mobile}</Text>
-          </View>
+        <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+          <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 10 }}>Assigned Nagarsevak Officer Detail</Text>
+          {[
+            { label: "Officer", value: officer.name || "Not assigned", icon: "user-check" },
+            { label: "Mobile", value: officer.mobile ? "+91 " + officer.mobile : "Not added", icon: "phone" },
+            { label: "Ward", value: officer.ward || c.ward || "Not added", icon: "map-pin" },
+            { label: "Ward Code", value: officer.wardCode || c.wardCode || "Not added", icon: "hash" },
+            { label: "Nagarsevak ID", value: officer.id || c.assignedOfficerId || "Not added", icon: "credit-card" },
+          ].map((item) => (
+            <View key={item.label} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: "#F8FAFC" }}>
+              <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
+                <Feather name={item.icon as any} size={13} color="#16A34A" />
+              </View>
+              <Text style={{ width: 82, fontSize: 11, fontFamily: "Inter_400Regular", color: "#94A3B8" }}>{item.label}</Text>
+              <Text style={{ flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", color: "#0F172A" }}>{item.value}</Text>
+            </View>
+          ))}
         </View>
       )}
 
@@ -202,6 +212,7 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   const [modal, setModal] = useState<{ type: CardType; title: string; sub: string } | null>(null);
   const [selectedC, setSelectedC] = useState<Complaint | null>(null);
+  const [complaintSearch, setComplaintSearch] = useState("");
 
   const stats = useMemo(() => {
     const total = complaints.length;
@@ -245,14 +256,26 @@ export default function SuperAdminDashboard() {
     Object.entries(complaints.reduce((acc: Record<string, number>, c) => { acc[c.category] = (acc[c.category] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])
   ), [complaints]);
 
+  const searchableComplaints = useMemo(() => {
+    const q = complaintSearch.trim().toLowerCase();
+    if (!q) return complaints;
+    return complaints.filter((c) => {
+      const officer = allOfficers.find((n) => n.ward === c.ward);
+      return [c.id, c.title, c.description, c.ward, c.category, c.status, c.userName, c.userMobile, officer?.name, officer?.id, officer?.mobile]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
+    });
+  }, [complaints, complaintSearch, allOfficers]);
+
   const recentComplaints = useMemo(() => (
-    [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
-  ), [complaints]);
+    [...searchableComplaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
+  ), [searchableComplaints]);
 
   const wardOfficers = useMemo(() => allOfficers.filter((n) => n.ward), [allOfficers]);
 
   const getFilteredComplaints = useCallback((type: CardType) => {
-    const sorted = [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const source = complaintSearch.trim() ? searchableComplaints : complaints;
+    const sorted = [...source].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     switch (type) {
       case "total": return sorted;
       case "pending": return sorted.filter((c) => c.status === "submitted");
@@ -261,7 +284,7 @@ export default function SuperAdminDashboard() {
       case "rejected": return sorted.filter((c) => c.status === "rejected");
       default: return sorted;
     }
-  }, [complaints]);
+  }, [complaints, searchableComplaints, complaintSearch]);
 
   const openModal = useCallback((type: CardType, title: string, sub: string) => {
     setSelectedC(null);
@@ -286,12 +309,6 @@ export default function SuperAdminDashboard() {
             <Text style={{ fontSize: 20, fontFamily: "Inter_700Bold", color: "white" }}>Tejashree's Dashboard</Text>
             <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.65)", marginTop: 2 }}>All Wards · AMC Ambernath · Live</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/super-admin/settings" as any)}
-            style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" }}
-            activeOpacity={0.8}
-          >
-            <Feather name="settings" size={20} color="white" />
-          </TouchableOpacity>
         </View>
 
         <View style={{ flexDirection: "row", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 16, padding: 14 }}>
@@ -311,7 +328,18 @@ export default function SuperAdminDashboard() {
       </LinearGradient>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-        <SectionHeader title="Complaint Control Center" sub="Tap any card to view full data" />
+        <SectionHeader title="Complaint Control Center" sub="Search by Complaint ID, citizen, Nagarsevak, ward or category" />
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}>
+          <Feather name="search" size={16} color="#94A3B8" />
+          <TextInput
+            value={complaintSearch}
+            onChangeText={setComplaintSearch}
+            placeholder="Search complaints, ID, ward officer..."
+            placeholderTextColor="#CBD5E1"
+            style={{ flex: 1, marginLeft: 10, fontSize: 14, fontFamily: "Inter_400Regular", color: "#0F172A", outlineWidth: 0 } as any}
+          />
+          {complaintSearch.length > 0 && <TouchableOpacity onPress={() => setComplaintSearch("")}><Feather name="x" size={16} color="#94A3B8" /></TouchableOpacity>}
+        </View>
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <StatCard icon="file-text" label="Total Complaints" value={stats.total} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("total", "All Complaints", `${stats.total} complaints`)} />
@@ -388,7 +416,21 @@ export default function SuperAdminDashboard() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }} numberOfLines={1}>{c.title}</Text>
-                        <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: "#64748B" }}>{c.ward} · {timeAgo(c.createdAt)}</Text>
+                        <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: "#64748B" }}>{c.ward} · {timeAgo(c.createdAt)}</Text>
                       </View>
                       <View style={{ backgroundColor: STATUS_BG[c.status] || "#F1F5F9", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
                         <Text style={{ fontSize: 9, fontFamily: "Inter_600SemiBold", color: STATUS_COLOR[c.status] || "#64748B" }}>{STATUS_LABEL[c.status] || c.status}</Text>

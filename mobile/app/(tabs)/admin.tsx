@@ -142,6 +142,7 @@ function DetailedComplaintCard({ complaint, onAction }: { complaint: Complaint; 
         </View>
         <View style={styles.cardHeaderText}>
           <Text style={styles.cmpTitle} numberOfLines={1}>{complaint.title}</Text>
+          <Text style={styles.complaintIdText}>ID: {complaint.id}</Text>
           <Text style={styles.cmpMeta}>{timeAgo(complaint.createdAt)}</Text>
         </View>
         <View style={[styles.statusPill, { backgroundColor: st.bg }]}>
@@ -213,7 +214,7 @@ export default function AdminScreen() {
         <Feather name="lock" size={48} color="#CBD5E1" />
         <Text style={{ fontSize: 18, fontWeight: "700", color: "#475569", marginTop: 16, fontFamily: "Inter_700Bold" }}>{t("nagarsevakOnly")}</Text>
         <Text style={{ fontSize: 13, color: "#94A3B8", marginTop: 8, textAlign: "center", fontFamily: "Inter_400Regular" }}>{t("nagarsevakOnlyDesc")}</Text>
-        <TouchableOpacity onPress={() => router.push("/login")} style={{ backgroundColor: "#C2410C", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14, marginTop: 24 }} activeOpacity={0.85}>
+        <TouchableOpacity onPress={() => router.replace("/nagarsevak/login" as any)} style={{ backgroundColor: "#C2410C", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14, marginTop: 24 }} activeOpacity={0.85}>
           <Text style={{ fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" }}>{t("loginBtn")}</Text>
         </TouchableOpacity>
       </View>
@@ -233,6 +234,7 @@ export default function AdminScreen() {
   const activeCount = wardComplaints.filter((c) => c.status === "in_progress" || c.status === "assigned").length;
   const resolvedCount = wardComplaints.filter((c) => c.status === "resolved").length;
   const rejectedCount = wardComplaints.filter((c) => c.status === "rejected").length;
+  const resolutionRate = wardComplaints.length > 0 ? Math.round((resolvedCount / wardComplaints.length) * 100) : 0;
   const dashboardFilters: {
     filter: ComplaintStatus;
     label: string;
@@ -248,13 +250,14 @@ export default function AdminScreen() {
   ];
   const openComplaintTab = (nextFilter: ComplaintStatus) => {
     if (Platform.OS !== "web") Haptics.selectionAsync();
-    router.push({ pathname: "/complaint/list", params: { status: nextFilter } } as any);
+    setFilter(nextFilter);
+    setTimeout(() => complaintListRef.current?.scrollToOffset({ offset: 0, animated: true }), 80);
   };
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
-    await logout();
-    router.replace("/login");
+    await logout("/nagarsevak/login");
+    router.replace("/nagarsevak/login" as any);
   };
 
   const openEditProfile = () => {

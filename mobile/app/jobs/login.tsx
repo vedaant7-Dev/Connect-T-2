@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DecorativeCircles from "@/components/DecorativeCircles";
 import TopShade from "@/components/TopShade";
+import OtpDigitInput from "@/components/OtpDigitInput";
 import { JobsUserRole, randomColor, useJobsAuth } from "@/context/JobsAuthContext";
 
 type Tab = "login" | "register";
@@ -107,7 +108,7 @@ export default function JobPortalLoginScreen() {
             </> : <>
               <Section title="4 Digit Demo OTP" />
               <Text style={s.otpSub}>Enter demo OTP {DEMO_OTP} for +91 {phone10}</Text>
-              <TextInput value={otp} onChangeText={(v) => setOtp(v.replace(/\D/g, "").slice(0, 4))} placeholder="1234" keyboardType="number-pad" maxLength={4} style={s.otpInput} placeholderTextColor="#94A3B8" textAlign="center" />
+              <OtpDigitInput value={otp} onChange={setOtp} autoFocus />
               {!!error && <View style={s.errorBox}><Feather name="alert-circle" size={16} color="#DC2626" /><Text style={s.errorText}>{error}</Text></View>}
               <TouchableOpacity style={[s.primaryBtn, loading && s.primaryBtnDisabled]} disabled={loading} onPress={submit} activeOpacity={0.9}><Text style={s.primaryText}>{loading ? "Please wait..." : tab === "login" ? "Verify & Login" : "Verify & Create Account"}</Text><Feather name="check" size={18} color="white" /></TouchableOpacity>
               <TouchableOpacity onPress={() => setStep("form")} activeOpacity={0.8}><Text style={s.backLink}>← Change details</Text></TouchableOpacity>

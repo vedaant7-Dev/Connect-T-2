@@ -70,7 +70,7 @@ export default function NagarsevakLoginScreen() {
       } else if (loginData.message === "NOT_FOUND" || loginData.notFound) {
         router.push({ pathname: "/nagarsevak/register" as any, params: { phone: cleaned } });
       } else if (loginData.message === "PENDING") {
-        setStep("pending");
+        router.replace({ pathname: "/nagarsevak/status" as any, params: { phone: cleaned, from: "login" } });
       } else if (loginData.message === "REJECTED") {
         setStep("rejected");
       } else {
@@ -96,7 +96,7 @@ export default function NagarsevakLoginScreen() {
     <View style={styles.root}>
       <LinearGradient colors={["#9A3412", "#C2410C", "#EA580C", "#F97316", "#FB923C"]} locations={[0, 0.25, 0.55, 0.8, 1]} style={StyleSheet.absoluteFill} />
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}> 
-        <TouchableOpacity onPress={() => router.replace("/" as any)} style={styles.backBtn} activeOpacity={0.8}><Feather name="chevron-left" size={22} color="white" /></TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace("/secret-access" as any)} style={styles.backBtn} activeOpacity={0.8}><Feather name="chevron-left" size={22} color="white" /></TouchableOpacity>
         <View style={styles.topBadge}><Feather name="shield" size={13} color="white" /><Text style={styles.topBadgeText}>Nagarsevak Portal</Text></View>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -127,7 +127,7 @@ export default function NagarsevakLoginScreen() {
 }
 
 function Status({ icon, color, bg, title, msg }: { icon: keyof typeof Feather.glyphMap; color: string; bg: string; title: string; msg: string }) {
-  return <View style={styles.statusWrap}><View style={[styles.statusIcon, { backgroundColor: bg }]}><Feather name={icon} size={34} color={color} /></View><Text style={[styles.statusTitle, { color }]}>{title}</Text><Text style={styles.statusMsg}>{msg}</Text><TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/" as any)} activeOpacity={0.8}><Text style={styles.backToHomeBtnText}>Back to Home</Text></TouchableOpacity></View>;
+  return <View style={styles.statusWrap}><View style={[styles.statusIcon, { backgroundColor: bg }]}><Feather name={icon} size={34} color={color} /></View><Text style={[styles.statusTitle, { color }]}>{title}</Text><Text style={styles.statusMsg}>{msg}</Text><TouchableOpacity style={styles.backToHomeBtn} onPress={() => router.replace("/secret-access" as any)} activeOpacity={0.8}><Text style={styles.backToHomeBtnText}>Back to Home</Text></TouchableOpacity></View>;
 }
 
 const styles = StyleSheet.create({
