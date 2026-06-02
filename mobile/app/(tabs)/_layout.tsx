@@ -31,7 +31,7 @@ function AnimatedTabBar(props: any) {
       <View style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingBottom: BOTTOM_INSET }}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
-          if (options.href === null || route.name === "services" || route.name === "admin" || route.name === "emergency") return null;
+          if (options.href === null || route.name === "services" || route.name === "admin" || route.name === "ward" || route.name === "news" || route.name === "emergency") return null;
           const isFocused = state.index === index;
           const tintColor = isFocused ? ORANGE : MUTED;
           const onPress = () => { const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true }); if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name, route.params); };
@@ -48,11 +48,11 @@ function AnimatedTabBar(props: any) {
 function NagarsevakTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const bottomInset = Platform.OS === "web" ? 14 : Math.max(insets.bottom, 8);
-  const visibleNames = ["admin", "feed", "profile"];
+  const visibleNames = ["admin", "ward", "news", "profile"];
   const visibleRoutes = state.routes.filter((route: any) => visibleNames.includes(route.name));
   const activeRouteName = state.routes[state.index]?.name;
-  const labelMap: Record<string, string> = { admin: "Panel", feed: "News", profile: "Profile" };
-  const iconMap: Record<string, string> = { admin: "briefcase", feed: "rss", profile: "user" };
+  const labelMap: Record<string, string> = { admin: "Home", ward: "Ward", news: "News", profile: "Profile" };
+  const iconMap: Record<string, string> = { admin: "home", ward: "users", news: "radio", profile: "user" };
 
   return (
     <View style={{ flexDirection: "row", backgroundColor: "white", paddingBottom: bottomInset, paddingTop: 7, borderTopWidth: 1, borderTopColor: "#E2E8F0", shadowColor: "#166534", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 10 }}>
@@ -72,14 +72,16 @@ export default function TabLayout() {
   const isNagarsevak = user?.role === "nagarsevak";
 
   return (
-    <Tabs backBehavior="history" tabBar={(props) => isNagarsevak ? <NagarsevakTabBar {...props} /> : <AnimatedTabBar {...props} />} screenOptions={{ headerShown: false, tabBarActiveTintColor: isNagarsevak ? GREEN : ORANGE, tabBarInactiveTintColor: MUTED }}>
+    <Tabs backBehavior="history" initialRouteName={isNagarsevak ? "admin" : "index"} tabBar={(props) => isNagarsevak ? <NagarsevakTabBar {...props} /> : <AnimatedTabBar {...props} />} screenOptions={{ headerShown: false, tabBarActiveTintColor: isNagarsevak ? GREEN : ORANGE, tabBarInactiveTintColor: MUTED }}>
       <Tabs.Screen name="index" options={{ title: t("home"), href: isNagarsevak ? null : undefined }} />
       <Tabs.Screen name="emergency" options={{ href: null }} />
       <Tabs.Screen name="complaints" options={{ title: t("complaints"), href: isNagarsevak ? null : undefined }} />
-      <Tabs.Screen name="feed" options={{ title: t("feed"), href: undefined }} />
+      <Tabs.Screen name="feed" options={{ title: t("feed"), href: isNagarsevak ? null : undefined }} />
+      <Tabs.Screen name="ward" options={{ title: "Ward", href: isNagarsevak ? undefined : null }} />
+      <Tabs.Screen name="news" options={{ title: "News", href: isNagarsevak ? undefined : null }} />
       <Tabs.Screen name="profile" options={{ title: t("profile"), href: undefined }} />
       <Tabs.Screen name="services" options={{ href: null }} />
-      <Tabs.Screen name="admin" options={{ title: t("nagarsevakDashboard"), href: isNagarsevak ? undefined : null }} />
+      <Tabs.Screen name="admin" options={{ title: "Home", href: isNagarsevak ? undefined : null }} />
     </Tabs>
   );
 }
