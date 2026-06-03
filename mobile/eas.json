@@ -10,7 +10,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://connect-t-2.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://saddlebrown-pheasant-544481.hostingersite.com"
       },
       "channel": "preview"
     },
@@ -20,7 +20,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://connect-t-2.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://saddlebrown-pheasant-544481.hostingersite.com"
       },
       "channel": "production"
     }
