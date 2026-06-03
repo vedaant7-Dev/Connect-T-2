@@ -90,7 +90,7 @@ export default function HomeScreen() {
   const roleColor = getRoleColor(user?.role);
   const readAlertsKey = `connectt_read_alerts_${user?.id || "guest"}`;
   const alerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
-  const alertItems = alerts.filter((item) => item.type === "alert");
+  const alertItems = alerts.filter((item) => item.type === "alert" || item.type === "emergency");
   const newsItems = alerts.filter((item) => item.type === "news");
   const myComplaints = complaints.filter((c) =>
     (user?.mobile && c.userMobile === user.mobile) ||

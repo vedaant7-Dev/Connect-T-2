@@ -148,6 +148,12 @@ async function shareNews(item: AppAlert) {
 }
 
 function NewsAlertCard({ item }: { item: AppAlert }) {
+  const isAlert = item.type === "alert" || item.type === "emergency";
+  const pillColor = isAlert ? "#DC2626" : "#EA580C";
+  const pillBg = isAlert ? "#FEE2E2" : "#FFEDD5";
+  const pillIcon = isAlert ? "alert-triangle" : "radio";
+  const pillLabel = isAlert ? "alert" : "news";
+
   return (
     <View style={styles.card}>
       <View style={styles.cardMeta}>
@@ -158,9 +164,9 @@ function NewsAlertCard({ item }: { item: AppAlert }) {
         </View>
         <Text style={styles.cardTime}>· {timeAgo(item.createdAt)}</Text>
       </View>
-      <View style={[styles.typePill, { backgroundColor: "#FFEDD5", marginBottom: 8 }]}>
-        <Feather name="radio" size={9} color="#EA580C" />
-        <Text style={[styles.typePillText, { color: "#EA580C" }]}>news</Text>
+      <View style={[styles.typePill, { backgroundColor: pillBg, marginBottom: 8 }]}>
+        <Feather name={pillIcon as any} size={9} color={pillColor} />
+        <Text style={[styles.typePillText, { color: pillColor }]}>{pillLabel}</Text>
       </View>
       <Text style={styles.newsTitle}>{item.title}</Text>
       <Text style={styles.cardContent}>{item.body}</Text>
@@ -214,8 +220,8 @@ export default function FeedScreen() {
   const isSearching = rawQuery.length > 0 || !!selectedWard;
 
   const wardScopedAlerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
-  const allNews = allAlerts.filter((item) => item.type === "news");
-  const wardNews = wardScopedAlerts.filter((item) => item.type === "news");
+  const allNews = allAlerts.filter((item) => item.type === "news" || item.type === "alert" || item.type === "emergency");
+  const wardNews = wardScopedAlerts.filter((item) => item.type === "news" || item.type === "alert" || item.type === "emergency");
 
   const wardSuggestions = isNumericQuery
     ? ambernathWards.filter((w) => wardKey(w).startsWith(wardDigits))
