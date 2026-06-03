@@ -1,7 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Platform, Modal, TextInput, FlatList,
+  Platform, Modal, TextInput,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -206,7 +206,6 @@ export default function AdminScreen() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editName, setEditName] = useState("");
   const [editWard, setEditWard] = useState("");
-  const complaintListRef = useRef<FlatList<Complaint>>(null);
 
   if (!user || user.role !== "nagarsevak") {
     return (
@@ -304,121 +303,128 @@ export default function AdminScreen() {
 
       </LinearGradient>
 
-      {pending > 0 && (
-        <View style={styles.urgentBanner}>
-          <Feather name="alert-circle" size={14} color="#DC2626" />
-          <Text style={styles.urgentText}>{pending} {t("complaints")} — {t("needsAttention")}</Text>
-        </View>
-      )}
-
-      {/* ALERTS PANEL */}
-      <TouchableOpacity style={styles.alertPanel} activeOpacity={0.9} onPress={() => router.push("/alert/list" as any)}>
-        <View style={styles.alertPanelHeader}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Feather name="bell" size={14} color="#C2410C" />
-            <Text style={styles.alertPanelTitle}>Alerts & News</Text>
-            {alerts.length > 0 && (
-              <View style={styles.alertCountBadge}>
-                <Text style={styles.alertCountText}>{alerts.length}</Text>
-              </View>
-            )}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 8) + 96 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {pending > 0 && (
+          <View style={styles.urgentBanner}>
+            <Feather name="alert-circle" size={14} color="#DC2626" />
+            <Text style={styles.urgentText}>{pending} {t("complaints")} — {t("needsAttention")}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.postAlertBtn}
-            onPress={(event) => {
-              event.stopPropagation?.();
-              router.push("/alert/new" as any);
-            }}
-            activeOpacity={0.85}
-          >
-            <Feather name="plus" size={13} color="white" />
-            <Text style={styles.postAlertBtnText}>Post Alert</Text>
-          </TouchableOpacity>
-        </View>
-
-        {alerts.length === 0 ? (
-          <View style={styles.alertPanelEmpty}>
-            <Feather name="bell-off" size={22} color="#CBD5E1" />
-            <Text style={styles.alertPanelEmptyText}>No alerts posted yet</Text>
-            <Text style={styles.alertPanelEmptySub}>Tap "Post Alert" to broadcast to all citizens</Text>
-          </View>
-        ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingBottom: 4 }}>
-            {alerts.map((a) => {
-              const isAlert = a.type === "alert";
-              const cardColor = isAlert ? "#DC2626" : "#EA580C";
-              const cardBg = isAlert ? "#FEE2E2" : "#FFEDD5";
-              return (
-                <View key={a.id} style={[styles.alertChip, { borderColor: cardBg }]}>
-                  <View style={[styles.alertChipPill, { backgroundColor: cardBg }]}>
-                    <Text style={[styles.alertChipPillText, { color: cardColor }]}>
-                      {isAlert ? "⚠ Alert" : "📢 News"}
-                    </Text>
-                  </View>
-                  <Text style={styles.alertChipTitle} numberOfLines={1}>{a.title}</Text>
-                  <Text style={styles.alertChipBody} numberOfLines={2}>{a.body}</Text>
-                  <TouchableOpacity
-                    style={styles.alertChipDelete}
-                    onPress={(event) => {
-                      event.stopPropagation?.();
-                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      removeAlert(a.id);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Feather name="trash-2" size={12} color="#DC2626" />
-                    <Text style={styles.alertChipDeleteText}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </ScrollView>
         )}
-      </TouchableOpacity>
 
-      <View style={styles.dashboardGrid}>
-        {dashboardFilters.map((item) => {
-          const isActive = filter === item.filter;
-          return (
+        {/* ALERTS PANEL */}
+        <TouchableOpacity style={styles.alertPanel} activeOpacity={0.9} onPress={() => router.push("/alert/list" as any)}>
+          <View style={styles.alertPanelHeader}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Feather name="bell" size={14} color="#C2410C" />
+              <Text style={styles.alertPanelTitle}>Alerts & News</Text>
+              {alerts.length > 0 && (
+                <View style={styles.alertCountBadge}>
+                  <Text style={styles.alertCountText}>{alerts.length}</Text>
+                </View>
+              )}
+            </View>
             <TouchableOpacity
-              key={item.filter}
-              style={[
-                styles.dashboardCard,
-                {
-                  backgroundColor: isActive ? item.bg : "white",
-                  borderColor: item.color,
-                  shadowColor: item.color,
-                },
-                isActive && styles.dashboardCardActive,
-              ]}
-              onPress={() => openComplaintTab(item.filter)}
+              style={styles.postAlertBtn}
+              onPress={(event) => {
+                event.stopPropagation?.();
+                router.push("/alert/new" as any);
+              }}
               activeOpacity={0.85}
             >
-              <Text style={styles.dashboardLabel}>{item.label}</Text>
-              <View style={[styles.dashboardIcon, { backgroundColor: item.color + "15" }]}>
-                <Feather name={item.icon as any} size={20} color={item.color} />
-              </View>
-              <Text style={[styles.dashboardCount, { color: item.color }]}>{item.count}</Text>
+              <Feather name="plus" size={13} color="white" />
+              <Text style={styles.postAlertBtnText}>Post Alert</Text>
             </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <FlatList
-        ref={complaintListRef}
-        data={filtered}
-        extraData={filter}
-        keyExtractor={(c) => c.id}
-        renderItem={({ item }) => <DetailedComplaintCard complaint={item} onAction={() => setActive(item)} />}
-        contentContainerStyle={[{ padding: 14 }, { paddingBottom: Math.max(insets.bottom, 8) + 20 }]}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Feather name="check-circle" size={36} color="#CBD5E1" />
-            <Text style={styles.emptyText}>{t("noComplaintsInCategory")}</Text>
           </View>
-        }
-      />
+
+          {alerts.length === 0 ? (
+            <View style={styles.alertPanelEmpty}>
+              <Feather name="bell-off" size={22} color="#CBD5E1" />
+              <Text style={styles.alertPanelEmptyText}>No alerts posted yet</Text>
+              <Text style={styles.alertPanelEmptySub}>Tap "Post Alert" to broadcast to all citizens</Text>
+            </View>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingBottom: 4 }}>
+              {alerts.map((a) => {
+                const isAlert = a.type === "alert";
+                const cardColor = isAlert ? "#DC2626" : "#EA580C";
+                const cardBg = isAlert ? "#FEE2E2" : "#FFEDD5";
+                return (
+                  <View key={a.id} style={[styles.alertChip, { borderColor: cardBg }]}>
+                    <View style={[styles.alertChipPill, { backgroundColor: cardBg }]}>
+                      <Text style={[styles.alertChipPillText, { color: cardColor }]}>
+                        {isAlert ? "⚠ Alert" : "📢 News"}
+                      </Text>
+                    </View>
+                    <Text style={styles.alertChipTitle} numberOfLines={1}>{a.title}</Text>
+                    <Text style={styles.alertChipBody} numberOfLines={2}>{a.body}</Text>
+                    <TouchableOpacity
+                      style={styles.alertChipDelete}
+                      onPress={(event) => {
+                        event.stopPropagation?.();
+                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        removeAlert(a.id);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="trash-2" size={12} color="#DC2626" />
+                      <Text style={styles.alertChipDeleteText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.dashboardGrid}>
+          {dashboardFilters.map((item) => {
+            const isActive = filter === item.filter;
+            return (
+              <TouchableOpacity
+                key={item.filter}
+                style={[
+                  styles.dashboardCard,
+                  {
+                    backgroundColor: isActive ? item.bg : "white",
+                    borderColor: item.color,
+                    shadowColor: item.color,
+                  },
+                  isActive && styles.dashboardCardActive,
+                ]}
+                onPress={() => openComplaintTab(item.filter)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.dashboardLabel}>{item.label}</Text>
+                <View style={[styles.dashboardIcon, { backgroundColor: item.color + "15" }]}>
+                  <Feather name={item.icon as any} size={20} color={item.color} />
+                </View>
+                <Text style={[styles.dashboardCount, { color: item.color }]}>{item.count}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <View style={{ paddingHorizontal: 14, paddingTop: 14 }}>
+          {filtered.length === 0 ? (
+            <View style={styles.empty}>
+              <Feather name="check-circle" size={36} color="#CBD5E1" />
+              <Text style={styles.emptyText}>{t("noComplaintsInCategory")}</Text>
+            </View>
+          ) : (
+            filtered.map((item) => (
+              <DetailedComplaintCard
+                key={item.id}
+                complaint={item}
+                onAction={() => setActive(item)}
+              />
+            ))
+          )}
+        </View>
+      </ScrollView>
 
       {active && (
         <Modal transparent animationType="slide" visible onRequestClose={() => setActive(null)}>
