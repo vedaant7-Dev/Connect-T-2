@@ -131,6 +131,25 @@ export default function BroadcastScreen() {
     return "just now";
   }
 
+  function confirmDeleteBroadcast(alertId: string, alertTitle?: string) {
+    Alert.alert(
+      "Delete broadcast?",
+      alertTitle
+        ? `Are you sure you want to delete "${alertTitle}"? This action cannot be undone.`
+        : "Are you sure you want to delete this broadcast? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => removeAlert(alertId),
+        },
+      ],
+      { cancelable: true },
+    );
+  }
+
+
   return (
     <View style={{ flex: 1, backgroundColor: "#0F172A" }}>
       <LinearGradient
@@ -352,7 +371,7 @@ export default function BroadcastScreen() {
                     {alert.title}
                   </Text>
                   <TouchableOpacity
-                    onPress={() => removeAlert(alert.id)}
+                    onPress={() => confirmDeleteBroadcast(alert.id, alert.title)}
                     style={{ padding: 4 }}
                   >
                     <Feather name="x" size={14} color="#DC2626" />
@@ -483,7 +502,7 @@ export default function BroadcastScreen() {
                           {alert.title}
                         </Text>
                         <TouchableOpacity
-                          onPress={() => removeAlert(alert.id)}
+                          onPress={() => confirmDeleteBroadcast(alert.id, alert.title)}
                           style={{ padding: 4, marginLeft: 8 }}
                         >
                           <Feather name="trash-2" size={13} color="#CBD5E1" />
