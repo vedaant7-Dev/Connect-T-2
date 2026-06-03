@@ -92,3 +92,9 @@ finalNagarsevakNavigationFix('app/(tabs)/_layout.tsx', function (s) {
       'if (isFocused || event.defaultPrevented) return;\n          if (typeof navigation.jumpTo === "function") {\n            navigation.jumpTo(route.name, route.params);\n          } else {\n            navigation.navigate(route.name, route.params);\n          }'
     );
 });
+
+try {
+  require('./keyboard-ux-patch');
+} catch (error) {
+  console.warn('[Connect-T] Keyboard UX patch skipped:', error?.message || error);
+}
