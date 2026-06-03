@@ -1,4 +1,4 @@
-import { apiUrl } from "@/constants/api";
+import { API_BASE_URL, apiUrl } from "@/constants/api";
 
 const GET_CACHE_TTL_MS = 20_000;
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -23,6 +23,16 @@ function cacheKey(path: string) {
 
 function clearGetCache() {
   getCache.clear();
+}
+
+function apiFailureMessage(method: string, path: string, url: string, error: unknown) {
+  const rawMessage = error instanceof Error ? error.message : String(error || "Unknown network error");
+  return [
+    `${method} ${path} failed`,
+    `Base URL: ${API_BASE_URL}`,
+    `Request URL: ${url}`,
+    `Error: ${rawMessage}`,
+  ].join("\n");
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit) {
@@ -57,14 +67,27 @@ async function request<T = any>(
   }
 
   const promise = (async () => {
-    const res = await fetchWithTimeout(url, {
-      method,
-      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+    let res: Response;
+
+    try {
+      res = await fetchWithTimeout(url, {
+        method,
+        headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    } catch (error) {
+      throw new Error(apiFailureMessage(method, path, url, error));
+    }
 
     if (!res.ok) {
-      throw new Error(await readError(res, `${method} ${path} failed with ${res.status}`));
+      throw new Error(
+        [
+          `${method} ${path} failed with ${res.status}`,
+          `Base URL: ${API_BASE_URL}`,
+          `Request URL: ${url}`,
+          await readError(res, `${method} ${path} failed with ${res.status}`),
+        ].join("\n"),
+      );
     }
 
     if (res.status === 204) return {} as T;
