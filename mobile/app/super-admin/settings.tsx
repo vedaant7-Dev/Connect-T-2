@@ -510,8 +510,8 @@ export default function SettingsScreen() {
         >
           {[
             {
-              label: "Data Storage",
-              value: "AsyncStorage (Local)",
+              label: "Database",
+              value: "Hostinger MySQL",
               icon: "database",
               color: "#3B82F6",
             },
@@ -523,13 +523,13 @@ export default function SettingsScreen() {
             },
             {
               label: "Server",
-              value: "Express.js · Local",
+              value: "Hostinger Node.js API",
               icon: "server",
               color: "#059669",
             },
             {
               label: "Auth Mode",
-              value: "OTP / Mobile Login",
+              value: "Mobile OTP Login",
               icon: "key",
               color: "#D97706",
             },

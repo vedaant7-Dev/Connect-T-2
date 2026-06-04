@@ -97,8 +97,8 @@ export default function NagarsevakLoginScreen() {
         <TouchableOpacity onPress={() => router.replace("/secret-access" as any)} style={styles.backBtn} activeOpacity={0.8}><Feather name="chevron-left" size={22} color="white" /></TouchableOpacity>
         <View style={styles.topBadge}><Feather name="shield" size={13} color="white" /><Text style={styles.topBadgeText}>Nagarsevak Portal</Text></View>
       </View>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
           <Animated.View style={[styles.card, { opacity: fadeAnim }]}> 
             {step === "phone" && <>
               <View style={styles.cardHeader}><View style={styles.shieldIcon}><Feather name="shield" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Nagarsevak Login</Text><Text style={styles.cardSub}>Enter mobile number. Demo OTP is used for now.</Text></View>

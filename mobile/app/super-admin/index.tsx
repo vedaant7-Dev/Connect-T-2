@@ -430,6 +430,13 @@ export default function SuperAdminDashboard() {
                          <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
                          <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
                          <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
+                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>
                          <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: "#64748B" }}>{c.ward} · {timeAgo(c.createdAt)}</Text>
                       </View>
                       <View style={{ backgroundColor: STATUS_BG[c.status] || "#F1F5F9", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>

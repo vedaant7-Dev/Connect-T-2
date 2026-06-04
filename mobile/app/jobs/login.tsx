@@ -90,8 +90,8 @@ export default function JobPortalLoginScreen() {
           <Text style={s.sub}>Use 4 digit demo OTP: {DEMO_OTP}</Text>
         </View>
       </LinearGradient>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
           <View style={s.card}>
             <View style={s.segment}>{(["seeker", "employer"] as JobsUserRole[]).map((r) => <TouchableOpacity key={r} style={[s.segmentBtn, role === r && s.segmentActive]} onPress={() => { setRole(r); setError(""); setStep("form"); }} activeOpacity={0.9}><Feather name={r === "seeker" ? "user" : "briefcase"} size={14} color={role === r ? "white" : ORANGE} /><Text style={[s.segmentText, role === r && s.segmentTextActive]}>{r === "seeker" ? "Job Seeker" : "Employer"}</Text></TouchableOpacity>)}</View>
             <View style={s.tabWrap}>{(["login", "register"] as Tab[]).map((t) => <TouchableOpacity key={t} style={[s.tab, tab === t && s.tabActive]} onPress={() => { setTab(t); setError(""); setStep("form"); }} activeOpacity={0.9}><Text style={[s.tabText, tab === t && s.tabTextActive]}>{t === "login" ? "Login" : "Register"}</Text></TouchableOpacity>)}</View>

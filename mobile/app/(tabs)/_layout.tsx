@@ -64,7 +64,6 @@ function NagarsevakTabBar({ state, descriptors, navigation }: any) {
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
           if (isFocused || event.defaultPrevented) return;
-
           if (typeof navigation.jumpTo === "function") {
             navigation.jumpTo(route.name, route.params);
           } else {

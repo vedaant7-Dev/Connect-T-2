@@ -3,6 +3,46 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 
+
+const CONNECT_T_JOBS_ACCOUNTS_KEY = "@connect_t_jobs_accounts_v1";
+
+function normalizeJobsPhone(value: any) {
+  return String(value || "").replace(/\D/g, "").slice(-10);
+}
+
+async function readStoredJobsAccounts(): Promise<any[]> {
+  try {
+    const raw = await AsyncStorage.getItem(CONNECT_T_JOBS_ACCOUNTS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveStoredJobsAccount(account: any) {
+  const accounts = await readStoredJobsAccounts();
+  const phone = normalizeJobsPhone(account?.phone || account?.mobile);
+  const role = String(account?.role || "");
+  const next = [
+    account,
+    ...accounts.filter((item) => normalizeJobsPhone(item?.phone || item?.mobile) !== phone || String(item?.role || "") !== role),
+  ];
+  await AsyncStorage.setItem(CONNECT_T_JOBS_ACCOUNTS_KEY, JSON.stringify(next));
+}
+
+async function findStoredJobsAccount(phoneInput: any, roleInput?: any) {
+  const phone = normalizeJobsPhone(phoneInput);
+  const role = String(roleInput || "");
+  const accounts = await readStoredJobsAccounts();
+  return accounts.find((item) => {
+    const samePhone = normalizeJobsPhone(item?.phone || item?.mobile) === phone;
+    const sameRole = !role || String(item?.role || "") === role;
+    return samePhone && sameRole;
+  }) || null;
+}
+
+
 export type JobsUserRole = "seeker" | "employer";
 export type CurrentStatus = "employed" | "unemployed" | "student" | "fresher";
 
@@ -245,7 +285,8 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
     if (user) await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(user));
     else await AsyncStorage.removeItem(SESSION_KEY);
     setJobsUser(user);
-  };
+  await saveStoredJobsAccount(user);
+};
 
   useEffect(() => {
     AsyncStorage.getItem(SESSION_KEY)

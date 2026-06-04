@@ -87,8 +87,8 @@ export default function SuperAdminLoginScreen() {
     <View style={styles.root}>
       <LinearGradient colors={["#020617", "#052E16", "#064E3B", "#047857"]} locations={[0, 0.38, 0.72, 1]} style={StyleSheet.absoluteFill} />
       <View style={styles.glowTop} /><View style={styles.glowBottom} />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView style={styles.flex} contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 30 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView style={styles.flex} contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 30 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}><TouchableOpacity style={styles.backBtn} onPress={() => router.replace("/secret-access" as any)} activeOpacity={0.85}><Feather name="chevron-left" size={22} color="#ECFDF5" /></TouchableOpacity><View style={styles.secureBadge}><View style={styles.liveDot} /><Text style={styles.secureBadgeText}>ADMIN ACCESS</Text></View></View>
           <View style={styles.hero}><View style={styles.adminMarkOuter}><View style={styles.adminMark}><Feather name="shield" size={34} color="#047857" /></View></View><Text style={styles.kicker}>Connect T Control Center</Text><Text style={styles.title}>Super Admin Login</Text><Text style={styles.subtitle}>Protected dashboard for city-wide access, officer control, alerts, jobs and civic operations.</Text></View>
           <View style={styles.securityPanel}>

@@ -149,7 +149,7 @@ export default function SuperAdminAccessScreen() {
       <TopShade height={210} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.flex}
       >
         <ScrollView

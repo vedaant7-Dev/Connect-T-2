@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -92,7 +92,27 @@ export default function ProfileScreen() {
       { label: "Municipality", value: "AMC Ambernath", icon: "home" as const, color: "#16A34A" },
     ];
 
-    return (
+  
+  const confirmLogout = () => {
+    Alert.alert(
+      "Logout?",
+      "Are you sure you want to logout from Nagarsevak profile?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+            router.replace("/portal-select" as any);
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  };
+
+  return (
       <View style={{ flex: 1, backgroundColor: "#ECFDF5" }}>
         {/* NAGARSEVAK_PROFILE_REPLACEMENT */}
         <LinearGradient colors={["#166534", "#16A34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: topPad + 12, paddingHorizontal: 20, paddingBottom: 18, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" }}>

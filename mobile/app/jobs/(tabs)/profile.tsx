@@ -310,8 +310,8 @@ export default function JobPortalProfileScreen() {
         </View>
       </LinearGradient>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={[s.content, { paddingBottom: Math.max(insets.bottom, 8) + 104 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={[s.content, { paddingBottom: Math.max(insets.bottom, 8) + 104 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
           <View style={s.section}><Text style={s.sectionLabel}>QUICK ACTIONS</Text><View style={s.card}>{quickActions.map((item, idx) => <ActionRow key={item.label} {...item} border={idx < quickActions.length - 1} />)}</View></View>
 
           <View style={s.section}><Text style={s.sectionLabel}>ACCOUNT DETAILS</Text><View style={s.card}>{isEmployer ? <><DetailRow icon="user" label="Owner / HR Name" value={name} /><DetailRow icon="briefcase" label="Company" value={company} /><DetailRow icon="phone" label="Mobile" value={`+91 ${jobsUser.phone}`} /><DetailRow icon="message-circle" label="WhatsApp" value={cleanPhone(whatsapp) ? `+91 ${cleanPhone(whatsapp)}` : "Not added"} /><DetailRow icon="map-pin" label="Address" value={address} border={false} /></> : <><DetailRow icon="user" label="Full Name" value={name} /><DetailRow icon="phone" label="Mobile" value={`+91 ${jobsUser.phone}`} /><DetailRow icon="map-pin" label="Location" value={location} /><DetailRow icon="award" label="Qualification" value={qualification} /><DetailRow icon="tool" label="Skills" value={skills} border={false} /></>}</View></View>

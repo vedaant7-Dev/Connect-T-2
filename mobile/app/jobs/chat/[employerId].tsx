@@ -132,14 +132,14 @@ export default function JobChatScreen() {
   const canUnsend = selectedMine && !selected?.readAt;
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={0}>
       <LinearGradient colors={[DARK, ORANGE, "#F97316", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.header, { paddingTop: topPad }]}> 
         <TopShade height={110} /><DecorativeCircles />
         <View style={s.headerTop}><TouchableOpacity onPress={() => goBack(router)} style={s.backBtn} activeOpacity={0.84}><Feather name="chevron-left" size={22} color="white" /></TouchableOpacity><View style={s.headerBadge}><Feather name="message-circle" size={11} color="rgba(255,255,255,0.86)" /><Text style={s.headerBadgeText}>Job Chat</Text></View></View>
         <View style={s.heroRow}><View style={s.heroIcon}><Feather name="message-circle" size={24} color={ORANGE} /></View><View style={{ flex: 1, minWidth: 0 }}><Text style={s.headerTitle} numberOfLines={1}>{peerName}</Text><Text style={s.headerSub} numberOfLines={2}>{job ? `${job.company} · ${job.title}` : "Connect T Job Portal conversation"}</Text></View></View>
       </LinearGradient>
 
-      <ScrollView style={s.messagesScroll} contentContainerStyle={s.messagesContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.messagesScroll} contentContainerStyle={s.messagesContent} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
         {visibleMessages.length === 0 ? <View style={s.emptyCard}><View style={s.emptyIcon}><Feather name="message-circle" size={34} color={ORANGE} /></View><Text style={s.emptyTitle}>Start the conversation</Text><Text style={s.emptyText}>Send a message in Connect T or use WhatsApp for direct contact.</Text></View> : visibleMessages.map((message: ChatMessage, index: number) => { const mine = message.from === currentUserId; const deleted = message.text === "[deleted]"; const imageUri = message.localImageUri || message.mediaUrl || undefined; return <TouchableOpacity key={`${message.id || message.createdAt || "message"}-${index}`} activeOpacity={0.82} onLongPress={() => setSelected(message)} style={[s.messageWrap, mine ? s.myWrap : s.otherWrap]}><View style={[s.messageBubble, mine ? s.myBubble : s.otherBubble]}>{!!imageUri && !deleted && <Image source={{ uri: imageUri }} style={s.msgImage} />}<Text style={[s.messageText, mine ? s.myMessageText : s.otherMessageText, deleted && s.deletedText]}>{deleted ? "Message deleted" : message.text}</Text><View style={s.messageMeta}><Text style={[s.messageTime, mine ? s.myTime : s.otherTime]}>{timeLabel(message.createdAt)}</Text>{mine && <Text style={[s.messageTime, s.myTime]}>{message.readAt ? "Seen" : "Sent"}</Text>}</View></View></TouchableOpacity>; })}
       </ScrollView>
 

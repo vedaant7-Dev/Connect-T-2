@@ -148,8 +148,8 @@ export default function NagarsevakRegisterScreen() {
         <TouchableOpacity onPress={() => router.replace("/nagarsevak/login" as any)} style={styles.backBtn} activeOpacity={0.8}><Feather name="chevron-left" size={22} color="white" /></TouchableOpacity>
         <View style={styles.topBadge}><Feather name="user-plus" size={13} color="white" /><Text style={styles.topBadgeText}>Nagarsevak Registration</Text></View>
       </View>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
           <View style={styles.card}>
             {step === "form" && <>
               <View style={styles.cardHeader}><View style={styles.headerIcon}><Feather name="clipboard" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Register as Nagarsevak</Text><Text style={styles.cardSub}>Submit once. Super Admin approval is required before login.</Text></View>
