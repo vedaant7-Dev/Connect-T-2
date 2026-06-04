@@ -1,7 +1,4 @@
-import { Tabs } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import React from "react";
-import { Platform, StyleSheet, View, Text, useColorScheme, TouchableOpacity } from "react-native";
+import { Tabs } from "expo-router"; import { Feather } from "@expo/vector-icons"; import React from "react"; import { Platform, StyleSheet, View, Text, useColorScheme, TouchableOpacity } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLanguage } from "@/context/LanguageContext";
@@ -86,11 +83,11 @@ export default function TabLayout() {
       <Tabs.Screen name="admin" options={{ title: "Home", href: isNagarsevak ? undefined : null }} />
       <Tabs.Screen name="ward" options={{ title: "Ward", href: isNagarsevak ? undefined : null }} />
       <Tabs.Screen name="news" options={{ title: "News", href: isNagarsevak ? undefined : null }} />
-      <Tabs.Screen name="profile" options={{ title: t("profile"), href: undefined }} />
       <Tabs.Screen name="index" options={{ title: t("home"), href: isNagarsevak ? null : undefined }} />
-      <Tabs.Screen name="emergency" options={{ href: null }} />
       <Tabs.Screen name="complaints" options={{ title: t("complaints"), href: isNagarsevak ? null : undefined }} />
       <Tabs.Screen name="feed" options={{ title: t("feed"), href: isNagarsevak ? null : undefined }} />
+      <Tabs.Screen name="profile" options={{ title: t("profile"), href: undefined }} />
+      <Tabs.Screen name="emergency" options={{ href: null }} />
       <Tabs.Screen name="services" options={{ href: null }} />
     </Tabs>
   );
