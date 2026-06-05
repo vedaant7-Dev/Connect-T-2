@@ -2741,6 +2741,358 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
+
+async function ensureConnectTCoreSchema() {
+  const statements = [
+`CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(80) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  mobile VARCHAR(20) NOT NULL,
+  role VARCHAR(40) NOT NULL DEFAULT 'citizen',
+  ward VARCHAR(80) DEFAULT NULL,
+  ward_code VARCHAR(20) DEFAULT NULL,
+  ward_number VARCHAR(20) DEFAULT NULL,
+  is_super_admin TINYINT(1) NOT NULL DEFAULT 0,
+  age INT DEFAULT NULL,
+  email VARCHAR(190) DEFAULT NULL,
+  address TEXT DEFAULT NULL,
+  nagarsevak_id VARCHAR(80) DEFAULT NULL,
+  avatar_color VARCHAR(40) DEFAULT NULL,
+  profile_photo LONGTEXT DEFAULT NULL,
+  notify_email TINYINT(1) NOT NULL DEFAULT 0,
+  notify_whatsapp TINYINT(1) NOT NULL DEFAULT 0,
+  approval_status VARCHAR(40) DEFAULT 'approved',
+  office_address TEXT DEFAULT NULL,
+  residence_address TEXT DEFAULT NULL,
+  office_timings VARCHAR(190) DEFAULT NULL,
+  contact_name VARCHAR(150) DEFAULT NULL,
+  contact_number VARCHAR(20) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_users_mobile_role (mobile, role),
+  KEY idx_users_mobile (mobile),
+  KEY idx_users_role (role),
+  KEY idx_users_ward_code (ward_code),
+  KEY idx_users_approval_status (approval_status),
+  KEY idx_users_nagarsevak_id (nagarsevak_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS complaints (
+  id VARCHAR(80) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  category VARCHAR(100) NOT NULL DEFAULT 'other',
+  status VARCHAR(50) NOT NULL DEFAULT 'submitted',
+  photo_url LONGTEXT DEFAULT NULL,
+  location TEXT DEFAULT NULL,
+  ward VARCHAR(80) DEFAULT NULL,
+  ward_code VARCHAR(20) DEFAULT NULL,
+  assigned_officer_id VARCHAR(80) DEFAULT NULL,
+  assigned_to VARCHAR(150) DEFAULT NULL,
+  user_id VARCHAR(80) DEFAULT NULL,
+  user_name VARCHAR(150) DEFAULT NULL,
+  user_mobile VARCHAR(20) DEFAULT NULL,
+  user_address TEXT DEFAULT NULL,
+  user_age INT DEFAULT NULL,
+  user_email VARCHAR(190) DEFAULT NULL,
+  resolved_note TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_complaints_status (status),
+  KEY idx_complaints_category (category),
+  KEY idx_complaints_ward (ward),
+  KEY idx_complaints_ward_code (ward_code),
+  KEY idx_complaints_assigned_officer_id (assigned_officer_id),
+  KEY idx_complaints_user_id (user_id),
+  KEY idx_complaints_user_mobile (user_mobile),
+  KEY idx_complaints_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS complaint_status_updates (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  complaint_id VARCHAR(80) NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  note TEXT DEFAULT NULL,
+  updated_by VARCHAR(150) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_csu_complaint_id (complaint_id),
+  KEY idx_csu_status (status),
+  KEY idx_csu_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS alerts (
+  id VARCHAR(80) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  type VARCHAR(30) NOT NULL DEFAULT 'alert',
+  category VARCHAR(80) DEFAULT NULL,
+  priority VARCHAR(30) DEFAULT 'normal',
+  location VARCHAR(255) DEFAULT NULL,
+  valid_until VARCHAR(80) DEFAULT NULL,
+  expires_at VARCHAR(80) DEFAULT NULL,
+  target_audience VARCHAR(80) DEFAULT NULL,
+  media_uri LONGTEXT DEFAULT NULL,
+  media_type VARCHAR(30) DEFAULT NULL,
+  media_file_name VARCHAR(255) DEFAULT NULL,
+  media_mime_type VARCHAR(120) DEFAULT NULL,
+  media_duration INT DEFAULT NULL,
+  posted_by VARCHAR(120) NOT NULL DEFAULT 'Connect-T',
+  posted_by_id VARCHAR(80) DEFAULT NULL,
+  ward VARCHAR(80) DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_alerts_type (type),
+  KEY idx_alerts_ward (ward),
+  KEY idx_alerts_active (is_active),
+  KEY idx_alerts_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS feed_posts (
+  id VARCHAR(80) NOT NULL,
+  author_id VARCHAR(80) NOT NULL,
+  author_name VARCHAR(150) NOT NULL,
+  author_role VARCHAR(50) NOT NULL,
+  avatar_color VARCHAR(40) DEFAULT NULL,
+  type VARCHAR(50) NOT NULL DEFAULT 'general',
+  content TEXT NOT NULL,
+  image_uri LONGTEXT DEFAULT NULL,
+  pinned TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_feed_posts_author_id (author_id),
+  KEY idx_feed_posts_type (type),
+  KEY idx_feed_posts_pinned (pinned),
+  KEY idx_feed_posts_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS feed_post_likes (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  post_id VARCHAR(80) NOT NULL,
+  user_id VARCHAR(80) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_feed_like (post_id, user_id),
+  KEY idx_feed_likes_post_id (post_id),
+  KEY idx_feed_likes_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS chat_messages (
+  id VARCHAR(80) NOT NULL,
+  author_id VARCHAR(80) NOT NULL,
+  author_name VARCHAR(150) NOT NULL,
+  author_role VARCHAR(50) NOT NULL,
+  avatar_color VARCHAR(40) DEFAULT NULL,
+  text TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_chat_author_id (author_id),
+  KEY idx_chat_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS service_places (
+  id VARCHAR(80) NOT NULL,
+  category_id VARCHAR(80) NOT NULL,
+  name VARCHAR(190) NOT NULL,
+  address TEXT NOT NULL,
+  distance VARCHAR(80) DEFAULT NULL,
+  distance_km DECIMAL(8,2) DEFAULT NULL,
+  type VARCHAR(120) DEFAULT NULL,
+  speciality VARCHAR(190) DEFAULT NULL,
+  timing VARCHAR(190) DEFAULT NULL,
+  govt_type VARCHAR(120) DEFAULT NULL,
+  established VARCHAR(80) DEFAULT NULL,
+  beds INT DEFAULT NULL,
+  beds_occupied INT DEFAULT NULL,
+  services_json LONGTEXT DEFAULT NULL,
+  rating DECIMAL(3,2) DEFAULT NULL,
+  review_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_service_category_id (category_id),
+  KEY idx_service_rating (rating),
+  KEY idx_service_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS emergency_contacts (
+  id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(150) NOT NULL,
+  phone VARCHAR(40) DEFAULT NULL,
+  type VARCHAR(80) DEFAULT NULL,
+  address TEXT DEFAULT NULL,
+  available VARCHAR(80) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_emergency_name (name),
+  KEY idx_emergency_type (type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS job_users (
+  id VARCHAR(80) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  phone VARCHAR(20) NOT NULL,
+  role VARCHAR(50) NOT NULL,
+  avatar_color VARCHAR(40) DEFAULT NULL,
+  age INT DEFAULT NULL,
+  qualification VARCHAR(190) DEFAULT NULL,
+  skills TEXT DEFAULT NULL,
+  email VARCHAR(190) DEFAULT NULL,
+  about TEXT DEFAULT NULL,
+  current_status VARCHAR(80) DEFAULT NULL,
+  current_company VARCHAR(190) DEFAULT NULL,
+  current_job_role VARCHAR(190) DEFAULT NULL,
+  experience VARCHAR(190) DEFAULT NULL,
+  previous_company VARCHAR(190) DEFAULT NULL,
+  previous_role VARCHAR(190) DEFAULT NULL,
+  college_name VARCHAR(190) DEFAULT NULL,
+  field_of_study VARCHAR(190) DEFAULT NULL,
+  location VARCHAR(190) DEFAULT NULL,
+  languages VARCHAR(190) DEFAULT NULL,
+  profile_photo LONGTEXT DEFAULT NULL,
+  company VARCHAR(190) DEFAULT NULL,
+  gst_no VARCHAR(80) DEFAULT NULL,
+  company_type VARCHAR(120) DEFAULT NULL,
+  company_size VARCHAR(120) DEFAULT NULL,
+  industry VARCHAR(120) DEFAULT NULL,
+  website VARCHAR(190) DEFAULT NULL,
+  company_description TEXT DEFAULT NULL,
+  address TEXT DEFAULT NULL,
+  pincode VARCHAR(20) DEFAULT NULL,
+  whatsapp VARCHAR(20) DEFAULT NULL,
+  year_established VARCHAR(20) DEFAULT NULL,
+  contact_person VARCHAR(150) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_job_users_phone_role (phone, role),
+  KEY idx_job_users_phone (phone),
+  KEY idx_job_users_role (role),
+  KEY idx_job_users_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS jobs (
+  id VARCHAR(80) NOT NULL,
+  employer_id VARCHAR(80) NOT NULL,
+  employer_name VARCHAR(150) NOT NULL,
+  employer_phone VARCHAR(20) DEFAULT NULL,
+  employer_whatsapp VARCHAR(20) DEFAULT NULL,
+  company VARCHAR(190) NOT NULL,
+  title VARCHAR(190) NOT NULL,
+  category VARCHAR(100) NOT NULL DEFAULT 'other',
+  type VARCHAR(60) NOT NULL DEFAULT 'full-time',
+  salary VARCHAR(120) DEFAULT NULL,
+  location VARCHAR(190) DEFAULT NULL,
+  description TEXT DEFAULT NULL,
+  requirements TEXT DEFAULT NULL,
+  openings INT NOT NULL DEFAULT 1,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_jobs_employer_id (employer_id),
+  KEY idx_jobs_category (category),
+  KEY idx_jobs_type (type),
+  KEY idx_jobs_active (active),
+  KEY idx_jobs_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS job_applications (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  job_id VARCHAR(80) NOT NULL,
+  seeker_id VARCHAR(80) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'applied',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_job_application (job_id, seeker_id),
+  KEY idx_job_applications_job_id (job_id),
+  KEY idx_job_applications_seeker_id (seeker_id),
+  KEY idx_job_applications_status (status),
+  KEY idx_job_applications_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS super_admin_access_codes (
+  id VARCHAR(80) NOT NULL,
+  access_code VARCHAR(80) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  mobile VARCHAR(20) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'active',
+  created_by VARCHAR(80) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_super_admin_access_code (access_code),
+  UNIQUE KEY uniq_super_admin_access_mobile (mobile),
+  KEY idx_super_admin_access_status (status),
+  KEY idx_super_admin_access_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+`CREATE TABLE IF NOT EXISTS otp_codes (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  mobile VARCHAR(20) NOT NULL,
+  otp_code VARCHAR(10) NOT NULL,
+  purpose VARCHAR(80) NOT NULL DEFAULT 'login',
+  expires_at DATETIME DEFAULT NULL,
+  is_used TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_otp_mobile (mobile),
+  KEY idx_otp_purpose (purpose),
+  KEY idx_otp_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  ];
+
+  for (const statement of statements) {
+    await db.query(statement);
+  }
+
+  if (typeof ensureJobPortalSchema === "function") {
+    await ensureJobPortalSchema();
+  }
+}
+
+app.post("/api/admin/setup-database", async (req, res) => {
+  try {
+    const setupKey = process.env.SETUP_DATABASE_KEY || "connect-t-setup-2026";
+    const providedKey = String(req.headers["x-setup-key"] || req.query.key || req.body?.key || "");
+
+    if (providedKey !== setupKey) {
+      return res.status(403).json({
+        success: false,
+        error: "Invalid setup key",
+      });
+    }
+
+    await ensureConnectTCoreSchema();
+
+    const [tables] = await db.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = DATABASE()
+      ORDER BY table_name
+    `);
+
+    return res.json({
+      success: true,
+      message: "Connect-T database schema created",
+      tableCount: tables.length,
+      tables: tables.map((row) => row.TABLE_NAME || row.table_name),
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Connect-T backend running on port ${PORT}`);
 });
