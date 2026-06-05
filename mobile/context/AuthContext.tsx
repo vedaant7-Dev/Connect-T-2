@@ -32,15 +32,6 @@ export interface User {
   officeAddress?: string;
 }
 
-export interface GoogleUserInfo {
-  sub: string;
-  name: string;
-  email: string;
-  picture?: string;
-  given_name?: string;
-  family_name?: string;
-}
-
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
@@ -53,16 +44,12 @@ interface AuthContextType {
   register: (userData: Omit<User, "id" | "avatarColor" | "createdAt">) => Promise<User>;
   loginWithPhone: (mobile: string) => Promise<User | null>;
   loginWithNagarsevakId: (mobile: string, nagarsevakId: string) => Promise<User | null>;
-  loginWithGoogle: (googleUser: GoogleUserInfo) => Promise<User>;
   updateUser: (updates: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 const SESSION_KEY = "janseva_user";
-const USERS_KEY = "janseva_users";
-
 const AVATAR_COLORS = ["#1E40AF", "#059669", "#7C3AED", "#D97706", "#DC2626", "#0EA5E9"];
-const SUPER_ADMIN_MOBILE = "8554994735";
 
 function normalizeMobile(mobile: string): string {
   return String(mobile || "").trim().replace(/\D/g, "").slice(-10);
@@ -109,60 +96,17 @@ function normalizeUser(raw: any): User {
   };
 }
 
-async function getLocalUsers(): Promise<User[]> {
-  try {
-    const raw = await AsyncStorage.getItem(USERS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.map(normalizeUser) : [];
-  } catch {
-    return [];
-  }
-}
-
-async function saveAllUsers(users: User[]): Promise<void> {
-  await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-function mergeUsers(localUsers: User[], backendUsers: User[]) {
-  const map = new Map<string, User>();
-
-  for (const item of localUsers) {
-    const key = `${normalizeMobile(item.mobile)}:${item.role}`;
-    map.set(key, normalizeUser(item));
-  }
-
-  for (const item of backendUsers) {
-    const key = `${normalizeMobile(item.mobile)}:${item.role}`;
-    map.set(key, normalizeUser(item));
-  }
-
-  return Array.from(map.values());
-}
-
 async function fetchBackendUsers(): Promise<User[]> {
   const res = await apiGet<any>("/api/users");
   const rawUsers = Array.isArray(res.users) ? res.users : Array.isArray(res.data) ? res.data : [];
   return rawUsers.map(normalizeUser);
 }
 
-async function getAllUsers(): Promise<User[]> {
-  const localUsers = await getLocalUsers();
-
-  try {
-    const backendUsers = await fetchBackendUsers();
-    const merged = mergeUsers(localUsers, backendUsers);
-    await saveAllUsers(merged);
-    return merged;
-  } catch {
-    return localUsers;
-  }
-}
-
 async function upsertBackendUser(userData: User): Promise<void> {
   const user = normalizeUser(userData);
 
   if (!user.name || !user.mobile) {
-    return;
+    throw new Error("User name and mobile are required.");
   }
 
   await apiPost("/api/users", {
@@ -199,51 +143,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  const persistSession = async (nextUser: User | null) => {
+    if (nextUser) {
+      const normalized = normalizeUser(nextUser);
+      setUser(normalized);
+      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(normalized));
+    } else {
+      setUser(null);
+      await AsyncStorage.removeItem(SESSION_KEY);
+    }
+  };
+
   const clearLogoutTarget = () => setLogoutTarget(null);
 
   const login = async (userData: User) => {
     const normalized = normalizeUser(userData);
 
     setLogoutTarget(null);
+    await upsertBackendUser(normalized);
 
-    try {
-      await upsertBackendUser(normalized);
-    } catch (error) {
-      console.error("Failed to save login user to MySQL", error);
-    }
-
-    const users = await getLocalUsers();
-    const key = `${normalizeMobile(normalized.mobile)}:${normalized.role}`;
-    const nextUsers = [
-      normalized,
-      ...users.filter((item) => `${normalizeMobile(item.mobile)}:${item.role}` !== key),
-    ];
-
-    await saveAllUsers(nextUsers);
     setUser(normalized);
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(normalized));
   };
 
   const logout = async (redirectTo?: string) => {
     setLogoutTarget(redirectTo || null);
-    setUser(null);
-    await AsyncStorage.removeItem(SESSION_KEY);
+    await persistSession(null);
   };
 
   const checkPhone = async (mobile: string): Promise<User | null> => {
     const normalized = normalizeMobile(mobile);
-    const users = await getAllUsers();
+    const users = await fetchBackendUsers();
     return users.find((u) => normalizeMobile(u.mobile) === normalized) ?? null;
   };
 
   const register = async (
     userData: Omit<User, "id" | "avatarColor" | "createdAt">
   ): Promise<User> => {
-    const users = await getAllUsers();
+    const users = await fetchBackendUsers();
     const colorIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
     const normalizedMobile = normalizeMobile(userData.mobile);
     const role = userData.role || "citizen";
-    const existingIndex = users.findIndex((u) => normalizeMobile(u.mobile) === normalizedMobile && u.role === role);
+    const existing = users.find((u) => normalizeMobile(u.mobile) === normalizedMobile && u.role === role);
 
     const newUser: User = normalizeUser({
       ...userData,
@@ -251,40 +192,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       wardCode: userData.wardCode ?? null,
       isSuperAdmin: userData.isSuperAdmin || false,
-      id: existingIndex >= 0 ? users[existingIndex].id : "U" + Date.now(),
-      avatarColor: existingIndex >= 0 ? users[existingIndex].avatarColor : AVATAR_COLORS[colorIndex],
-      createdAt: existingIndex >= 0 ? users[existingIndex].createdAt : new Date().toISOString(),
+      id: existing?.id || "U" + Date.now(),
+      avatarColor: existing?.avatarColor || AVATAR_COLORS[colorIndex],
+      createdAt: existing?.createdAt || new Date().toISOString(),
     });
 
     await upsertBackendUser(newUser);
-    await login(newUser);
+    setUser(newUser);
+    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
     return newUser;
   };
 
   const loginWithPhone = async (mobile: string): Promise<User | null> => {
     const normalizedMobile = normalizeMobile(mobile);
-
-    if (normalizedMobile === SUPER_ADMIN_MOBILE) {
-      const superAdminUser: User = normalizeUser({
-        id: "SUPER_ADMIN_TEJASHREE",
-        name: "Tejashree Ma'am",
-        mobile: SUPER_ADMIN_MOBILE,
-        role: "super_admin",
-        ward: "All Wards",
-        wardCode: null,
-        nagarsevakId: "SUPER_ADMIN_TEJASHREE",
-        isSuperAdmin: true,
-        avatarColor: "#16A34A",
-        createdAt: new Date().toISOString(),
-      });
-      await login(superAdminUser);
-      return superAdminUser;
-    }
-
-    const users = await getAllUsers();
+    const users = await fetchBackendUsers();
     const existingUser = users.find((u) => normalizeMobile(u.mobile) === normalizedMobile);
+
     if (existingUser) {
-      await login(existingUser);
+      await persistSession(existingUser);
       return existingUser;
     }
 
@@ -293,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithNagarsevakId = async (mobile: string, nagarsevakId: string): Promise<User | null> => {
     const normalizedMobile = normalizeMobile(mobile);
-    const users = await getAllUsers();
+    const users = await fetchBackendUsers();
     const existingUser = users.find(
       (u) =>
         normalizeMobile(u.mobile) === normalizedMobile &&
@@ -302,49 +227,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     if (existingUser) {
-      await login(existingUser);
+      await persistSession(existingUser);
       return existingUser;
     }
 
     return null;
-  };
-
-  const loginWithGoogle = async (googleUser: GoogleUserInfo): Promise<User> => {
-    const normalizedEmail = googleUser.email.toLowerCase();
-    const users = await getAllUsers();
-    const existing = users.find(
-      (u) => u.email && u.email.toLowerCase() === normalizedEmail
-    );
-
-    if (existing) {
-      const refreshed: User = normalizeUser({
-        ...existing,
-        name: googleUser.name,
-        profilePhoto: googleUser.picture,
-        email: googleUser.email,
-      });
-      await login(refreshed);
-      return refreshed;
-    }
-
-    const colorIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
-    const newUser: User = normalizeUser({
-      id: "G_" + googleUser.sub,
-      name: googleUser.name,
-      mobile: "",
-      email: googleUser.email,
-      role: "citizen",
-      profilePhoto: googleUser.picture,
-      avatarColor: AVATAR_COLORS[colorIndex],
-      isSuperAdmin: false,
-      createdAt: new Date().toISOString(),
-    });
-
-    users.push(newUser);
-    await saveAllUsers(users);
-    setUser(newUser);
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
-    return newUser;
   };
 
   const updateUser = async (updates: Partial<User>) => {
@@ -361,27 +248,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isSuperAdmin: updates.isSuperAdmin ?? user.isSuperAdmin ?? false,
     });
 
-    try {
-      await upsertBackendUser(updated);
-    } catch (error) {
-      console.error("Failed to update user in MySQL", error);
-    }
-
-    setUser(updated);
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updated));
-
-    const users = await getLocalUsers();
-    const key = `${normalizeMobile(updated.mobile)}:${updated.role}`;
-    const nextUsers = [
-      updated,
-      ...users.filter((item) => `${normalizeMobile(item.mobile)}:${item.role}` !== key),
-    ];
-
-    await saveAllUsers(nextUsers);
+    await upsertBackendUser(updated);
+    await persistSession(updated);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, loading, logoutTarget, clearLogoutTarget, login, logout, checkPhone, register, loginWithPhone, loginWithNagarsevakId, loginWithGoogle, updateUser }}>
+    <AuthContext.Provider value={{ user, isLoggedIn: !!user, loading, logoutTarget, clearLogoutTarget, login, logout, checkPhone, register, loginWithPhone, loginWithNagarsevakId, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,40 +8,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import OtpDigitInput from "@/components/OtpDigitInput";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 
 import { apiPost } from "@/lib/api";
-
-const SUPER_ADMIN_ACCESS_KEY = "@connect_t_super_admin_access_v1";
-
-function normalizeSuperAdminPhone(value: any) {
-  return String(value || "").replace(/\D/g, "").slice(-10);
-}
-
-async function readSuperAdminAccessList() {
-  try {
-    const raw = await AsyncStorage.getItem(SUPER_ADMIN_ACCESS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-async function validateGeneratedSuperAdminAccess(mobileInput: string, accessInput: string) {
-  const mobile = normalizeSuperAdminPhone(mobileInput);
-  const accessId = String(accessInput || "").trim().toUpperCase();
-  const list = await readSuperAdminAccessList();
-
-  return list.find((item: any) => {
-    const itemMobile = normalizeSuperAdminPhone(item.mobile || item.phone || item.mobileNumber);
-    const itemId = String(item.id || item.accessId || item.uniqueId || "").trim().toUpperCase();
-    const status = String(item.status || "active").toLowerCase();
-    return itemMobile === mobile && itemId === accessId && status !== "revoked";
-  }) || null;
-}
 
 
 const MAIN_SUPER_ADMIN_MOBILE = "8554994735";
@@ -76,7 +46,7 @@ export default function SuperAdminLoginScreen() {
 
   const continueToOtp = () => {
     if (finalMobile.length !== 10) return showNotice("Mobile required", "Enter a valid 10 digit mobile number.");
-    // Demo mode: unique ID is optional for now. Real backend verification will be enabled later.
+    // Backend validates the unique ID during final login.
     setOtp("");
     setOtpStep(true);
   };

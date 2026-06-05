@@ -85,9 +85,9 @@ export default function ProfileScreen() {
     };
 
     const backendRows = [
-      { label: "Data Storage", value: "AsyncStorage (Local)", icon: "database" as const, color: "#3B82F6" },
+      { label: "Data Storage", value: "MySQL Database", icon: "database" as const, color: "#3B82F6" },
       { label: "App Version", value: "v1.0 · Build 2025", icon: "code" as const, color: "#7C3AED" },
-      { label: "Server", value: "Express.js · Local", icon: "server" as const, color: "#059669" },
+      { label: "Server", value: "Hostinger Node.js API", icon: "server" as const, color: "#059669" },
       { label: "Auth Mode", value: "OTP / Mobile Login", icon: "key" as const, color: "#D97706" },
       { label: "Municipality", value: "AMC Ambernath", icon: "home" as const, color: "#16A34A" },
     ];
@@ -229,7 +229,7 @@ export default function ProfileScreen() {
             <Text style={{ fontSize: 10, color: "#CBD5E1", fontFamily: "Inter_400Regular", marginTop: 4 }}>v1.0 · AMC Ambernath</Text>
           </View>
 
-          <TouchableOpacity onPress={logoutNagarsevak} activeOpacity={0.85} style={{ backgroundColor: "#FEE2E2", borderRadius: 16, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 10 }}>
+          <TouchableOpacity onPress={confirmLogout} activeOpacity={0.85} style={{ backgroundColor: "#FEE2E2", borderRadius: 16, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 10 }}>
             <Feather name="log-out" size={18} color="#DC2626" />
             <Text style={{ fontSize: 15, color: "#DC2626", fontFamily: "Inter_700Bold" }}>Logout</Text>
           </TouchableOpacity>

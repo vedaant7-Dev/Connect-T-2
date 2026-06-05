@@ -1,46 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiPatch, apiPost } from "@/lib/api";
 
-
-const CONNECT_T_JOBS_ACCOUNTS_KEY = "@connect_t_jobs_accounts_v1";
-
-function normalizeJobsPhone(value: any) {
-  return String(value || "").replace(/\D/g, "").slice(-10);
-}
-
-async function readStoredJobsAccounts(): Promise<any[]> {
-  try {
-    const raw = await AsyncStorage.getItem(CONNECT_T_JOBS_ACCOUNTS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-async function saveStoredJobsAccount(account: any) {
-  const accounts = await readStoredJobsAccounts();
-  const phone = normalizeJobsPhone(account?.phone || account?.mobile);
-  const role = String(account?.role || "");
-  const next = [
-    account,
-    ...accounts.filter((item) => normalizeJobsPhone(item?.phone || item?.mobile) !== phone || String(item?.role || "") !== role),
-  ];
-  await AsyncStorage.setItem(CONNECT_T_JOBS_ACCOUNTS_KEY, JSON.stringify(next));
-}
-
-async function findStoredJobsAccount(phoneInput: any, roleInput?: any) {
-  const phone = normalizeJobsPhone(phoneInput);
-  const role = String(roleInput || "");
-  const accounts = await readStoredJobsAccounts();
-  return accounts.find((item) => {
-    const samePhone = normalizeJobsPhone(item?.phone || item?.mobile) === phone;
-    const sameRole = !role || String(item?.role || "") === role;
-    return samePhone && sameRole;
-  }) || null;
-}
 
 
 export type JobsUserRole = "seeker" | "employer";
@@ -158,19 +120,12 @@ export function calcProfileCompletion(user: JobsUser): number {
   return Math.round((filled.length / fields.length) * 100);
 }
 
-export interface GoogleJobsUserInfo {
-  sub: string;
-  name: string;
-  email: string;
-  picture?: string;
-}
 
 interface JobsAuthContextType {
   jobsUser: JobsUser | null;
   loading: boolean;
   registerJobs: (data: Omit<JobsUser, "id" | "createdAt">) => Promise<void>;
   loginJobs: (phone: string, role: JobsUserRole) => Promise<boolean>;
-  loginWithGoogleJobs: (googleUser: GoogleJobsUserInfo, role: JobsUserRole) => Promise<void>;
   logoutJobs: () => Promise<void>;
   updateJobsUser: (data: Partial<JobsUser>) => Promise<void>;
   addCompany: (company: Omit<CompanyProfile, "id">) => Promise<string | undefined>;
@@ -323,19 +278,6 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginWithGoogleJobs = async (googleUser: GoogleJobsUserInfo, role: JobsUserRole) => {
-    const user = normalizeUser({
-      id: `google_${googleUser.sub}`,
-      name: googleUser.name,
-      email: googleUser.email,
-      phone: "",
-      role,
-      profilePhoto: googleUser.picture,
-      createdAt: new Date().toISOString(),
-    });
-    await persist(user);
-  };
-
   const logoutJobs = async () => {
     await persist(null);
   };
@@ -343,11 +285,7 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
   const updateJobsUser = async (data: Partial<JobsUser>) => {
     if (!jobsUser) return;
     const next = normalizeUser({ ...jobsUser, ...data });
-    try {
-      await apiPatch(`/api/job-portal/users/${jobsUser.id}`, next);
-    } catch {
-      // Local fallback keeps profile edits usable in offline/development builds.
-    }
+    await apiPatch(`/api/job-portal/users/${jobsUser.id}`, next);
     await persist(next);
   };
 
@@ -374,8 +312,7 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
         loading,
         registerJobs,
         loginJobs,
-        loginWithGoogleJobs,
-        logoutJobs,
+          logoutJobs,
         updateJobsUser,
         addCompany,
         updateCompany,
