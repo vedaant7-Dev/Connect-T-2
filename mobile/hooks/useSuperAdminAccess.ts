@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { API_BASE_URL } from "@/constants/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 
 export interface SuperAdminAccessCode {
   id: string;
@@ -11,28 +11,6 @@ export interface SuperAdminAccessCode {
   createdBy?: string | null;
   createdAt?: string;
   updatedAt?: string;
-}
-
-function buildApiUrl(path: string) {
-  const cleanBase = API_BASE_URL.replace(/\/$/, "");
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-
-  return `${cleanBase}${cleanPath}`;
-}
-
-async function readJson(res: Response) {
-  const text = await res.text();
-
-  if (!text) return {};
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return {
-      success: false,
-      message: text,
-    };
-  }
 }
 
 function normalizeAccess(item: any): SuperAdminAccessCode {
@@ -58,13 +36,7 @@ export function useSuperAdminAccess() {
     setError("");
 
     try {
-      const res = await fetch(buildApiUrl("/api/super-admin/access-codes"));
-      const data = await readJson(res);
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || data.error || "Failed to load access codes");
-      }
-
+      const data = await apiGet<any>("/api/super-admin/access-codes");
       setAccessCodes((data.accessCodes || []).map(normalizeAccess));
     } catch (e: any) {
       setError(e?.message || "Failed to load access codes");
@@ -79,36 +51,13 @@ export function useSuperAdminAccess() {
     mobile: string;
     createdBy?: string;
   }) => {
-    const res = await fetch(buildApiUrl("/api/super-admin/access-codes"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(input),
-    });
-
-    const data = await readJson(res);
-
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || data.error || "Failed to create access code");
-    }
-
+    const data = await apiPost<any>("/api/super-admin/access-codes", input);
     await fetchAccessCodes();
-
     return normalizeAccess(data.access);
   };
 
   const deleteAccessCode = async (id: string) => {
-    const res = await fetch(buildApiUrl(`/api/super-admin/access-codes/${id}`), {
-      method: "DELETE",
-    });
-
-    const data = await readJson(res);
-
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || data.error || "Failed to delete access ID");
-    }
-
+    const data = await apiDelete<any>(`/api/super-admin/access-codes/${id}`);
     await fetchAccessCodes();
     return data;
   };
@@ -117,22 +66,8 @@ export function useSuperAdminAccess() {
     id: string,
     status: "active" | "revoked",
   ) => {
-    const res = await fetch(buildApiUrl(`/api/super-admin/access-codes/${id}`), {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status }),
-    });
-
-    const data = await readJson(res);
-
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || data.error || "Failed to update access");
-    }
-
+    const data = await apiPatch<any>(`/api/super-admin/access-codes/${id}`, { status });
     await fetchAccessCodes();
-
     return data;
   };
 

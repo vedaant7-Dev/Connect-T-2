@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { apiPost } from "@/lib/api";
+import { apiPost, storeAuthToken, clearAuthToken } from "@/lib/api";
 
 export type UserRole = "citizen" | "nagarsevak" | "super_admin";
 
@@ -103,6 +103,7 @@ async function fetchUserByMobile(mobile: string, role?: UserRole): Promise<User 
       role: role || undefined,
     });
 
+    if (res.token) await storeAuthToken(res.token);
     return res.user ? normalizeUser(res.user) : null;
   } catch (error: any) {
     const message = String(error?.message || "");
@@ -121,7 +122,7 @@ async function upsertBackendUser(userData: User): Promise<void> {
     throw new Error("User name and mobile are required.");
   }
 
-  await apiPost("/api/users", {
+  const response = await apiPost<any>("/api/users", {
     id: user.id,
     name: user.name,
     mobile: user.mobile,
@@ -146,6 +147,10 @@ async function upsertBackendUser(userData: User): Promise<void> {
     contact_name: user.contactName || null,
     contact_number: user.contactNumber || null,
   });
+
+  if (response?.token) {
+    await storeAuthToken(response.token);
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -169,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setUser(null);
       await AsyncStorage.removeItem(SESSION_KEY);
+      await clearAuthToken();
     }
   };
 

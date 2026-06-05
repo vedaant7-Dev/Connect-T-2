@@ -1,9 +1,31 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { API_BASE_URL, apiUrl } from "@/constants/api";
 
 const GET_CACHE_TTL_MS = 20_000;
 const REQUEST_TIMEOUT_MS = 15_000;
+const AUTH_TOKEN_KEY = "connect_t_auth_token_v1";
+
 const getCache = new Map<string, { at: number; data: unknown }>();
 const inFlightGets = new Map<string, Promise<unknown>>();
+
+export async function storeAuthToken(token?: string | null) {
+  if (token) await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+export async function clearAuthToken() {
+  await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+async function getAuthHeaders(body?: unknown) {
+  const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+  const headers: Record<string, string> = {};
+
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  return Object.keys(headers).length ? headers : undefined;
+}
 
 async function readError(res: Response, fallback: string) {
   const text = await res.text().catch(() => "");
@@ -72,7 +94,7 @@ async function request<T = any>(
     try {
       res = await fetchWithTimeout(url, {
         method,
-        headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(body),
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     } catch (error) {

@@ -3,6 +3,9 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
 const app = express();
 
@@ -10,7 +13,11 @@ const SERVER_VERSION = "backend-server-wardfix-v2";
 console.log(`[Connect-T] Running ${SERVER_VERSION} from ${__filename}`);
 
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "15mb" }));
+
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, "uploads");
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+app.use("/uploads", express.static(UPLOAD_DIR));
 
 const db = mysql.createPool({
   host: process.env.DB_HOST,
@@ -25,6 +32,110 @@ const db = mysql.createPool({
 
 const createId = (prefix) =>
   `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+const JWT_SECRET = process.env.JWT_SECRET || process.env.ADMIN_API_KEY || "CHANGE_THIS_CONNECT_T_SECRET";
+const MAIN_SUPER_ADMIN_MOBILE = String(process.env.MAIN_SUPER_ADMIN_MOBILE || "8554994735").replace(/\D/g, "").slice(-10);
+
+function b64url(input) {
+  return Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function b64urlJson(obj) {
+  return b64url(JSON.stringify(obj));
+}
+
+function signToken(payload) {
+  const header = { alg: "HS256", typ: "JWT" };
+  const body = {
+    ...payload,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
+  };
+
+  const unsigned = `${b64urlJson(header)}.${b64urlJson(body)}`;
+  const signature = crypto.createHmac("sha256", JWT_SECRET).update(unsigned).digest("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+
+  return `${unsigned}.${signature}`;
+}
+
+function verifyToken(req) {
+  const header = String(req.headers.authorization || "");
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+
+  if (!token) return null;
+
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  const unsigned = `${parts[0]}.${parts[1]}`;
+  const expected = crypto.createHmac("sha256", JWT_SECRET).update(unsigned).digest("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+
+  if (expected !== parts[2]) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function issueUserToken(user) {
+  return signToken({
+    sub: user.id,
+    mobile: user.mobile,
+    role: user.role,
+    isSuperAdmin: !!(user.isSuperAdmin || user.is_super_admin),
+  });
+}
+
+function requireSuperAdmin(req, res, next) {
+  const auth = verifyToken(req);
+
+  if (!auth || (auth.role !== "super_admin" && !auth.isSuperAdmin)) {
+    return res.status(401).json({
+      success: false,
+      error: "Super admin token required",
+    });
+  }
+
+  req.auth = auth;
+  next();
+}
+
+function publicBaseUrl(req) {
+  return String(process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+}
+
+async function saveDataUriToUploads(value, prefix, req) {
+  if (!value || typeof value !== "string") return value || null;
+  if (!value.startsWith("data:")) return value;
+
+  const match = value.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return value;
+
+  const mime = match[1];
+  const base64 = match[2];
+  const ext =
+    mime.includes("png") ? "png" :
+    mime.includes("webp") ? "webp" :
+    mime.includes("mp4") ? "mp4" :
+    "jpg";
+
+  const buffer = Buffer.from(base64, "base64");
+
+  if (buffer.length > 8 * 1024 * 1024) {
+    throw new Error("Uploaded media exceeds 8MB limit");
+  }
+
+  const fileName = `${prefix}_${Date.now()}_${crypto.randomBytes(6).toString("hex")}.${ext}`;
+  const filePath = path.join(UPLOAD_DIR, fileName);
+
+  await fs.promises.writeFile(filePath, buffer);
+
+  return `${publicBaseUrl(req)}/uploads/${fileName}`;
+}
 
 async function columnExists(tableName, columnName) {
   const [rows] = await db.query(
@@ -265,7 +376,9 @@ app.post("/api/users", async (req, res) => {
       });
     }
 
-    await db.query(
+    const savedProfilePhoto = await saveDataUriToUploads(profile_photo, "profile", req);
+
+    await db.query
       `INSERT INTO users
       (id, name, mobile, role, ward, ward_code, ward_number, is_super_admin, age, dob, email, address, nagarsevak_id, avatar_color, profile_photo, notify_email, notify_whatsapp, approval_status, office_address, residence_address, office_timings, contact_name, contact_number)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -306,7 +419,7 @@ app.post("/api/users", async (req, res) => {
         address || null,
         nagarsevak_id || null,
         avatar_color || null,
-        profile_photo || null,
+        savedProfilePhoto || null,
         notify_email ? 1 : 0,
         notify_whatsapp ? 1 : 0,
         approval_status || null,
@@ -318,7 +431,16 @@ app.post("/api/users", async (req, res) => {
       ],
     );
 
-    res.status(201).json({ success: true, userId: id });
+    res.status(201).json({
+      success: true,
+      userId: id,
+      token: issueUserToken({
+        id,
+        mobile,
+        role,
+        isSuperAdmin: !!is_super_admin,
+      }),
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -367,6 +489,12 @@ app.post("/api/auth/user-by-mobile", async (req, res) => {
     return res.json({
       success: true,
       user: rows[0],
+      token: issueUserToken({
+        id: rows[0].id,
+        mobile: rows[0].mobile,
+        role: rows[0].role,
+        isSuperAdmin: rows[0].is_super_admin === 1 || rows[0].is_super_admin === true,
+      }),
     });
   } catch (err) {
     return res.status(500).json({
@@ -505,7 +633,9 @@ app.post("/api/complaints", async (req, res) => {
     const finalAssignedOfficerId =
       assigned_officer_id || getOfficerIdByWardCode(finalWardCode);
 
-    await db.query(
+    const savedPhotoUrl = await saveDataUriToUploads(photo_url, "complaint", req);
+
+    await db.query
       `INSERT INTO complaints
       (id, title, description, category, photo_url, location, ward, ward_code, assigned_officer_id, user_id, user_name, user_mobile, user_address, user_age, user_email)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -514,7 +644,7 @@ app.post("/api/complaints", async (req, res) => {
         title,
         description,
         category,
-        photo_url || null,
+        savedPhotoUrl || null,
         location,
         ward,
         finalWardCode || null,
@@ -625,7 +755,7 @@ app.delete("/api/alerts/:id", async (req, res) => {
 });
 
 /* ADMIN ANALYTICS */
-app.get("/api/admin/analytics", async (req, res) => {
+app.get("/api/admin/analytics", requireSuperAdmin, async (req, res) => {
   try {
     const [summary] = await db.query(
       `SELECT 
@@ -710,6 +840,7 @@ app.post("/api/alerts", async (req, res) => {
   try {
     await ensureAlertsTable();
     const id = req.body.id || createId("alert");
+    const savedMediaUri = await saveDataUriToUploads(req.body.media_uri, "alert", req);
 
     const {
       title,
@@ -753,7 +884,7 @@ app.post("/api/alerts", async (req, res) => {
         valid_until || null,
         expires_at || null,
         target_audience || null,
-        media_uri || null,
+        savedMediaUri || null,
         media_type || null,
         media_file_name || null,
         media_mime_type || null,
@@ -1134,7 +1265,7 @@ app.get("/api/emergency", async (req, res) => {
 
 
 /* SUPER ADMIN UNIQUE ACCESS */
-app.get("/api/super-admin/access-codes", async (req, res) => {
+app.get("/api/super-admin/access-codes", requireSuperAdmin, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT
@@ -1162,7 +1293,7 @@ app.get("/api/super-admin/access-codes", async (req, res) => {
   }
 });
 
-app.post("/api/super-admin/access-codes", async (req, res) => {
+app.post("/api/super-admin/access-codes", requireSuperAdmin, async (req, res) => {
   try {
     const name = String(req.body.name || "").trim();
     const mobile = normalizeMobile(req.body.mobile);
@@ -1208,7 +1339,7 @@ app.post("/api/super-admin/access-codes", async (req, res) => {
   }
 });
 
-app.patch("/api/super-admin/access-codes/:id", async (req, res) => {
+app.patch("/api/super-admin/access-codes/:id", requireSuperAdmin, async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     const status = String(req.body.status || "").trim();
@@ -1241,7 +1372,7 @@ app.patch("/api/super-admin/access-codes/:id", async (req, res) => {
 });
 
 
-app.delete("/api/super-admin/access-codes/:id", async (req, res) => {
+app.delete("/api/super-admin/access-codes/:id", requireSuperAdmin, async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
 
@@ -1291,7 +1422,7 @@ app.post("/api/auth/super-admin-access-login", async (req, res) => {
       });
     }
 
-    if (mobile === "8554994735") {
+    if (mobile === MAIN_SUPER_ADMIN_MOBILE) {
       const user = {
         id: "SUPER_ADMIN_TEJASHREE",
         name: "Tejashree Ma'am",
@@ -1316,6 +1447,7 @@ app.post("/api/auth/super-admin-access-login", async (req, res) => {
       return res.json({
         success: true,
         user,
+        token: issueUserToken(user),
       });
     }
 
@@ -1369,6 +1501,13 @@ app.post("/api/auth/super-admin-access-login", async (req, res) => {
         approvalStatus: "approved",
         accessCode,
       },
+      token: issueUserToken({
+        id: userId,
+        name: access.name,
+        mobile,
+        role: "super_admin",
+        isSuperAdmin: true,
+      }),
     });
   } catch (err) {
     return res.status(500).json({
