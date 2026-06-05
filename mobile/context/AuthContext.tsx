@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { apiGet, apiPost } from "@/lib/api";
+import { apiPost } from "@/lib/api";
 
 export type UserRole = "citizen" | "nagarsevak" | "super_admin";
 
@@ -96,10 +96,22 @@ function normalizeUser(raw: any): User {
   };
 }
 
-async function fetchBackendUsers(): Promise<User[]> {
-  const res = await apiGet<any>("/api/users");
-  const rawUsers = Array.isArray(res.users) ? res.users : Array.isArray(res.data) ? res.data : [];
-  return rawUsers.map(normalizeUser);
+async function fetchUserByMobile(mobile: string, role?: UserRole): Promise<User | null> {
+  try {
+    const res = await apiPost<any>("/api/auth/user-by-mobile", {
+      mobile: normalizeMobile(mobile),
+      role: role || undefined,
+    });
+
+    return res.user ? normalizeUser(res.user) : null;
+  } catch (error: any) {
+    const message = String(error?.message || "");
+    if (message.includes("404") || message.toLowerCase().includes("account not found")) {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 async function upsertBackendUser(userData: User): Promise<void> {
@@ -127,6 +139,12 @@ async function upsertBackendUser(userData: User): Promise<void> {
     profile_photo: user.profilePhoto || null,
     notify_email: user.notifyEmail ? 1 : 0,
     notify_whatsapp: user.notifyWhatsapp ? 1 : 0,
+    approval_status: user.role === "nagarsevak" ? undefined : "approved",
+    office_address: user.officeAddress || null,
+    residence_address: user.residenceAddress || null,
+    office_timings: user.officeTimings || null,
+    contact_name: user.contactName || null,
+    contact_number: user.contactNumber || null,
   });
 }
 
@@ -158,12 +176,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (userData: User) => {
     const normalized = normalizeUser(userData);
-
     setLogoutTarget(null);
     await upsertBackendUser(normalized);
-
-    setUser(normalized);
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(normalized));
+    await persistSession(normalized);
   };
 
   const logout = async (redirectTo?: string) => {
@@ -172,19 +187,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const checkPhone = async (mobile: string): Promise<User | null> => {
-    const normalized = normalizeMobile(mobile);
-    const users = await fetchBackendUsers();
-    return users.find((u) => normalizeMobile(u.mobile) === normalized) ?? null;
+    return fetchUserByMobile(mobile);
   };
 
   const register = async (
     userData: Omit<User, "id" | "avatarColor" | "createdAt">
   ): Promise<User> => {
-    const users = await fetchBackendUsers();
-    const colorIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
     const normalizedMobile = normalizeMobile(userData.mobile);
     const role = userData.role || "citizen";
-    const existing = users.find((u) => normalizeMobile(u.mobile) === normalizedMobile && u.role === role);
+    const existing = await fetchUserByMobile(normalizedMobile, role);
+    const colorIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
 
     const newUser: User = normalizeUser({
       ...userData,
@@ -198,15 +210,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     await upsertBackendUser(newUser);
-    setUser(newUser);
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
+    await persistSession(newUser);
     return newUser;
   };
 
   const loginWithPhone = async (mobile: string): Promise<User | null> => {
-    const normalizedMobile = normalizeMobile(mobile);
-    const users = await fetchBackendUsers();
-    const existingUser = users.find((u) => normalizeMobile(u.mobile) === normalizedMobile);
+    const existingUser = await fetchUserByMobile(mobile, "citizen");
 
     if (existingUser) {
       await persistSession(existingUser);
@@ -217,16 +226,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithNagarsevakId = async (mobile: string, nagarsevakId: string): Promise<User | null> => {
-    const normalizedMobile = normalizeMobile(mobile);
-    const users = await fetchBackendUsers();
-    const existingUser = users.find(
-      (u) =>
-        normalizeMobile(u.mobile) === normalizedMobile &&
-        (u.role === "nagarsevak" || u.role === "super_admin") &&
-        (!nagarsevakId || u.nagarsevakId === nagarsevakId || u.id === nagarsevakId),
-    );
+    const existingUser = await fetchUserByMobile(mobile, "nagarsevak");
 
-    if (existingUser) {
+    if (
+      existingUser &&
+      (!nagarsevakId || existingUser.nagarsevakId === nagarsevakId || existingUser.id === nagarsevakId)
+    ) {
       await persistSession(existingUser);
       return existingUser;
     }

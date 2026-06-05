@@ -98,6 +98,21 @@ export function useSuperAdminAccess() {
     return normalizeAccess(data.access);
   };
 
+  const deleteAccessCode = async (id: string) => {
+    const res = await fetch(buildApiUrl(`/api/super-admin/access-codes/${id}`), {
+      method: "DELETE",
+    });
+
+    const data = await readJson(res);
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || data.error || "Failed to delete access ID");
+    }
+
+    await fetchAccessCodes();
+    return data;
+  };
+
   const updateAccessStatus = async (
     id: string,
     status: "active" | "revoked",
@@ -132,5 +147,6 @@ export function useSuperAdminAccess() {
     refetch: fetchAccessCodes,
     createAccessCode,
     updateAccessStatus,
+    deleteAccessCode,
   };
 }

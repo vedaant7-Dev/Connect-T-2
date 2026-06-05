@@ -48,6 +48,12 @@ async function ensureColumn(tableName, columnName, ddl) {
 async function ensureProductionMySQLSchema() {
   try {
     await ensureColumn("users", "dob", "dob VARCHAR(40) NULL AFTER age");
+    await ensureColumn("users", "approval_status", "approval_status VARCHAR(40) DEFAULT 'approved' AFTER profile_photo");
+    await ensureColumn("users", "office_address", "office_address TEXT NULL AFTER address");
+    await ensureColumn("users", "residence_address", "residence_address TEXT NULL AFTER office_address");
+    await ensureColumn("users", "office_timings", "office_timings VARCHAR(190) NULL AFTER residence_address");
+    await ensureColumn("users", "contact_name", "contact_name VARCHAR(150) NULL AFTER office_timings");
+    await ensureColumn("users", "contact_number", "contact_number VARCHAR(20) NULL AFTER contact_name");
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS feed_subscriptions (
@@ -196,8 +202,25 @@ app.get("/api/server-info", (req, res) => {
 /* USERS */
 app.get("/api/users", async (req, res) => {
   try {
+    const adminKey = process.env.ADMIN_API_KEY || "";
+    const providedKey = String(req.headers["x-admin-key"] || req.query.key || "");
+
+    if (!adminKey || providedKey !== adminKey) {
+      return res.status(403).json({
+        success: false,
+        error: "Admin API key required",
+      });
+    }
+
     const [rows] = await db.query(
-      "SELECT * FROM users ORDER BY created_at DESC",
+      `SELECT id, name, mobile, role, ward, ward_code, ward_number,
+              is_super_admin, age, dob, email, address, nagarsevak_id,
+              avatar_color, profile_photo, notify_email, notify_whatsapp,
+              approval_status, office_address, residence_address,
+              office_timings, contact_name, contact_number,
+              created_at, updated_at
+       FROM users
+       ORDER BY created_at DESC`,
     );
 
     res.json({ success: true, users: rows });
@@ -227,6 +250,12 @@ app.post("/api/users", async (req, res) => {
       profile_photo,
       notify_email = false,
       notify_whatsapp = false,
+      approval_status,
+      office_address,
+      residence_address,
+      office_timings,
+      contact_name,
+      contact_number,
     } = req.body;
 
     if (!name || !mobile) {
@@ -238,8 +267,8 @@ app.post("/api/users", async (req, res) => {
 
     await db.query(
       `INSERT INTO users
-      (id, name, mobile, role, ward, ward_code, ward_number, is_super_admin, age, dob, email, address, nagarsevak_id, avatar_color, profile_photo, notify_email, notify_whatsapp)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, name, mobile, role, ward, ward_code, ward_number, is_super_admin, age, dob, email, address, nagarsevak_id, avatar_color, profile_photo, notify_email, notify_whatsapp, approval_status, office_address, residence_address, office_timings, contact_name, contact_number)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
       name = VALUES(name),
       role = VALUES(role),
@@ -255,7 +284,13 @@ app.post("/api/users", async (req, res) => {
       avatar_color = VALUES(avatar_color),
       profile_photo = VALUES(profile_photo),
       notify_email = VALUES(notify_email),
-      notify_whatsapp = VALUES(notify_whatsapp)`,
+      notify_whatsapp = VALUES(notify_whatsapp),
+      approval_status = COALESCE(VALUES(approval_status), approval_status),
+      office_address = VALUES(office_address),
+      residence_address = VALUES(residence_address),
+      office_timings = VALUES(office_timings),
+      contact_name = VALUES(contact_name),
+      contact_number = VALUES(contact_number)`,
       [
         id,
         name,
@@ -274,6 +309,12 @@ app.post("/api/users", async (req, res) => {
         profile_photo || null,
         notify_email ? 1 : 0,
         notify_whatsapp ? 1 : 0,
+        approval_status || null,
+        office_address || null,
+        residence_address || null,
+        office_timings || null,
+        contact_name || null,
+        contact_number || null,
       ],
     );
 
@@ -282,6 +323,59 @@ app.post("/api/users", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+app.post("/api/auth/user-by-mobile", async (req, res) => {
+  try {
+    const mobile = String(req.body.mobile || "").replace(/\D/g, "").slice(-10);
+    const role = String(req.body.role || "").trim();
+
+    if (mobile.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        error: "Valid 10 digit mobile number is required",
+      });
+    }
+
+    const params = [mobile];
+    let sql = `
+      SELECT id, name, mobile, role, ward, ward_code, ward_number,
+             is_super_admin, age, dob, email, address, nagarsevak_id,
+             avatar_color, profile_photo, notify_email, notify_whatsapp,
+             approval_status, office_address, residence_address,
+             office_timings, contact_name, contact_number,
+             created_at, updated_at
+      FROM users
+      WHERE mobile = ?
+    `;
+
+    if (role) {
+      sql += " AND role = ?";
+      params.push(role);
+    }
+
+    sql += " ORDER BY FIELD(role, 'citizen', 'nagarsevak', 'super_admin'), created_at DESC LIMIT 1";
+
+    const [rows] = await db.query(sql, params);
+
+    if (!rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Account not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      user: rows[0],
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
 
 /* COMPLAINTS */
 app.get("/api/complaints", async (req, res) => {
@@ -1137,6 +1231,45 @@ app.patch("/api/super-admin/access-codes/:id", async (req, res) => {
       success: true,
       id,
       status,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+
+app.delete("/api/super-admin/access-codes/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid id is required",
+      });
+    }
+
+    const [rows] = await db.query(
+      "SELECT mobile FROM super_admin_access_codes WHERE id = ? LIMIT 1",
+      [id],
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({
+        success: false,
+        message: "Access ID not found",
+      });
+    }
+
+    await db.query("DELETE FROM super_admin_access_codes WHERE id = ?", [id]);
+
+    return res.json({
+      success: true,
+      id,
+      message: "Access ID deleted",
     });
   } catch (err) {
     return res.status(500).json({

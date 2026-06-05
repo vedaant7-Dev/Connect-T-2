@@ -9,9 +9,6 @@ import TopShade from "@/components/TopShade";
 import { useAuth } from "@/context/AuthContext";
 import { useSuperAdminAccess } from "@/hooks/useSuperAdminAccess";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const SUPER_ADMIN_ACCESS_KEY = "@connect_t_super_admin_access_v1";
 
 function cleanMobile(value: string) {
   return value.replace(/\D/g, "").slice(0, 10);
@@ -96,6 +93,7 @@ export default function SuperAdminAccessScreen() {
     error,
     createAccessCode,
     updateAccessStatus,
+    deleteAccessCode,
     refetch,
   } = useSuperAdminAccess();
 
@@ -175,6 +173,31 @@ export default function SuperAdminAccessScreen() {
     } catch (e: any) {
       showNotice("Update failed", e?.message || "Could not update access status.", "danger");
     }
+  };
+
+  const handleDelete = (id: string, personName?: string) => {
+    Alert.alert(
+      "Delete access ID?",
+      personName
+        ? `This will permanently delete the access ID for ${personName}.`
+        : "This will permanently delete this access ID.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAccessCode(id);
+              showNotice("Access ID deleted", "This access ID has been permanently deleted.", "success");
+            } catch (e: any) {
+              showNotice("Delete failed", e?.message || "Could not delete this access ID.", "danger");
+            }
+          },
+        },
+      ],
+      { cancelable: true },
+    );
   };
 
   return (
@@ -351,25 +374,37 @@ export default function SuperAdminAccessScreen() {
                       </View>
                     </View>
 
-                    <TouchableOpacity
-                      style={[
-                        styles.statusBtn,
-                        active ? styles.revokeBtn : styles.activateBtn,
-                      ]}
-                      onPress={() =>
-                        handleToggle(item.id, active ? "revoked" : "active")
-                      }
-                      activeOpacity={0.84}
-                    >
-                      <Text
+                    <View style={{ alignItems: "flex-end", gap: 7 }}>
+                      <TouchableOpacity
                         style={[
-                          styles.statusBtnText,
-                          active ? styles.revokeText : styles.activateText,
+                          styles.statusBtn,
+                          active ? styles.revokeBtn : styles.activateBtn,
                         ]}
+                        onPress={() =>
+                          handleToggle(item.id, active ? "revoked" : "active")
+                        }
+                        activeOpacity={0.84}
                       >
-                        {active ? "Revoke" : "Activate"}
-                      </Text>
-                    </TouchableOpacity>
+                        <Text
+                          style={[
+                            styles.statusBtnText,
+                            active ? styles.revokeText : styles.activateText,
+                          ]}
+                        >
+                          {active ? "Revoke" : "Activate"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.statusBtn, styles.deleteBtn]}
+                        onPress={() => handleDelete(item.id, item.name)}
+                        activeOpacity={0.84}
+                      >
+                        <Text style={[styles.statusBtnText, styles.deleteText]}>
+                          Delete
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 );
               })
@@ -644,6 +679,9 @@ const styles = StyleSheet.create({
   activateBtn: {
     backgroundColor: "#DCFCE7",
   },
+  deleteBtn: {
+    backgroundColor: "#FFF1F2",
+  },
   statusBtnText: {
     fontSize: 11,
     fontFamily: "Inter_700Bold",
@@ -653,6 +691,9 @@ const styles = StyleSheet.create({
   },
   activateText: {
     color: "#16A34A",
+  },
+  deleteText: {
+    color: "#BE123C",
   },
   noticeOverlay: { flex: 1, backgroundColor: "rgba(15,23,42,0.45)", alignItems: "center", justifyContent: "center", padding: 22 },
   noticeCard: { width: "100%", maxWidth: 340, backgroundColor: "white", borderRadius: 24, padding: 22, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 12 },
