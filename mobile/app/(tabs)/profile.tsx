@@ -74,7 +74,7 @@ export default function ProfileScreen() {
     return <View style={styles.root}><LinearGradient colors={["#7C2D12", DARK, ORANGE]} style={[styles.header, { paddingTop: topPad + 12, alignItems: "center", paddingBottom: 48 }]}><View style={styles.guestIcon}><Feather name="user" size={32} color={ORANGE} /></View><Text style={[styles.userName, { textAlign: "center", marginTop: 14 }]}>Welcome to Connect T</Text><Text style={styles.guestSub}>Login to access your profile</Text></LinearGradient><View style={{ padding: 20, gap: 12 }}><TouchableOpacity style={styles.loginBtn} onPress={() => router.push("/login")} activeOpacity={0.85}><LinearGradient colors={[ORANGE, "#FB923C"]} style={styles.loginBtnGrad}><Feather name="log-in" size={18} color="white" /><Text style={styles.loginBtnText}>Login / Sign Up</Text></LinearGradient></TouchableOpacity><TouchableOpacity style={styles.guestSwitchBtn} onPress={() => router.replace("/portal-select" as any)} activeOpacity={0.85}><Feather name="shuffle" size={16} color={ORANGE} /><Text style={styles.guestSwitchText}>Switch Portal</Text><Feather name="chevron-right" size={16} color={ORANGE} /></TouchableOpacity></View></View>;
   }
 
-  if (user.role === "nagarsevak") {
+  if (String(user.role) === "nagarsevak") {
     const totalComplaints = complaints.length;
     const pendingCount = complaints.filter((c) => c.status === "submitted").length;
     const activeCount = complaints.filter((c) => c.status === "assigned" || c.status === "in_progress").length;
