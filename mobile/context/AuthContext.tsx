@@ -175,6 +175,7 @@ async function upsertBackendUser(userData: User): Promise<void> {
     ward_number: user.wardNumber || null,
     is_super_admin: user.isSuperAdmin ? 1 : 0,
     age: user.age || null,
+    dob: user.dob || null,
     email: user.email || null,
     address: user.address || null,
     nagarsevak_id: user.nagarsevakId || user.id,

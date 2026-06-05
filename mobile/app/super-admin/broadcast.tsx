@@ -92,25 +92,36 @@ export default function BroadcastScreen() {
     )
     .slice(0, 10);
 
-  function handleSend() {
+  async function handleSend() {
     if (!title.trim() || !body.trim()) return;
-    setSending(true);
-    addAlert({
-      title: title.trim(),
-      body: body.trim(),
-      type: alertType as any,
-      priority: alertType === "emergency" ? "high" : "normal",
-      ward: targetWard === "All Wards" ? undefined : targetWard,
-      postedBy: user?.name || "Super Admin",
-      postedById: user?.id,
-      createdAt: new Date().toISOString(),
-    } as any);
-    setTitle("");
-    setBody("");
-    setAlertType("announcement");
-    setTargetWard("All Wards");
-    setSending(false);
-    setShowCompose(false);
+
+    try {
+      setSending(true);
+
+      await addAlert(
+        {
+          title: title.trim(),
+          body: body.trim(),
+          type: alertType === "emergency" ? "emergency" : "news",
+          priority: alertType === "emergency" ? "high" : "normal",
+          location: targetWard,
+          targetAudience: targetWard === "All Wards" ? "All citizens" : "Ward residents",
+        } as any,
+        user?.name || "Super Admin",
+        user?.id,
+        targetWard === "All Wards" ? undefined : targetWard,
+      );
+
+      setTitle("");
+      setBody("");
+      setAlertType("announcement");
+      setTargetWard("All Wards");
+      setShowCompose(false);
+    } catch (error: any) {
+      Alert.alert("Post failed", error?.message || "Could not save this broadcast to MySQL.");
+    } finally {
+      setSending(false);
+    }
   }
 
   function timeAgo(dateStr: string) {

@@ -74,11 +74,16 @@ export default function NewAlertScreen() {
     setMedia({ uri: asset.uri, type: selectedType, fileName: asset.fileName || undefined, mimeType: asset.mimeType || undefined, duration: asset.duration || undefined });
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSubmit) return showNotice("Details required", "Please enter title and detailed message.");
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    addAlert({ title: title.trim(), body: contact.trim() ? `${body.trim()}\n\nContact: ${contact.trim()}` : body.trim(), type, priority, category, targetAudience, location: location.trim(), validUntil: validUntilLabel, expiresAt, media }, user?.name || "Nagarsevak", user?.id, targetAudience === "Ward residents" ? user?.ward : undefined);
-    showNotice("Broadcast posted", "Your alert/news update has been published successfully.", "success");
+
+    try {
+      await addAlert({ title: title.trim(), body: contact.trim() ? `${body.trim()}\n\nContact: ${contact.trim()}` : body.trim(), type, priority, category, targetAudience, location: location.trim(), validUntil: validUntilLabel, expiresAt, media }, user?.name || "Nagarsevak", user?.id, targetAudience === "Ward residents" ? user?.ward : undefined);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showNotice("Broadcast posted", "Your alert/news update has been saved to MySQL and published successfully.", "success");
+    } catch (error: any) {
+      showNotice("Post failed", error?.message || "Could not save this alert/news to MySQL.", "danger");
+    }
   };
 
   const closeNotice = () => {

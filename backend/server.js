@@ -26,6 +26,64 @@ const db = mysql.createPool({
 const createId = (prefix) =>
   `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
+async function columnExists(tableName, columnName) {
+  const [rows] = await db.query(
+    `SELECT COUNT(*) AS count
+     FROM information_schema.columns
+     WHERE table_schema = DATABASE()
+       AND table_name = ?
+       AND column_name = ?`,
+    [tableName, columnName],
+  );
+
+  return Number(rows?.[0]?.count || 0) > 0;
+}
+
+async function ensureColumn(tableName, columnName, ddl) {
+  if (!(await columnExists(tableName, columnName))) {
+    await db.query(`ALTER TABLE ${tableName} ADD COLUMN ${ddl}`);
+  }
+}
+
+async function ensureProductionMySQLSchema() {
+  try {
+    await ensureColumn("users", "dob", "dob VARCHAR(40) NULL AFTER age");
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS feed_subscriptions (
+        id BIGINT NOT NULL AUTO_INCREMENT,
+        subscriber_id VARCHAR(80) NOT NULL,
+        target_user_id VARCHAR(80) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_feed_subscription (subscriber_id, target_user_id),
+        KEY idx_feed_subscriber (subscriber_id),
+        KEY idx_feed_target (target_user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS feed_user_blocks (
+        id BIGINT NOT NULL AUTO_INCREMENT,
+        user_id VARCHAR(80) NOT NULL,
+        blocked_user_id VARCHAR(80) NOT NULL,
+        blocked_until BIGINT NOT NULL,
+        reason VARCHAR(190) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_feed_block (user_id, blocked_user_id),
+        KEY idx_feed_block_user (user_id),
+        KEY idx_feed_block_until (blocked_until)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+  } catch (err) {
+    console.error("[Connect-T] Production schema upgrade warning:", err.message);
+  }
+}
+
+ensureProductionMySQLSchema();
+
+
 const WARD_OFFICER_MAP = {
   "1A": "NS002",
   "1B": "NS003",
@@ -112,14 +170,14 @@ function getOfficerIdByWardCode(wardCode) {
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Connect-T Render backend running",
+    message: "Connect-T Hostinger backend running",
   });
 });
 
 app.get("/api/health", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT 1 AS connected");
-    res.json({ success: true, backend: "render", mysql: rows });
+    res.json({ success: true, backend: "hostinger", mysql: rows });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -161,6 +219,7 @@ app.post("/api/users", async (req, res) => {
       ward_number,
       is_super_admin = false,
       age,
+      dob,
       email,
       address,
       nagarsevak_id,
@@ -179,8 +238,8 @@ app.post("/api/users", async (req, res) => {
 
     await db.query(
       `INSERT INTO users
-      (id, name, mobile, role, ward, ward_code, ward_number, is_super_admin, age, email, address, nagarsevak_id, avatar_color, profile_photo, notify_email, notify_whatsapp)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, name, mobile, role, ward, ward_code, ward_number, is_super_admin, age, dob, email, address, nagarsevak_id, avatar_color, profile_photo, notify_email, notify_whatsapp)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
       name = VALUES(name),
       role = VALUES(role),
@@ -189,6 +248,7 @@ app.post("/api/users", async (req, res) => {
       ward_number = VALUES(ward_number),
       is_super_admin = VALUES(is_super_admin),
       age = VALUES(age),
+      dob = VALUES(dob),
       email = VALUES(email),
       address = VALUES(address),
       nagarsevak_id = VALUES(nagarsevak_id),
@@ -206,6 +266,7 @@ app.post("/api/users", async (req, res) => {
         ward_number || null,
         is_super_admin ? 1 : 0,
         age || null,
+        dob || null,
         email || null,
         address || null,
         nagarsevak_id || null,
@@ -622,7 +683,8 @@ app.get("/api/feed/posts", async (req, res) => {
     const [rows] = await db.query(
       `SELECT 
         p.*,
-        COUNT(l.id) AS likes_count
+        COUNT(l.id) AS likes_count,
+        COALESCE(GROUP_CONCAT(l.user_id ORDER BY l.created_at SEPARATOR ','), '') AS likes_csv
        FROM feed_posts p
        LEFT JOIN feed_post_likes l ON p.id = l.post_id
        GROUP BY p.id
@@ -702,6 +764,123 @@ app.post("/api/feed/posts/:id/like", async (req, res) => {
   }
 });
 
+app.delete("/api/feed/posts/:id/like", async (req, res) => {
+  try {
+    const userId = req.query.user_id || req.body?.user_id;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: "user_id is required",
+      });
+    }
+
+    await db.query(
+      "DELETE FROM feed_post_likes WHERE post_id = ? AND user_id = ?",
+      [req.params.id, userId],
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete("/api/feed/posts/:id", async (req, res) => {
+  try {
+    await db.query("DELETE FROM feed_post_likes WHERE post_id = ?", [req.params.id]);
+    await db.query("DELETE FROM feed_posts WHERE id = ?", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/feed/subscriptions", async (req, res) => {
+  try {
+    await ensureProductionMySQLSchema();
+    const subscriberId = String(req.query.user_id || "");
+
+    if (!subscriberId) {
+      return res.status(400).json({ success: false, error: "user_id is required" });
+    }
+
+    const [rows] = await db.query(
+      "SELECT target_user_id FROM feed_subscriptions WHERE subscriber_id = ?",
+      [subscriberId],
+    );
+
+    res.json({ success: true, subscriptions: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/feed/subscriptions", async (req, res) => {
+  try {
+    await ensureProductionMySQLSchema();
+    const { subscriber_id, target_user_id } = req.body;
+
+    if (!subscriber_id || !target_user_id) {
+      return res.status(400).json({ success: false, error: "subscriber_id and target_user_id are required" });
+    }
+
+    await db.query(
+      "INSERT IGNORE INTO feed_subscriptions (subscriber_id, target_user_id) VALUES (?, ?)",
+      [subscriber_id, target_user_id],
+    );
+
+    res.status(201).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/feed/blocks", async (req, res) => {
+  try {
+    await ensureProductionMySQLSchema();
+    const userId = String(req.query.user_id || "");
+    const now = Date.now();
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "user_id is required" });
+    }
+
+    await db.query("DELETE FROM feed_user_blocks WHERE blocked_until <= ?", [now]);
+
+    const [rows] = await db.query(
+      "SELECT blocked_user_id, blocked_until FROM feed_user_blocks WHERE user_id = ?",
+      [userId],
+    );
+
+    res.json({ success: true, blocks: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/feed/blocks", async (req, res) => {
+  try {
+    await ensureProductionMySQLSchema();
+    const { user_id, blocked_user_id, blocked_until, reason } = req.body;
+
+    if (!user_id || !blocked_user_id || !blocked_until) {
+      return res.status(400).json({ success: false, error: "user_id, blocked_user_id and blocked_until are required" });
+    }
+
+    await db.query(
+      `INSERT INTO feed_user_blocks (user_id, blocked_user_id, blocked_until, reason)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE blocked_until = VALUES(blocked_until), reason = VALUES(reason)`,
+      [user_id, blocked_user_id, blocked_until, reason || null],
+    );
+
+    res.status(201).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /* CHAT */
 app.get("/api/chat/messages", async (req, res) => {
   try {
@@ -737,6 +916,30 @@ app.post("/api/chat/messages", async (req, res) => {
     );
 
     res.status(201).json({ success: true, messageId: id });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch("/api/chat/messages/:id", async (req, res) => {
+  try {
+    const text = String(req.body.text || "").trim();
+
+    if (!text) {
+      return res.status(400).json({ success: false, error: "text is required" });
+    }
+
+    await db.query("UPDATE chat_messages SET text = ? WHERE id = ?", [text, req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete("/api/chat/messages/:id", async (req, res) => {
+  try {
+    await db.query("DELETE FROM chat_messages WHERE id = ?", [req.params.id]);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -2743,6 +2946,7 @@ async function ensureConnectTCoreSchema() {
   ward_number VARCHAR(20) DEFAULT NULL,
   is_super_admin TINYINT(1) NOT NULL DEFAULT 0,
   age INT DEFAULT NULL,
+  dob VARCHAR(40) DEFAULT NULL,
   email VARCHAR(190) DEFAULT NULL,
   address TEXT DEFAULT NULL,
   nagarsevak_id VARCHAR(80) DEFAULT NULL,

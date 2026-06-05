@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export type PostType = "announcement" | "update" | "complaint" | "general";
 
@@ -46,25 +48,21 @@ interface FeedContextType {
     avatarColor: string,
     authorId: string,
     imageUri?: string
-  ) => { success: boolean; reason?: string };
+  ) => Promise<{ success: boolean; reason?: string }>;
   addChatMessage: (
     text: string,
     authorId: string,
     authorName: string,
     authorRole: string,
     avatarColor: string
-  ) => { success: boolean; reason?: string };
-  deleteChatMessage: (msgId: string) => void;
-  editChatMessage: (msgId: string, newText: string) => void;
-  toggleLike: (postId: string, userId: string) => void;
+  ) => Promise<{ success: boolean; reason?: string }>;
+  deleteChatMessage: (msgId: string) => Promise<void>;
+  editChatMessage: (msgId: string, newText: string) => Promise<void>;
+  toggleLike: (postId: string, userId: string) => Promise<void>;
+  refreshFeed: () => Promise<void>;
 }
 
 const FeedContext = createContext<FeedContextType | null>(null);
-
-const STORAGE_KEY = "janseva_feed_v3";
-const CHAT_KEY = "janseva_chat_v3";
-const SUBSCRIPTIONS_KEY = "janseva_subscriptions";
-const BLOCKED_KEY = "janseva_blocked";
 
 const BAD_WORDS = [
   "fuck", "f*ck", "fuk", "fucker", "fucking", "fucks",
@@ -100,74 +98,136 @@ export function hasBadContent(text: string): boolean {
   return BAD_WORDS.some((word) => lower.includes(word));
 }
 
-function generateId() {
-  return "P" + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 3).toUpperCase();
+function generateId(prefix: string) {
+  return prefix + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 3).toUpperCase();
 }
 
+function normalizePost(raw: any): FeedPost {
+  const likesCsv = String(raw.likes_csv || "");
+  const likes = Array.isArray(raw.likes)
+    ? raw.likes.map(String)
+    : likesCsv
+      ? likesCsv.split(",").filter(Boolean)
+      : [];
+
+  return {
+    id: String(raw.id),
+    authorId: String(raw.authorId || raw.author_id || ""),
+    authorName: raw.authorName || raw.author_name || "User",
+    authorRole: raw.authorRole || raw.author_role || "citizen",
+    avatarColor: raw.avatarColor || raw.avatar_color || "#EA580C",
+    type: (raw.type || "general") as PostType,
+    content: raw.content || "",
+    imageUri: raw.imageUri || raw.image_uri || undefined,
+    likes,
+    commentsCount: Number(raw.commentsCount || raw.comments_count || 0),
+    createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+    pinned: raw.pinned === true || raw.pinned === 1,
+  };
+}
+
+function normalizeChat(raw: any): ChatMessage {
+  return {
+    id: String(raw.id),
+    authorId: String(raw.authorId || raw.author_id || ""),
+    authorName: raw.authorName || raw.author_name || "User",
+    authorRole: raw.authorRole || raw.author_role || "citizen",
+    avatarColor: raw.avatarColor || raw.avatar_color || "#EA580C",
+    text: raw.text || "",
+    createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+  };
+}
 
 export function FeedProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [subscriptions, setSubscriptions] = useState<Record<string, boolean>>({});
   const [blocked, setBlocked] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
-      AsyncStorage.getItem(STORAGE_KEY),
-      AsyncStorage.getItem(CHAT_KEY),
-      AsyncStorage.getItem(SUBSCRIPTIONS_KEY),
-      AsyncStorage.getItem(BLOCKED_KEY),
-    ]).then(([storedPosts, storedChat, storedSubs, storedBlocked]) => {
-      setPosts(storedPosts ? JSON.parse(storedPosts) : []);
-      setChatMessages(storedChat ? JSON.parse(storedChat) : []);
-      setSubscriptions(storedSubs ? JSON.parse(storedSubs) : {});
-      setBlocked(storedBlocked ? JSON.parse(storedBlocked) : {});
-      if (!storedPosts) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([]));
-      if (!storedChat) AsyncStorage.setItem(CHAT_KEY, JSON.stringify([]));
+  const refreshFeed = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const [postsRes, chatRes] = await Promise.all([
+        apiGet<any>("/api/feed/posts"),
+        apiGet<any>("/api/chat/messages"),
+      ]);
+
+      setPosts(Array.isArray(postsRes.posts) ? postsRes.posts.map(normalizePost) : []);
+      setChatMessages(Array.isArray(chatRes.messages) ? chatRes.messages.map(normalizeChat) : []);
+
+      if (user?.id) {
+        const [subsRes, blocksRes] = await Promise.all([
+          apiGet<any>(`/api/feed/subscriptions?user_id=${encodeURIComponent(user.id)}`),
+          apiGet<any>(`/api/feed/blocks?user_id=${encodeURIComponent(user.id)}`),
+        ]);
+
+        const nextSubs: Record<string, boolean> = {};
+        for (const item of subsRes.subscriptions || []) {
+          nextSubs[String(item.target_user_id)] = true;
+        }
+
+        const nextBlocked: Record<string, number> = {};
+        for (const item of blocksRes.blocks || []) {
+          nextBlocked[String(item.blocked_user_id)] = Number(item.blocked_until);
+        }
+
+        setSubscriptions(nextSubs);
+        setBlocked(nextBlocked);
+      } else {
+        setSubscriptions({});
+        setBlocked({});
+      }
+    } catch (error) {
+      console.error("Failed to load feed/chat from MySQL", error);
+      setPosts([]);
+      setChatMessages([]);
+    } finally {
       setLoading(false);
-    });
-  }, []);
+    }
+  }, [user?.id]);
 
-  const savePosts = (updated: FeedPost[]) => {
-    setPosts(updated);
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  };
-
-  const saveChat = (updated: ChatMessage[]) => {
-    setChatMessages(updated);
-    AsyncStorage.setItem(CHAT_KEY, JSON.stringify(updated));
-  };
+  useEffect(() => {
+    void refreshFeed();
+  }, [refreshFeed]);
 
   const isSubscribed = (userId: string) => !!subscriptions[userId];
 
   const isBlocked = (userId: string) => {
     const until = blocked[userId];
     if (!until) return false;
-    if (Date.now() > until) {
-      const next = { ...blocked };
-      delete next[userId];
-      setBlocked(next);
-      AsyncStorage.setItem(BLOCKED_KEY, JSON.stringify(next));
-      return false;
-    }
-    return true;
+    return Date.now() <= until;
   };
 
-  const subscribe = async (userId: string) => {
-    const next = { ...subscriptions, [userId]: true };
-    setSubscriptions(next);
-    await AsyncStorage.setItem(SUBSCRIPTIONS_KEY, JSON.stringify(next));
+  const subscribe = async (targetUserId: string) => {
+    if (!user?.id) return;
+
+    await apiPost("/api/feed/subscriptions", {
+      subscriber_id: user.id,
+      target_user_id: targetUserId,
+    });
+
+    await refreshFeed();
   };
 
-  const blockUser = async (userId: string) => {
+  const blockUser = async (blockedUserId: string) => {
+    if (!user?.id) return;
+
     const until = Date.now() + 24 * 60 * 60 * 1000;
-    const next = { ...blocked, [userId]: until };
-    setBlocked(next);
-    await AsyncStorage.setItem(BLOCKED_KEY, JSON.stringify(next));
+
+    await apiPost("/api/feed/blocks", {
+      user_id: user.id,
+      blocked_user_id: blockedUserId,
+      blocked_until: until,
+      reason: "bad_content",
+    });
+
+    await refreshFeed();
   };
 
-  const addPost = (
+  const addPost = async (
     content: string,
     type: PostType,
     authorName: string,
@@ -175,76 +235,101 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     avatarColor: string,
     authorId: string,
     imageUri?: string
-  ): { success: boolean; reason?: string } => {
+  ) => {
     if (hasBadContent(content)) {
-      blockUser(authorId);
+      await blockUser(authorId);
       return { success: false, reason: "blocked" };
     }
-    const post: FeedPost = {
-      id: generateId(),
-      authorId,
-      authorName,
-      authorRole,
-      avatarColor,
+
+    await apiPost("/api/feed/posts", {
+      id: generateId("P"),
+      author_id: authorId,
+      author_name: authorName,
+      author_role: authorRole,
+      avatar_color: avatarColor,
       type,
       content,
-      imageUri,
-      likes: [],
-      commentsCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    savePosts([post, ...posts]);
+      image_uri: imageUri || null,
+      pinned: false,
+    });
+
+    await refreshFeed();
     return { success: true };
   };
 
-  const addChatMessage = (
+  const addChatMessage = async (
     text: string,
     authorId: string,
     authorName: string,
     authorRole: string,
     avatarColor: string
-  ): { success: boolean; reason?: string } => {
+  ) => {
     if (hasBadContent(text)) {
-      blockUser(authorId);
+      await blockUser(authorId);
       return { success: false, reason: "blocked" };
     }
-    const msg: ChatMessage = {
-      id: generateId(),
-      authorId,
-      authorName,
-      authorRole,
-      avatarColor,
+
+    await apiPost("/api/chat/messages", {
+      id: generateId("M"),
+      author_id: authorId,
+      author_name: authorName,
+      author_role: authorRole,
+      avatar_color: avatarColor,
       text,
-      createdAt: new Date().toISOString(),
-    };
-    saveChat([...chatMessages, msg]);
+    });
+
+    await refreshFeed();
     return { success: true };
   };
 
-  const deleteChatMessage = (msgId: string) => {
-    saveChat(chatMessages.filter((m) => m.id !== msgId));
+  const deleteChatMessage = async (msgId: string) => {
+    await apiDelete(`/api/chat/messages/${encodeURIComponent(msgId)}`);
+    await refreshFeed();
   };
 
-  const editChatMessage = (msgId: string, newText: string) => {
-    if (!newText.trim() || hasBadContent(newText)) return;
-    saveChat(chatMessages.map((m) => m.id === msgId ? { ...m, text: newText.trim() + " (edited)" } : m));
-  };
+  const editChatMessage = async (msgId: string, newText: string) => {
+    const clean = newText.trim();
+    if (!clean || hasBadContent(clean)) return;
 
-  const toggleLike = (postId: string, userId: string) => {
-    const updated = posts.map((p) => {
-      if (p.id !== postId) return p;
-      const liked = p.likes.includes(userId);
-      return { ...p, likes: liked ? p.likes.filter((id) => id !== userId) : [...p.likes, userId] };
+    await apiPatch(`/api/chat/messages/${encodeURIComponent(msgId)}`, {
+      text: `${clean} (edited)`,
     });
-    savePosts(updated);
+
+    await refreshFeed();
+  };
+
+  const toggleLike = async (postId: string, userId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    const liked = !!post?.likes.includes(userId);
+
+    if (liked) {
+      await apiDelete(`/api/feed/posts/${encodeURIComponent(postId)}/like?user_id=${encodeURIComponent(userId)}`);
+    } else {
+      await apiPost(`/api/feed/posts/${encodeURIComponent(postId)}/like`, {
+        user_id: userId,
+      });
+    }
+
+    await refreshFeed();
   };
 
   return (
     <FeedContext.Provider value={{
-      posts, chatMessages, loading,
-      subscriptions, blocked,
-      subscribe, isSubscribed, isBlocked, blockUser,
-      addPost, addChatMessage, deleteChatMessage, editChatMessage, toggleLike,
+      posts,
+      chatMessages,
+      loading,
+      subscriptions,
+      blocked,
+      subscribe,
+      isSubscribed,
+      isBlocked,
+      blockUser,
+      addPost,
+      addChatMessage,
+      deleteChatMessage,
+      editChatMessage,
+      toggleLike,
+      refreshFeed,
     }}>
       {children}
     </FeedContext.Provider>

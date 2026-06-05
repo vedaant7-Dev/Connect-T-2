@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { apiUrl } from "@/constants/api";
+import { apiDelete, apiGet, apiPost } from "@/lib/api";
 
 export type AlertType = "alert" | "news" | "emergency";
 export type AlertPriority = "normal" | "important" | "urgent" | "high";
@@ -54,15 +53,13 @@ interface AlertContextType {
     postedBy?: string,
     postedById?: string,
     ward?: string,
-  ) => void;
-  removeAlert: (id: string) => void;
+  ) => Promise<AppAlert>;
+  removeAlert: (id: string) => Promise<void>;
   refreshAlerts: () => Promise<void>;
   loading: boolean;
 }
 
 const AlertContext = createContext<AlertContextType | null>(null);
-
-const STORAGE_KEY = "connectt_alerts_v1";
 const ALERT_ACTIVE_MS = 12 * 60 * 60 * 1000;
 
 function normalizeAlertType(value: any): AlertType {
@@ -81,21 +78,6 @@ function normalizePriority(value: any): AlertPriority {
   }
 
   return "normal";
-}
-
-function getExpiryTime(alert: AppAlert) {
-  const explicitExpiry = alert.expiresAt ? new Date(alert.expiresAt).getTime() : NaN;
-  if (!Number.isNaN(explicitExpiry)) return explicitExpiry;
-
-  const validUntilTime = alert.validUntil ? new Date(alert.validUntil).getTime() : NaN;
-  if (!Number.isNaN(validUntilTime)) return validUntilTime;
-
-  return new Date(alert.createdAt).getTime() + ALERT_ACTIVE_MS;
-}
-
-function getActiveAlerts(items: AppAlert[]) {
-  const now = Date.now();
-  return items.filter((item) => getExpiryTime(item) > now);
 }
 
 function sortAlerts(items: AppAlert[]) {
@@ -130,7 +112,7 @@ function normalizeBackendAlert(item: any): AppAlert {
   const mediaType = item.media?.type || item.media_type || (item.video_uri ? "video" : item.image_uri ? "image" : "");
 
   return {
-    id: String(item.id || "ALT" + Date.now()),
+    id: String(item.id || item.alertId || "ALT" + Date.now()),
     title: item.title || "",
     body: item.body || item.message || "",
     type: normalizeAlertType(item.type),
@@ -162,58 +144,23 @@ function normalizeBackendAlert(item: any): AppAlert {
   };
 }
 
-async function readCachedAlerts() {
-  const stored = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!stored) return [];
-
-  try {
-    const parsed: AppAlert[] = JSON.parse(stored);
-    return getActiveAlerts(parsed);
-  } catch {
-    return [];
-  }
-}
-
-async function writeCachedAlerts(items: AppAlert[]) {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(getActiveAlerts(items)));
-}
-
 export function AlertProvider({ children }: { children: ReactNode }) {
   const [alerts, setAlerts] = useState<AppAlert[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const saveLocal = async (items: AppAlert[]) => {
-    const active = sortAlerts(getActiveAlerts(items));
-    setAlerts(active);
-    await writeCachedAlerts(active).catch(() => {});
-  };
 
   const refreshAlerts = async () => {
     try {
       setLoading(true);
 
-      const cached = await readCachedAlerts();
-      if (cached.length > 0) {
-        setAlerts(sortAlerts(cached));
-      }
-
-      const response = await fetch(apiUrl("/api/alerts"));
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || result.error || "Failed to load alerts");
-      }
-
+      const result = await apiGet<any>("/api/alerts");
       const backendAlerts = Array.isArray(result.alerts)
         ? result.alerts.map(normalizeBackendAlert)
         : [];
 
-      await saveLocal(backendAlerts);
+      setAlerts(sortAlerts(backendAlerts));
     } catch (error) {
-      console.error("Failed to sync alerts from backend", error);
-
-      const cached = await readCachedAlerts();
-      setAlerts(sortAlerts(cached));
+      console.error("Failed to load alerts from MySQL", error);
+      setAlerts([]);
     } finally {
       setLoading(false);
     }
@@ -223,21 +170,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     void refreshAlerts();
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setAlerts((current) => {
-        const active = sortAlerts(getActiveAlerts(current));
-        if (active.length !== current.length) {
-          writeCachedAlerts(active).catch(() => {});
-        }
-        return active;
-      });
-    }, 60000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const addAlert = (
+  const addAlert = async (
     data: AlertDraft,
     postedBy: string = "Super Admin",
     postedById?: string,
@@ -248,77 +181,44 @@ export function AlertProvider({ children }: { children: ReactNode }) {
       data.expiresAt ||
       new Date(createdAt.getTime() + ALERT_ACTIVE_MS).toISOString();
 
-    const localAlert: AppAlert = {
-      ...data,
-      priority: data.priority || "normal",
-      media: data.media || null,
-      id: "ALT" + Date.now().toString().slice(-8),
-      createdAt: createdAt.toISOString(),
-      expiresAt,
-      validUntil: data.validUntil || formatValidUntil(expiresAt),
-      postedBy,
-      postedById,
-      ward,
-    };
-
-    void saveLocal([localAlert, ...alerts]);
+    const id = "ALT" + Date.now().toString().slice(-8);
 
     const payload = {
-      id: localAlert.id,
-      title: localAlert.title,
-      body: localAlert.body,
-      type: localAlert.type,
-      category: localAlert.category || null,
-      priority: localAlert.priority || "normal",
-      location: localAlert.location || null,
-      valid_until: localAlert.validUntil || null,
-      expires_at: localAlert.expiresAt || null,
-      target_audience: localAlert.targetAudience || null,
-      media_uri: localAlert.media?.uri || null,
-      media_type: localAlert.media?.type || null,
-      media_file_name: localAlert.media?.fileName || null,
-      media_mime_type: localAlert.media?.mimeType || null,
-      media_duration: localAlert.media?.duration || null,
+      id,
+      title: data.title,
+      body: data.body,
+      type: data.type,
+      category: data.category || null,
+      priority: data.priority || "normal",
+      location: data.location || null,
+      valid_until: data.validUntil || formatValidUntil(expiresAt),
+      expires_at: expiresAt,
+      target_audience: data.targetAudience || null,
+      media_uri: data.media?.uri || null,
+      media_type: data.media?.type || null,
+      media_file_name: data.media?.fileName || null,
+      media_mime_type: data.media?.mimeType || null,
+      media_duration: data.media?.duration || null,
       posted_by: postedBy,
       posted_by_id: postedById || null,
       ward: ward || null,
     };
 
-    fetch(apiUrl("/api/alerts"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-      .then(async (response) => {
-        const result = await response.json().catch(() => ({}));
+    const result = await apiPost<any>("/api/alerts", payload);
 
-        if (!response.ok || !result.success) {
-          throw new Error(result.message || result.error || "Failed to post alert");
-        }
+    const created = normalizeBackendAlert({
+      ...payload,
+      id: result.alertId || id,
+      created_at: createdAt.toISOString(),
+    });
 
-        void refreshAlerts();
-      })
-      .catch((error) => {
-        console.error("Failed to post alert to backend", error);
-      });
+    await refreshAlerts();
+    return created;
   };
 
-  const removeAlert = (id: string) => {
-    const updated = alerts.filter((a) => a.id !== id);
-    void saveLocal(updated);
-
-    fetch(apiUrl(`/api/alerts/${encodeURIComponent(id)}`), {
-      method: "DELETE",
-    })
-      .then(async (response) => {
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok || !result.success) {
-          throw new Error(result.message || result.error || "Failed to remove alert");
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to remove alert from backend", error);
-      });
+  const removeAlert = async (id: string) => {
+    await apiDelete(`/api/alerts/${encodeURIComponent(id)}`);
+    await refreshAlerts();
   };
 
   return (

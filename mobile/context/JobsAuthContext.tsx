@@ -284,7 +284,6 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
   const persist = async (user: JobsUser | null) => {
     if (user) {
       await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      await saveStoredJobsAccount(user);
     } else {
       await AsyncStorage.removeItem(SESSION_KEY);
     }
@@ -320,21 +319,6 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
       await persist(normalizeUser(raw));
       return true;
     } catch {
-      const storedAccount = await findStoredJobsAccount(clean, role);
-      if (storedAccount) {
-        await persist(normalizeUser(storedAccount));
-        return true;
-      }
-
-      const saved = await AsyncStorage.getItem(SESSION_KEY);
-      if (!saved) return false;
-
-      const user = normalizeUser(JSON.parse(saved));
-      if (cleanPhone(user.phone) === clean && user.role === role) {
-        await persist(user);
-        return true;
-      }
-
       return false;
     }
   };
