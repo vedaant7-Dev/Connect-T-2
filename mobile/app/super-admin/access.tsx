@@ -22,50 +22,6 @@ function NoticeModal({ visible, title, message, tone = "info", onClose }: { visi
   const icon = tone === "success" ? "check-circle" : tone === "danger" ? "alert-circle" : "info";
 
 
-  const revokeAccess = async (accessId: string) => {
-    try {
-      const raw = await AsyncStorage.getItem(SUPER_ADMIN_ACCESS_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      const list = Array.isArray(parsed) ? parsed : [];
-
-      const nextList = list.map((item: any) => {
-        const itemId = String(item.id || item.accessId || item.uniqueId || "");
-        if (itemId !== String(accessId)) return item;
-
-        return {
-          ...item,
-          status: "revoked",
-          revokedAt: new Date().toISOString(),
-        };
-      });
-
-      await AsyncStorage.setItem(SUPER_ADMIN_ACCESS_KEY, JSON.stringify(nextList));
-
-      Alert.alert("Access revoked", "This Super Admin access ID has been revoked.");
-    } catch (error) {
-      console.warn("Failed to revoke super admin access", error);
-      Alert.alert("Revoke failed", "Could not revoke this access ID. Please try again.");
-    }
-  };
-
-  const confirmRevokeAccess = (accessId: string, name?: string) => {
-    Alert.alert(
-      "Revoke access?",
-      name
-        ? `Are you sure you want to revoke access for ${name}?`
-        : "Are you sure you want to revoke this Super Admin access ID?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Revoke",
-          style: "destructive",
-          onPress: () => revokeAccess(accessId),
-        },
-      ],
-      { cancelable: true },
-    );
-  };
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.noticeOverlay}>
