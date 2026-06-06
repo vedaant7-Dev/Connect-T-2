@@ -431,7 +431,7 @@ app.post("/api/users", async (req, res) => {
 
     const savedProfilePhoto = await saveDataUriToUploads(profile_photo, "profile", req);
 
-    await db.query
+    await db.query(
       `INSERT INTO users
       (id, name, mobile, role, ward, ward_code, ward_number, is_super_admin, age, dob, email, address, nagarsevak_id, avatar_color, profile_photo, notify_email, notify_whatsapp, approval_status, office_address, residence_address, office_timings, contact_name, contact_number)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -688,7 +688,7 @@ app.post("/api/complaints", async (req, res) => {
 
     const savedPhotoUrl = await saveDataUriToUploads(photo_url, "complaint", req);
 
-    await db.query
+    await db.query(
       `INSERT INTO complaints
       (id, title, description, category, photo_url, location, ward, ward_code, assigned_officer_id, user_id, user_name, user_mobile, user_address, user_age, user_email)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
