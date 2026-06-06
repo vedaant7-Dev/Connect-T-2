@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
 
-import { serviceCategories, ServiceCategory, ServicePlace } from "@/data/mumbaiServices";
+import { fetchServiceCatalog, ServiceCategory, ServicePlace } from "@/lib/servicesApi";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 
 function StarRow({ rating }: { rating?: number }) {
@@ -130,14 +130,47 @@ export default function ServicesScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
   const { handleScroll } = useTabBarVisibility();
 
-  const [selectedCat, setSelectedCat] = useState<ServiceCategory>(serviceCategories[0]);
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
+  const [selectedCatState, setSelectedCat] = useState<ServiceCategory | null>(null);
 
   useEffect(() => {
-    if (params.category) {
+    let mounted = true;
+
+    fetchServiceCatalog()
+      .then((categories) => {
+        if (!mounted) return;
+        setServiceCategories(categories);
+        const preferred = params.category
+          ? categories.find((c) => c.id === params.category)
+          : null;
+        setSelectedCat(preferred || categories[0] || null);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setServiceCategories([]);
+        setSelectedCat(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (params.category && serviceCategories.length) {
       const cat = serviceCategories.find((c) => c.id === params.category);
       if (cat) setSelectedCat(cat);
     }
-  }, [params.category]);
+  }, [params.category, serviceCategories]);
+
+  const selectedCat = selectedCatState || serviceCategories[0] || {
+    id: "",
+    label: "Services",
+    icon: "map-pin",
+    color: "#EA580C",
+    bgColor: "#FFEDD5",
+    data: [],
+  };
 
   const sortedData = [...selectedCat.data].sort((a, b) => a.distanceKm - b.distanceKm);
 

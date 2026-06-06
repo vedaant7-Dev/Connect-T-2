@@ -11,12 +11,12 @@ import { UtilityCard } from "@/components/UtilityCard";
 import DecorativeCircles from "@/components/DecorativeCircles";
 import TopShade from "@/components/TopShade";
 import { SectionHeader } from "@/components/SectionHeader";
-import { emergencyContacts } from "@/data/mumbaiServices";
 import { useAuth } from "@/context/AuthContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAlerts, AppAlert, wardKey } from "@/context/AlertContext";
 import { useComplaints, Complaint } from "@/context/ComplaintContext";
+import { fetchEmergencyContacts, fetchServiceCatalog, EmergencyContact } from "@/lib/servicesApi";
 
 const quickServices = [
   { id: "hospital", label: "Hospitals", icon: "activity", color: "#DC2626", bg: "#FEE2E2" },
@@ -84,6 +84,8 @@ export default function HomeScreen() {
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [selectedUtility, setSelectedUtility] = useState<string | null>(null);
   const [readAlertIds, setReadAlertIds] = useState<string[]>([]);
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [serviceShortcuts, setServiceShortcuts] = useState<typeof quickServices>([]);
 
   const roleColor = getRoleColor(user?.role);
   const readAlertsKey = `connectt_read_alerts_${user?.id || "guest"}`;
@@ -104,6 +106,39 @@ export default function HomeScreen() {
     ...complaintNotifs.map((c) => ({ kind: "complaint" as const, id: `c-${c.id}`, createdAt: c.updatedAt || c.createdAt, complaint: c })),
     ...newsItems.map((a) => ({ kind: "news" as const, id: `n-${a.id}`, createdAt: a.createdAt, alert: a })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  useEffect(() => {
+    let mounted = true;
+
+    fetchEmergencyContacts()
+      .then((contacts) => {
+        if (mounted) setEmergencyContacts(contacts);
+      })
+      .catch(() => {
+        if (mounted) setEmergencyContacts([]);
+      });
+
+    fetchServiceCatalog()
+      .then((categories) => {
+        if (!mounted) return;
+        setServiceShortcuts(
+          categories.map((cat) => ({
+            id: cat.id,
+            label: cat.label,
+            icon: cat.icon,
+            color: cat.color,
+            bg: cat.bgColor,
+          })),
+        );
+      })
+      .catch(() => {
+        if (mounted) setServiceShortcuts([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(readAlertsKey)
@@ -290,7 +325,7 @@ export default function HomeScreen() {
         <SectionHeader title={t("quickServices")} actionLabel={t("allServices")} onAction={() => router.push("/(tabs)/services" as any)} />
         <View style={styles.servicesCard}>
           <View style={styles.servicesGrid}>
-            {Array.from({ length: Math.ceil(quickServices.length / 4) }, (_, rowIndex) => quickServices.slice(rowIndex * 4, rowIndex * 4 + 4)).map((row, rowIndex) => (
+            {Array.from({ length: Math.ceil(serviceShortcuts.length / 4) }, (_, rowIndex) => serviceShortcuts.slice(rowIndex * 4, rowIndex * 4 + 4)).map((row, rowIndex) => (
               <View key={`service-row-${rowIndex}`} style={styles.serviceRow}>
                 {row.map((svc) => (
                   <TouchableOpacity

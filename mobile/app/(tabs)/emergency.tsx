@@ -1,13 +1,13 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { EmergencyButton } from "@/components/EmergencyButton";
-import { emergencyContacts } from "@/data/mumbaiServices";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
+import { fetchEmergencyContacts, EmergencyContact } from "@/lib/servicesApi";
 
 export default function EmergencyScreen() {
   const insets = useSafeAreaInsets();
@@ -15,6 +15,23 @@ export default function EmergencyScreen() {
 
   const { t } = useLanguage();
   const { handleScroll } = useTabBarVisibility();
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    fetchEmergencyContacts()
+      .then((contacts) => {
+        if (mounted) setEmergencyContacts(contacts);
+      })
+      .catch(() => {
+        if (mounted) setEmergencyContacts([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const tips = [t("tip1"), t("tip2"), t("tip3"), t("tip4")];
 

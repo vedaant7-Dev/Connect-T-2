@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
 
-import { serviceCategories } from "@/data/mumbaiServices";
+import { fetchServiceCatalog, ServiceCategory } from "@/lib/servicesApi";
 import { ServiceMap } from "@/components/ServiceMap";
 
 function StarRating({ rating, size = 13 }: { rating: number; size?: number }) {
@@ -33,6 +33,23 @@ export default function ServiceDetailScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 44 : insets.top;
   const params = useLocalSearchParams<{ id: string; category: string }>();
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    fetchServiceCatalog()
+      .then((categories) => {
+        if (mounted) setServiceCategories(categories);
+      })
+      .catch(() => {
+        if (mounted) setServiceCategories([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const category = serviceCategories.find((c) => c.id === params.category);
   const place = category?.data.find((p) => p.id === params.id);
@@ -41,6 +58,15 @@ export default function ServiceDetailScreen() {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Linking.openURL(`tel:${phone}`);
   };
+
+  if (!serviceCategories.length) {
+    return (
+      <View style={[styles.root, { justifyContent: "center", alignItems: "center" }]}>
+        <Feather name="loader" size={34} color="#EA580C" />
+        <Text style={{ marginTop: 12, fontSize: 16, color: "#64748B" }}>Loading service details...</Text>
+      </View>
+    );
+  }
 
   if (!place || !category) {
     return (

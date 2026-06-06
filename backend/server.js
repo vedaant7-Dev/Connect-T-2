@@ -1222,9 +1222,234 @@ app.delete("/api/chat/messages/:id", async (req, res) => {
   }
 });
 
+
+async function ensureServiceDirectorySchema() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS service_categories (
+      id VARCHAR(80) NOT NULL PRIMARY KEY,
+      label VARCHAR(160) NOT NULL,
+      icon VARCHAR(80) NULL,
+      color VARCHAR(40) NULL,
+      bg_color VARCHAR(40) NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS service_places (
+      id VARCHAR(80) NOT NULL PRIMARY KEY,
+      category_id VARCHAR(80) NOT NULL,
+      name VARCHAR(190) NOT NULL,
+      address TEXT NOT NULL,
+      distance VARCHAR(80) NULL,
+      distance_km DECIMAL(8,2) NULL,
+      type VARCHAR(120) NULL,
+      speciality VARCHAR(190) NULL,
+      timing VARCHAR(190) NULL,
+      govt_type VARCHAR(120) NULL,
+      established VARCHAR(80) NULL,
+      beds INT NULL,
+      beds_occupied INT NULL,
+      services_json LONGTEXT NULL,
+      rating DECIMAL(3,2) NULL,
+      review_count INT NOT NULL DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_service_category_id (category_id),
+      KEY idx_service_active (is_active)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS service_place_contacts (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      place_id VARCHAR(80) NOT NULL,
+      name VARCHAR(160) NOT NULL,
+      phone VARCHAR(60) NOT NULL,
+      role VARCHAR(120) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_spc_place_id (place_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS service_place_reviews (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      place_id VARCHAR(80) NOT NULL,
+      reviewer VARCHAR(160) NOT NULL,
+      rating DECIMAL(3,2) NOT NULL DEFAULT 0,
+      comment TEXT NULL,
+      review_date VARCHAR(80) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_spr_place_id (place_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS emergency_contacts (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(160) NOT NULL,
+      phone VARCHAR(40) NULL,
+      type VARCHAR(80) NULL,
+      icon VARCHAR(80) NULL,
+      color VARCHAR(40) NULL,
+      bg VARCHAR(40) NULL,
+      address TEXT NULL,
+      available VARCHAR(80) NULL,
+      priority INT NOT NULL DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await ensureColumn("service_categories", "is_active", "is_active TINYINT(1) NOT NULL DEFAULT 1");
+  await ensureColumn("service_places", "is_active", "is_active TINYINT(1) NOT NULL DEFAULT 1");
+  await ensureColumn("emergency_contacts", "phone", "phone VARCHAR(40) NULL AFTER name");
+  await ensureColumn("emergency_contacts", "type", "type VARCHAR(80) NULL AFTER phone");
+  await ensureColumn("emergency_contacts", "icon", "icon VARCHAR(80) NULL AFTER type");
+  await ensureColumn("emergency_contacts", "color", "color VARCHAR(40) NULL AFTER icon");
+  await ensureColumn("emergency_contacts", "bg", "bg VARCHAR(40) NULL AFTER color");
+  await ensureColumn("emergency_contacts", "address", "address TEXT NULL AFTER bg");
+  await ensureColumn("emergency_contacts", "available", "available VARCHAR(80) NULL AFTER address");
+  await ensureColumn("emergency_contacts", "priority", "priority INT NOT NULL DEFAULT 0 AFTER available");
+  await ensureColumn("emergency_contacts", "is_active", "is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER priority");
+}
+
+function safeParseJson(value, fallback = []) {
+  if (!value) return fallback;
+  if (Array.isArray(value)) return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+
 /* SERVICES */
+
+app.get("/api/services/catalog", async (req, res) => {
+  try {
+    await ensureServiceDirectorySchema();
+
+    const [categoryRows] = await db.query(
+      `SELECT id, label, icon, color, bg_color
+       FROM service_categories
+       WHERE is_active = 1
+       ORDER BY FIELD(id, 'hospital', 'childHospital', 'clinic', 'police', 'bank', 'postOffice', 'school', 'shamshanbhumi'), label ASC`,
+    );
+
+    const [placeRows] = await db.query(
+      `SELECT *
+       FROM service_places
+       WHERE is_active = 1
+       ORDER BY category_id ASC, distance_km ASC, rating DESC, name ASC`,
+    );
+
+    const [contactRows] = await db.query(
+      `SELECT place_id, name, phone, role
+       FROM service_place_contacts
+       ORDER BY id ASC`,
+    );
+
+    const [reviewRows] = await db.query(
+      `SELECT place_id, reviewer, rating, comment, review_date
+       FROM service_place_reviews
+       ORDER BY id ASC`,
+    );
+
+    const contactsByPlace = {};
+    for (const contact of contactRows) {
+      if (!contactsByPlace[contact.place_id]) contactsByPlace[contact.place_id] = [];
+      contactsByPlace[contact.place_id].push({
+        name: contact.name,
+        phone: contact.phone,
+        role: contact.role || undefined,
+      });
+    }
+
+    const reviewsByPlace = {};
+    for (const review of reviewRows) {
+      if (!reviewsByPlace[review.place_id]) reviewsByPlace[review.place_id] = [];
+      reviewsByPlace[review.place_id].push({
+        reviewer: review.reviewer,
+        rating: Number(review.rating || 0),
+        comment: review.comment || "",
+        date: review.review_date || "",
+      });
+    }
+
+    const defaultCategoryMeta = {
+      hospital: { label: "Hospitals", icon: "activity", color: "#DC2626", bgColor: "#FEE2E2" },
+      childHospital: { label: "Child Care", icon: "heart", color: "#7C3AED", bgColor: "#EDE9FE" },
+      clinic: { label: "Clinics", icon: "plus-circle", color: "#059669", bgColor: "#D1FAE5" },
+      police: { label: "Police", icon: "shield", color: "#1E40AF", bgColor: "#DBEAFE" },
+      bank: { label: "Banks", icon: "credit-card", color: "#D97706", bgColor: "#FEF3C7" },
+      postOffice: { label: "Post Office", icon: "mail", color: "#0EA5E9", bgColor: "#BAE6FD" },
+      school: { label: "Schools", icon: "book-open", color: "#7C3AED", bgColor: "#EDE9FE" },
+      shamshanbhumi: { label: "Crematorium", icon: "wind", color: "#475569", bgColor: "#F1F5F9" },
+    };
+
+    const categoriesSource = categoryRows.length
+      ? categoryRows
+      : Array.from(new Set(placeRows.map((p) => p.category_id))).map((id) => ({ id }));
+
+    const placesByCategory = {};
+    for (const place of placeRows) {
+      if (!placesByCategory[place.category_id]) placesByCategory[place.category_id] = [];
+      placesByCategory[place.category_id].push({
+        id: place.id,
+        name: place.name,
+        address: place.address,
+        distance: place.distance || "",
+        distanceKm: Number(place.distance_km || 0),
+        contacts: contactsByPlace[place.id] || [],
+        type: place.type || place.category_id,
+        speciality: place.speciality || undefined,
+        timing: place.timing || undefined,
+        govtType: place.govt_type || undefined,
+        established: place.established ? Number(place.established) : undefined,
+        beds: place.beds === null || place.beds === undefined ? undefined : Number(place.beds),
+        bedsOccupied: place.beds_occupied === null || place.beds_occupied === undefined ? undefined : Number(place.beds_occupied),
+        services: safeParseJson(place.services_json, []),
+        rating: place.rating === null || place.rating === undefined ? undefined : Number(place.rating),
+        reviewCount: Number(place.review_count || 0),
+        reviews: reviewsByPlace[place.id] || [],
+      });
+    }
+
+    const categories = categoriesSource.map((cat) => {
+      const meta = defaultCategoryMeta[cat.id] || {};
+      return {
+        id: cat.id,
+        label: cat.label || meta.label || cat.id,
+        icon: cat.icon || meta.icon || "map-pin",
+        color: cat.color || meta.color || "#EA580C",
+        bgColor: cat.bg_color || meta.bgColor || "#FFEDD5",
+        data: placesByCategory[cat.id] || [],
+      };
+    });
+
+    res.json({
+      success: true,
+      categories,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+
 app.get("/api/services", async (req, res) => {
   try {
+    await ensureServiceDirectorySchema();
     const { category_id } = req.query;
 
     let sql = "SELECT * FROM service_places WHERE is_active = 1";
@@ -1420,6 +1645,7 @@ app.delete("/api/services/:id", requireSuperAdmin, async (req, res) => {
 /* EMERGENCY */
 app.get("/api/emergency", async (req, res) => {
   try {
+    await ensureServiceDirectorySchema();
     const type = String(req.query.type || "").trim();
 
     let sql = "SELECT * FROM emergency_contacts WHERE is_active = 1";

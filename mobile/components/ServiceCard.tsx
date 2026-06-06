@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import type { ServicePlace } from "@/data/mumbaiServices";
+import type { ServicePlace } from "@/lib/servicesApi";
 
 interface ServiceCardProps {
   place: ServicePlace;
