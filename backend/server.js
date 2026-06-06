@@ -166,6 +166,59 @@ async function ensureProductionMySQLSchema() {
     await ensureColumn("users", "contact_name", "contact_name VARCHAR(150) NULL AFTER office_timings");
     await ensureColumn("users", "contact_number", "contact_number VARCHAR(20) NULL AFTER contact_name");
 
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS service_places (
+        id VARCHAR(80) NOT NULL PRIMARY KEY,
+        category_id VARCHAR(80) NOT NULL,
+        name VARCHAR(190) NOT NULL,
+        address TEXT NOT NULL,
+        distance VARCHAR(80) NULL,
+        distance_km DECIMAL(8,2) NULL,
+        type VARCHAR(120) NULL,
+        speciality VARCHAR(190) NULL,
+        timing VARCHAR(190) NULL,
+        govt_type VARCHAR(120) NULL,
+        established VARCHAR(80) NULL,
+        beds INT NULL,
+        beds_occupied INT NULL,
+        services_json LONGTEXT NULL,
+        rating DECIMAL(3,2) NULL,
+        review_count INT NOT NULL DEFAULT 0,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_service_category_id (category_id),
+        KEY idx_service_active (is_active),
+        KEY idx_service_rating (rating),
+        KEY idx_service_name (name)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await ensureColumn("service_places", "is_active", "is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER review_count");
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS emergency_contacts (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(160) NOT NULL,
+        phone VARCHAR(40) NULL,
+        type VARCHAR(80) NULL,
+        address TEXT NULL,
+        available VARCHAR(80) NULL,
+        priority INT NOT NULL DEFAULT 0,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_emergency_name (name),
+        KEY idx_emergency_type (type),
+        KEY idx_emergency_active (is_active),
+        KEY idx_emergency_priority (priority)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await ensureColumn("emergency_contacts", "priority", "priority INT NOT NULL DEFAULT 0 AFTER available");
+    await ensureColumn("emergency_contacts", "is_active", "is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER priority");
+
     await db.query(`
       CREATE TABLE IF NOT EXISTS feed_subscriptions (
         id BIGINT NOT NULL AUTO_INCREMENT,
@@ -1174,11 +1227,11 @@ app.get("/api/services", async (req, res) => {
   try {
     const { category_id } = req.query;
 
-    let sql = "SELECT * FROM service_places";
+    let sql = "SELECT * FROM service_places WHERE is_active = 1";
     const params = [];
 
     if (category_id) {
-      sql += " WHERE category_id = ?";
+      sql += " AND category_id = ?";
       params.push(category_id);
     }
 
@@ -1191,7 +1244,7 @@ app.get("/api/services", async (req, res) => {
   }
 });
 
-app.post("/api/services", async (req, res) => {
+app.post("/api/services", requireSuperAdmin, async (req, res) => {
   try {
     const id = req.body.id || createId("service");
 
@@ -1250,19 +1303,292 @@ app.post("/api/services", async (req, res) => {
   }
 });
 
-/* EMERGENCY */
-app.get("/api/emergency", async (req, res) => {
+
+app.patch("/api/services/:id", requireSuperAdmin, async (req, res) => {
   try {
-    const [rows] = await db.query(
-      "SELECT * FROM emergency_contacts ORDER BY id ASC",
+    const id = String(req.params.id || "").trim();
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: "service id is required",
+      });
+    }
+
+    const allowed = {
+      category_id: "category_id",
+      name: "name",
+      address: "address",
+      distance: "distance",
+      distance_km: "distance_km",
+      type: "type",
+      speciality: "speciality",
+      timing: "timing",
+      govt_type: "govt_type",
+      established: "established",
+      beds: "beds",
+      beds_occupied: "beds_occupied",
+      services_json: "services_json",
+      rating: "rating",
+      review_count: "review_count",
+      is_active: "is_active",
+    };
+
+    const sets = [];
+    const params = [];
+
+    for (const [bodyKey, column] of Object.entries(allowed)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, bodyKey)) {
+        sets.push(`${column} = ?`);
+        params.push(
+          bodyKey === "services_json" && req.body[bodyKey] !== null && req.body[bodyKey] !== undefined
+            ? JSON.stringify(req.body[bodyKey])
+            : req.body[bodyKey],
+        );
+      }
+    }
+
+    if (!sets.length) {
+      return res.status(400).json({
+        success: false,
+        error: "No valid service fields provided",
+      });
+    }
+
+    params.push(id);
+
+    const [result] = await db.query(
+      `UPDATE service_places SET ${sets.join(", ")} WHERE id = ?`,
+      params,
     );
 
-    res.json({ success: true, emergencyContacts: rows });
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        success: false,
+        error: "Service not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      serviceId: id,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+    });
   }
 });
 
+app.delete("/api/services/:id", requireSuperAdmin, async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: "service id is required",
+      });
+    }
+
+    const [result] = await db.query(
+      "UPDATE service_places SET is_active = 0 WHERE id = ?",
+      [id],
+    );
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        success: false,
+        error: "Service not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      serviceId: id,
+      message: "Service deleted",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+/* EMERGENCY */
+app.get("/api/emergency", async (req, res) => {
+  try {
+    const type = String(req.query.type || "").trim();
+
+    let sql = "SELECT * FROM emergency_contacts WHERE is_active = 1";
+    const params = [];
+
+    if (type) {
+      sql += " AND type = ?";
+      params.push(type);
+    }
+
+    sql += " ORDER BY priority DESC, id ASC";
+
+    const [rows] = await db.query(sql, params);
+
+    res.json({
+      success: true,
+      emergencyContacts: rows,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+app.post("/api/emergency", requireSuperAdmin, async (req, res) => {
+  try {
+    const {
+      name,
+      phone,
+      type,
+      address,
+      available,
+      priority = 0,
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: "name is required",
+      });
+    }
+
+    const [result] = await db.query(
+      `INSERT INTO emergency_contacts
+       (name, phone, type, address, available, priority, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, 1)`,
+      [
+        String(name).trim(),
+        phone || null,
+        type || null,
+        address || null,
+        available || null,
+        Number(priority) || 0,
+      ],
+    );
+
+    return res.status(201).json({
+      success: true,
+      emergencyId: result.insertId,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+app.patch("/api/emergency/:id", requireSuperAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: "valid emergency id is required",
+      });
+    }
+
+    const allowed = {
+      name: "name",
+      phone: "phone",
+      type: "type",
+      address: "address",
+      available: "available",
+      priority: "priority",
+      is_active: "is_active",
+    };
+
+    const sets = [];
+    const params = [];
+
+    for (const [bodyKey, column] of Object.entries(allowed)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, bodyKey)) {
+        sets.push(`${column} = ?`);
+        params.push(req.body[bodyKey]);
+      }
+    }
+
+    if (!sets.length) {
+      return res.status(400).json({
+        success: false,
+        error: "No valid emergency fields provided",
+      });
+    }
+
+    params.push(id);
+
+    const [result] = await db.query(
+      `UPDATE emergency_contacts SET ${sets.join(", ")} WHERE id = ?`,
+      params,
+    );
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        success: false,
+        error: "Emergency contact not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      emergencyId: id,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+app.delete("/api/emergency/:id", requireSuperAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: "valid emergency id is required",
+      });
+    }
+
+    const [result] = await db.query(
+      "UPDATE emergency_contacts SET is_active = 0 WHERE id = ?",
+      [id],
+    );
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        success: false,
+        error: "Emergency contact not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      emergencyId: id,
+      message: "Emergency contact deleted",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
 
 /* SUPER ADMIN UNIQUE ACCESS */
 app.get("/api/super-admin/access-codes", requireSuperAdmin, async (req, res) => {
