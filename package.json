@@ -1,14 +1,11 @@
 {
   "name": "connect-t-hostinger-backend",
   "version": "1.0.0",
-  "license": "MIT",
   "private": true,
-  "description": "Connect-T backend entry for Hostinger Node.js deployment. Mobile app source remains under mobile/ and backend source remains under backend/.",
   "main": "backend/hostinger-entry.js",
   "scripts": {
     "start": "node backend/hostinger-entry.js",
-    "build": "echo \"No build step required for Connect-T Node backend\"",
-    "typecheck": "echo \"Typecheck skipped on Hostinger backend deployment\""
+    "build": "echo \"No build step required for Connect-T Node backend\""
   },
   "engines": {
     "node": ">=20"
@@ -18,9 +15,5 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "mysql2": "^3.22.3"
-  },
-  "devDependencies": {
-    "typescript": "~5.9.2",
-    "prettier": "^3.8.1"
   }
 }

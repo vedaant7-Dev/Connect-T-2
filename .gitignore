@@ -56,3 +56,16 @@ Thumbs.db
 .cache/
 .local/
 connect-t-backend-hostinger-latest.zip
+backend/.env
+
+# Local env/secrets
+.env
+.env.*
+backend/.env
+backend/.env.backup.*
+mobile/.env
+mobile/server/.env
+
+# Generated local logs/cache
+mobile/.expo/
+.local/

@@ -66,7 +66,7 @@ export default function NagarsevakLoginScreen() {
 
       if (!response.success) {
         if (response.message === "PENDING") {
-          setStep("pending");
+          router.replace({ pathname: "/nagarsevak/status" as any, params: { phone: cleaned, from: "login" } });
           return;
         }
 

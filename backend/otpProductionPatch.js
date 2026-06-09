@@ -32,31 +32,9 @@ function cleanup() {
 }
 
 async function sendSms(mobile, code) {
-  if (process.env.CONNECT_T_REAL_OTP !== "1") return { skipped: true, demo: true };
-
-  const apiKey = String(process.env.FAST2SMS_API_KEY || "").trim();
-  if (!apiKey) return { skipped: true };
-
-  const response = await fetch("https://www.fast2sms.com/dev/bulkV2", {
-    method: "POST",
-    headers: {
-      authorization: apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      route: "q",
-      message: `Your Connect T verification code is ${code}. Valid for 5 minutes. Do not share it with anyone.`,
-      language: "english",
-      flash: "0",
-      numbers: mobile,
-    }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data?.return === false) {
-    throw new Error(data?.message?.[0] || data?.message || "SMS provider failed");
-  }
-  return data;
+  // Demo OTP mode locked for current app testing phase.
+  // Real SMS OTP will be enabled later.
+  return { skipped: true, demo: true };
 }
 
 async function sendOtp(req, res) {

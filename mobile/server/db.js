@@ -1,12 +1,19 @@
 const mysql = require("mysql2/promise");
 
-const pool = mysql.createPool({
-  host: "193.203.184.201",
-  port: 3306,
-  user: "u818923248_app",
-  password: "K3I?XVCE#Io",
-  database: "u818923248_app",
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is required`);
+  }
+  return value;
+}
 
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || "localhost",
+  port: Number(process.env.DB_PORT || 3306),
+  user: requiredEnv("DB_USER"),
+  password: process.env.DB_PASSWORD || process.env.DB_PASS || requiredEnv("DB_PASSWORD"),
+  database: requiredEnv("DB_NAME"),
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
