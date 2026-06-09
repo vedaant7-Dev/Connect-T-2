@@ -16,7 +16,7 @@ function normalizeMobile(value) {
 }
 
 function makeCode() {
-  return DEMO_OTP;
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 function sendJson(res, status, payload) {
@@ -32,9 +32,8 @@ function cleanup() {
 }
 
 async function sendSms(mobile, code) {
-  // Demo OTP mode locked for current app testing phase.
-  // Real SMS OTP will be enabled later.
-  return { skipped: true, demo: true };
+  const { sendOtpSms } = require("./smsProvider");
+  return sendOtpSms(mobile, code);
 }
 
 async function sendOtp(req, res) {
@@ -61,9 +60,8 @@ async function sendOtp(req, res) {
     return sendJson(res, 200, {
       success: true,
       sessionToken,
-      message: "Demo OTP generated successfully",
-      demoOtp: DEMO_OTP,
-      otpLength: 4,
+      message: "OTP sent successfully",
+      otpLength: 6,
     });
   } catch (err) {
     return sendJson(res, 500, { success: false, error: err.message || "Failed to send OTP" });
@@ -88,7 +86,7 @@ async function verifyOtp(req, res) {
       }
     }
 
-    if (code !== DEMO_OTP && (!session || session.code !== code)) {
+    if (!session || session.code !== code) {
       return sendJson(res, 400, { success: false, valid: false, error: "Invalid or expired OTP" });
     }
 

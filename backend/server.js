@@ -3529,6 +3529,50 @@ app.use((req, res) => {
   });
 });
 
+
+// Permanent SMS gateway settings API.
+// Stores Dove SMS settings in MySQL app_settings table.
+// Credentials are never stored in mobile app code.
+app.get("/api/admin/sms-settings", async (req, res) => {
+  try {
+    const adminKey = process.env.ADMIN_API_KEY || "";
+    const providedKey = String(req.headers["x-admin-key"] || req.query.key || "");
+
+    if (!adminKey || providedKey !== adminKey) {
+      return res.status(403).json({ success: false, error: "Admin API key required" });
+    }
+
+    const { getDoveSmsSettingsSafe } = require("./smsProvider");
+    const settings = await getDoveSmsSettingsSafe();
+
+    return res.json({ success: true, settings });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to read SMS settings" });
+  }
+});
+
+app.post("/api/admin/sms-settings", async (req, res) => {
+  try {
+    const adminKey = process.env.ADMIN_API_KEY || "";
+    const providedKey = String(req.headers["x-admin-key"] || req.query.key || "");
+
+    if (!adminKey || providedKey !== adminKey) {
+      return res.status(403).json({ success: false, error: "Admin API key required" });
+    }
+
+    const { saveDoveSmsSettings } = require("./smsProvider");
+    const result = await saveDoveSmsSettings(req.body || {});
+
+    return res.json({
+      success: true,
+      message: "Dove SMS settings saved successfully",
+      ...result,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to save SMS settings" });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 

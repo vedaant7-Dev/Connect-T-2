@@ -62,9 +62,8 @@ function cleanOtpSessions() {
 }
 
 async function sendFast2Sms(mobile, otp) {
-  // Demo OTP mode locked for current app testing phase.
-  // Real SMS OTP will be enabled later.
-  return { skipped: true, demo: true };
+  const { sendOtpSms } = require("./smsProvider");
+  return sendOtpSms(mobile, otp);
 }
 
 async function ensureSuperAdminAccessTable(db) {
