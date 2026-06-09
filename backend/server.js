@@ -3521,14 +3521,6 @@ ensureJobPortalSchema()
 /* END JOB PORTAL MYSQL API V1 */
 
 
-/* 404 */
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: "API route not found",
-  });
-});
-
 
 // Permanent SMS gateway settings API.
 // Stores Dove SMS settings in MySQL app_settings table.
@@ -3572,6 +3564,17 @@ app.post("/api/admin/sms-settings", async (req, res) => {
     return res.status(500).json({ success: false, error: err.message || "Failed to save SMS settings" });
   }
 });
+
+
+/* 404 */
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "API route not found",
+  });
+});
+
+
 
 const PORT = process.env.PORT || 3000;
 
