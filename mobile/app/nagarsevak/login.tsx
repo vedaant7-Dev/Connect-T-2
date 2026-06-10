@@ -1,3 +1,4 @@
+import { verifyRealOtp } from "../../lib/otpApi";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -51,10 +52,8 @@ export default function NagarsevakLoginScreen() {
     const cleaned = cleanMobile(phone);
     const otp = otpDigits.join("");
 
-    if (otp !== DEMO_OTP) {
-      setError(`Enter demo OTP ${DEMO_OTP}`);
-      return;
-    }
+    const otpCheck = await verifyRealOtp(phone, otp, "login");
+    if (!otpCheck.success) { setError(otpCheck.error || "Invalid OTP"); return; }
 
     setLoading(true);
     setError("");
@@ -143,13 +142,13 @@ export default function NagarsevakLoginScreen() {
               <TouchableOpacity style={styles.registerLink} onPress={() => router.push("/nagarsevak/register" as any)}><Text style={styles.registerLinkText}>New Nagarsevak? <Text style={styles.registerLinkBold}>Register here</Text></Text></TouchableOpacity>
             </>}
             {step === "otp" && <>
-              <View style={styles.cardHeader}><View style={styles.shieldIcon}><Feather name="lock" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Enter OTP</Text><Text style={styles.cardSub}>Use 4 digit demo OTP {DEMO_OTP} for +91 {phone}</Text></View>
+              <View style={styles.cardHeader}><View style={styles.shieldIcon}><Feather name="lock" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Enter OTP</Text><Text style={styles.cardSub}>Enter the 6-digit OTP sent to +91 {phone}</Text></View>
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
               <View style={styles.otpRow}>{otpDigits.map((digit, idx) => <TextInput key={idx} ref={otpRefs[idx]} style={[styles.otpBox, digit && styles.otpBoxFilled]} value={digit} onChangeText={(v) => setDigit(idx, v)} keyboardType="number-pad" maxLength={1} textAlign="center" />)}</View>
               <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.7 }]} onPress={verifyOtp} disabled={loading} activeOpacity={0.85}><LinearGradient colors={["#C2410C", "#EA580C"]} style={styles.btnGrad}>{loading ? <ActivityIndicator color="white" /> : <><Feather name="check-circle" size={17} color="white" /><Text style={styles.btnText}>Verify & Login</Text></>}</LinearGradient></TouchableOpacity>
               <TouchableOpacity onPress={() => setStep("phone")} style={styles.changeBtn}><Text style={styles.changeBtnText}>← Change number</Text></TouchableOpacity>
             </>}
-            {step === "pending" && <Status icon="clock" color="#D97706" bg="#FEF3C7" title="Approval Pending" msg="Your Nagarsevak account is waiting for Super Admin approval. Once approved, login again with demo OTP 1234." />}
+            {step === "pending" && <Status icon="clock" color="#D97706" bg="#FEF3C7" title="Approval Pending" msg="Your Nagarsevak account is waiting for Super Admin approval. Once approved, login again with OTP received by SMS." />}
             {step === "rejected" && <Status icon="x-circle" color="#DC2626" bg="#FEE2E2" title="Account Rejected" msg="Your registration was rejected. Please contact Super Admin." />}
           </Animated.View>
         </ScrollView>

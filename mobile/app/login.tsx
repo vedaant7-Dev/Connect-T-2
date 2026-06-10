@@ -1,3 +1,4 @@
+import { verifyRealOtp } from "../lib/otpApi";
 import React, { useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -94,7 +95,8 @@ export default function LoginScreen() {
   };
 
   const verifyOtp = async () => {
-    if (otp !== DEMO_OTP) return setError(`Enter demo OTP ${DEMO_OTP}`);
+    const otpCheck = await verifyRealOtp(phone, otp, "login");
+    if (!otpCheck.success) { setError(otpCheck.error || "Invalid OTP"); return; }
     setLoading(true);
     setError("");
     try {
@@ -180,9 +182,9 @@ export default function LoginScreen() {
             <View style={s.otpSection}>
               <View style={s.otpIconWrap}><Feather name="smartphone" size={28} color={ORANGE} /></View>
               <Text style={s.otpTitle}>OTP Verification</Text>
-              <Text style={s.otpSub}>Use 4 digit demo OTP {DEMO_OTP} for +91 {phone}</Text>
+              <Text style={s.otpSub}>Enter the 6-digit OTP sent to +91 {phone}</Text>
               <OtpDigitInput value={otp} onChange={setOtp} autoFocus />
-              <Text style={s.otpHint}>Real OTP will be enabled after final app testing.</Text>
+              <Text style={s.otpHint}>Enter the OTP received by SMS.</Text>
               {error ? <Text style={s.errorText}>{error}</Text> : null}
               <PrimaryButton loading={loading} label="Verify OTP" icon="check" onPress={verifyOtp} />
               <TouchableOpacity onPress={() => setStep("form")}><Text style={s.resendLink}>← Change details</Text></TouchableOpacity>

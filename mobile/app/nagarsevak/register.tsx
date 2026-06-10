@@ -1,3 +1,4 @@
+import { verifyRealOtp } from "../../lib/otpApi";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -95,7 +96,8 @@ export default function NagarsevakRegisterScreen() {
 
   const verifyAndRegister = async () => {
     const otp = otpDigits.join("");
-    if (otp !== DEMO_OTP) return setError(`Enter demo OTP ${DEMO_OTP}`);
+    const otpCheck = await verifyRealOtp(mobile, otp, "login");
+    if (!otpCheck.success) { setError(otpCheck.error || "Invalid OTP"); return; }
     setLoading(true);
     setError("");
     try {
@@ -166,7 +168,7 @@ export default function NagarsevakRegisterScreen() {
               <Text style={styles.demoText}>Demo OTP: {DEMO_OTP}</Text>
             </>}
             {step === "otp" && <>
-              <View style={styles.cardHeader}><View style={styles.headerIcon}><Feather name="lock" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Verify Mobile</Text><Text style={styles.cardSub}>Use 4 digit demo OTP {DEMO_OTP} for +91 {mobile}</Text></View>
+              <View style={styles.cardHeader}><View style={styles.headerIcon}><Feather name="lock" size={27} color="#EA580C" /></View><Text style={styles.cardTitle}>Verify Mobile</Text><Text style={styles.cardSub}>Enter the 6-digit OTP sent to your mobile number {DEMO_OTP} for +91 {mobile}</Text></View>
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
               <View style={styles.otpRow}>{otpDigits.map((digit, idx) => <TextInput key={idx} ref={otpRefs[idx]} style={[styles.otpBox, digit && styles.otpBoxFilled]} value={digit} onChangeText={(v) => setDigit(idx, v)} keyboardType="number-pad" maxLength={1} textAlign="center" />)}</View>
               <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.7 }]} onPress={verifyAndRegister} disabled={loading} activeOpacity={0.85}><LinearGradient colors={["#C2410C", "#EA580C"]} style={styles.btnGrad}>{loading ? <ActivityIndicator color="white" /> : <><Feather name="check" size={17} color="white" /><Text style={styles.btnText}>Submit for Approval</Text></>}</LinearGradient></TouchableOpacity>

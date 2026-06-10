@@ -1,3 +1,4 @@
+import { verifyRealOtp } from "../../lib/otpApi";
 import React, { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -61,7 +62,8 @@ export default function JobPortalLoginScreen() {
   };
 
   const submit = async () => {
-    if (otp !== DEMO_OTP) { setError(`Enter demo OTP ${DEMO_OTP}`); return; }
+    const otpCheck = await verifyRealOtp(phone, otp, "login");
+    if (!otpCheck.success) { setError(otpCheck.error || "Invalid OTP"); return; }
     setLoading(true); setError("");
     try {
       if (tab === "login") {
@@ -87,7 +89,7 @@ export default function JobPortalLoginScreen() {
           <View style={s.headIcon}><Feather name="briefcase" size={22} color={ORANGE} /></View>
           <View style={s.pill}><Feather name="shield" size={10} color="rgba(255,255,255,0.85)" /><Text style={s.pillText}>CONNECT T JOB PORTAL</Text></View>
           <Text style={s.title}>{tab === "login" ? "Job Login" : "Job Register"}</Text>
-          <Text style={s.sub}>Use 4 digit demo OTP: {DEMO_OTP}</Text>
+          <Text style={s.sub}>Enter the 6-digit OTP sent to your mobile number</Text>
         </View>
       </LinearGradient>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
@@ -107,7 +109,7 @@ export default function JobPortalLoginScreen() {
               <Text style={s.note}>{tab === "login" ? "Use your registered mobile number." : "Only basic details now. Full profile can be completed later."}</Text>
             </> : <>
               <Section title="4 Digit Demo OTP" />
-              <Text style={s.otpSub}>Enter demo OTP {DEMO_OTP} for +91 {phone10}</Text>
+              <Text style={s.otpSub}>Enter OTP {DEMO_OTP} for +91 {phone10}</Text>
               <OtpDigitInput value={otp} onChange={setOtp} autoFocus />
               {!!error && <View style={s.errorBox}><Feather name="alert-circle" size={16} color="#DC2626" /><Text style={s.errorText}>{error}</Text></View>}
               <TouchableOpacity style={[s.primaryBtn, loading && s.primaryBtnDisabled]} disabled={loading} onPress={submit} activeOpacity={0.9}><Text style={s.primaryText}>{loading ? "Please wait..." : tab === "login" ? "Verify & Login" : "Verify & Create Account"}</Text><Feather name="check" size={18} color="white" /></TouchableOpacity>

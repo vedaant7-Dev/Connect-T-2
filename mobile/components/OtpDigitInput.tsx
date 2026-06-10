@@ -45,7 +45,7 @@ export default function OtpDigitInput({ value, onChange, autoFocus = false }: Ot
           onChangeText={(text) => setDigit(index, text)}
           keyboardType="number-pad"
           inputMode="numeric"
-          maxLength={4}
+          maxLength={6}
           textAlign="center"
           autoFocus={autoFocus && index === 0}
           style={[styles.box, digits[index] ? styles.boxFilled : null]}
