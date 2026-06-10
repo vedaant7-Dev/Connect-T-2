@@ -3,8 +3,6 @@ import { StyleSheet, TextInput, View } from "react-native";
 
 const OTP_LENGTH = 6;
 
-const refsFactory = () => Array.from({ length: OTP_LENGTH }, () => useRef<TextInput>(null));
-
 type OtpDigitInputProps = {
   value: string;
   onChange: (value: string) => void;
@@ -12,7 +10,14 @@ type OtpDigitInputProps = {
 };
 
 export default function OtpDigitInput({ value, onChange, autoFocus = false }: OtpDigitInputProps) {
-  const refs = refsFactory();
+  const refs = [
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+  ];
   const digits = String(value || "").replace(/\D/g, "").slice(0, OTP_LENGTH).split("");
 
   const setDigit = (index: number, text: string) => {
