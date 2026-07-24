@@ -41,12 +41,15 @@ test("citizen alerts refresh on focus and publishing controls are role restricte
 test("forms use keyboard-safe scroll behavior and adjustable insets", () => {
   const appScroll = read("components/AppScrollView.tsx");
   const alertForm = read("screens/AlertComposerScreen.tsx");
-  const profile = read("app/jobs/(tabs)/profile.tsx");
+  const profileRoute = read("app/jobs/(tabs)/profile.tsx");
+  const profile = read("screens/LocalizedJobPortalProfileScreen.tsx");
   assert.match(appScroll, /automaticallyAdjustKeyboardInsets/);
   assert.match(appScroll, /keyboardDismissMode/);
   assert.match(appScroll, /keyboardShouldPersistTaps/);
   assert.match(alertForm, /KeyboardAvoidingView/);
   assert.match(alertForm, /automaticallyAdjustKeyboardInsets/);
+  assert.match(profileRoute, /LocalizedJobPortalProfileScreen/);
   assert.match(profile, /KeyboardAvoidingView/);
-  assert.match(profile, /Request Role Correction/);
+  assert.match(profile, /automaticallyAdjustKeyboardInsets/);
+  assert.match(profile, /c\("requestCorrection"\)/);
 });
