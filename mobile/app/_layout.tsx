@@ -6,11 +6,11 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments, router as staticRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -20,6 +20,7 @@ import { AppSplash, SplashPortal } from "@/components/AppSplash";
 import { ComplaintProvider } from "@/context/ComplaintContext";
 import { AlertProvider } from "@/context/AlertContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { BroadcastProvider } from "@/context/BroadcastContext";
 import { FeedProvider } from "@/context/FeedContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { TabBarVisibilityProvider } from "@/context/TabBarVisibilityContext";
@@ -38,6 +39,20 @@ function dashboardForUser(user: any) {
   if (isSuperAdminUser(user)) return "/super-admin";
   if (user.role === "nagarsevak") return "/(tabs)/admin";
   return "/portal-select";
+}
+
+function ProtectedCacheResetter() {
+  const { user, loading } = useAuth();
+  const client = useQueryClient();
+  const previouslyAuthenticated = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (loading) return;
+    if (previouslyAuthenticated.current === true && !user) client.clear();
+    previouslyAuthenticated.current = !!user;
+  }, [client, loading, user]);
+
+  return null;
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -59,8 +74,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const currentTab = inTabs ? String(segments[1] || "") : undefined;
     const isPublicRoute = !first || inLogin || inSuperAdminLogin || inNagarsevak;
 
-    // Logout always wins over the current route. This also prevents a stale
-    // Job Portal, Civic, or portal-selection screen from remaining visible.
     if (!user && logoutTarget) {
       if (!inLogin) router.replace("/login" as any);
       clearLogoutTarget();
@@ -115,9 +128,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
     return () => { alive = false; };
   }, [user, loading]);
 
-  const handleFinish = async (portal: SplashPortal) => {
+  const handleFinish = async (_portal: SplashPortal) => {
     setSplashDone(true);
-
     staticRouter.replace("/login" as any);
   };
 
@@ -166,9 +178,7 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if ((fontsLoaded || fontError) && assetsReady) {
-      SplashScreen.hideAsync();
-    }
+    if ((fontsLoaded || fontError) && assetsReady) SplashScreen.hideAsync();
   }, [fontsLoaded, fontError, assetsReady]);
 
   if ((!fontsLoaded && !fontError) || !assetsReady) return null;
@@ -180,20 +190,23 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>
             <AuthProvider>
+              <ProtectedCacheResetter />
               <AlertProvider>
-                <ComplaintProvider>
-                  <FeedProvider>
-                    <GestureHandlerRootView style={{ flex: 1 }}>
-                      <TabBarVisibilityProvider>
-                        <AppShell>
-                          <AuthGate>
-                            <RootLayoutNav />
-                          </AuthGate>
-                        </AppShell>
-                      </TabBarVisibilityProvider>
-                    </GestureHandlerRootView>
-                  </FeedProvider>
-                </ComplaintProvider>
+                <BroadcastProvider>
+                  <ComplaintProvider>
+                    <FeedProvider>
+                      <GestureHandlerRootView style={{ flex: 1 }}>
+                        <TabBarVisibilityProvider>
+                          <AppShell>
+                            <AuthGate>
+                              <RootLayoutNav />
+                            </AuthGate>
+                          </AppShell>
+                        </TabBarVisibilityProvider>
+                      </GestureHandlerRootView>
+                    </FeedProvider>
+                  </ComplaintProvider>
+                </BroadcastProvider>
               </AlertProvider>
             </AuthProvider>
           </LanguageProvider>

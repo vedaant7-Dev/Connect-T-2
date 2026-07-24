@@ -6,8 +6,16 @@
 // startup paths expose the same production API and workflow protections.
 const PRODUCTION_PATCHES = [
   "./otpProductionPatch.js",
+  "./profileSessionHydrationPatch.js",
   "./utilityStatusPatch.js",
+  "./alertPartialUpdatePatch.js",
+  "./alertGovernancePatch.js",
+  "./alertMutationPatch.js",
   "./alertDeliveryPatch.js",
+  "./broadcastGovernancePatch.js",
+  "./broadcastDeliveryPatch.js",
+  "./complaintUploadPatch.js",
+  "./complaintJsonPatch.js",
   "./jobPortalSessionRecoveryPatch.js",
   "./jobPortalRoleGovernancePatch.js",
   "./jobPortalAuthPatch.js",

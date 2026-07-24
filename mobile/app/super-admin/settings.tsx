@@ -1,884 +1,151 @@
-import { AppScrollView } from "@/components/AppScrollView";
-import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Platform, Switch, Modal, TextInput } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAuth } from "@/context/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import React from "react";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const COMPLAINT_CATEGORIES = [
-  {
-    key: "roads",
-    label: "Roads & Infrastructure",
-    icon: "truck",
-    color: "#92400E",
-  },
-  { key: "water", label: "Water Supply", icon: "droplet", color: "#0369A1" },
-  { key: "electricity", label: "Electricity", icon: "zap", color: "#D97706" },
-  {
-    key: "garbage",
-    label: "Garbage Collection",
-    icon: "trash-2",
-    color: "#059669",
-  },
-  {
-    key: "drainage",
-    label: "Drainage & Sewage",
-    icon: "git-merge",
-    color: "#0EA5E9",
-  },
-  {
-    key: "streetlight",
-    label: "Street Lighting",
-    icon: "sun",
-    color: "#7C3AED",
-  },
-  {
-    key: "encroachment",
-    label: "Encroachment",
-    icon: "alert-triangle",
-    color: "#DC2626",
-  },
-  {
-    key: "other",
-    label: "Other Issues",
-    icon: "more-horizontal",
-    color: "#475569",
-  },
-];
+import { AppScrollView } from "@/components/AppScrollView";
+import ConfirmActionModal from "@/components/ConfirmActionModal";
+import { useAuth } from "@/context/AuthContext";
+import { useAccountActions } from "@/hooks/useAccountActions";
 
-export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { user, logout, updateUser } = useAuth();
-  const router = useRouter();
+const GREEN = "#16A34A";
+const ORANGE = "#EA580C";
+const BG = "#EEF2F7";
 
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [autoAssign, setAutoAssign] = useState(true);
-  const [emailAlerts, setEmailAlerts] = useState(false);
-  const [showLogout, setShowLogout] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [editName, setEditName] = useState(user?.name || "");
+type RouteCardProps = {
+  icon: keyof typeof Feather.glyphMap;
+  title: string;
+  description: string;
+  color: string;
+  onPress: () => void;
+};
 
-  const settings = [
-    {
-      section: "App Controls",
-      items: [
-        {
-          key: "maintenance",
-          label: "Maintenance Mode",
-          desc: "Temporarily disable public access",
-          icon: "tool",
-          color: "#DC2626",
-          toggle: maintenanceMode,
-          onToggle: setMaintenanceMode,
-        },
-        {
-          key: "push",
-          label: "Push Notifications",
-          desc: "Send notifications to all citizens",
-          icon: "bell",
-          color: "#3B82F6",
-          toggle: pushNotifications,
-          onToggle: setPushNotifications,
-        },
-        {
-          key: "autoAssign",
-          label: "Auto-Assign Complaints",
-          desc: "Automatically route to ward officers",
-          icon: "shuffle",
-          color: "#7C3AED",
-          toggle: autoAssign,
-          onToggle: setAutoAssign,
-        },
-        {
-          key: "email",
-          label: "Email Alerts",
-          desc: "Send email for critical events",
-          icon: "mail",
-          color: "#D97706",
-          toggle: emailAlerts,
-          onToggle: setEmailAlerts,
-        },
-      ],
-    },
-  ];
-
+function RouteCard({ icon, title, description, color, onPress }: RouteCardProps) {
   return (
-    <View style={{ flex: 1, backgroundColor: "#0F172A" }}>
-      <LinearGradient
-        colors={["#052E16", "#166534", "#16A34A"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          paddingTop: topPad + 12,
-          paddingBottom: 20,
-          paddingHorizontal: 20,
-        }}
-      >
-        <View style={{ marginBottom: 8 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "rgba(255,255,255,0.12)",
-              borderRadius: 20,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              alignSelf: "flex-start",
-              marginBottom: 6,
-            }}
-          >
-            <Feather name="settings" size={10} color="#6EE7B7" />
-            <Text
-              style={{
-                fontSize: 9,
-                fontFamily: "Inter_700Bold",
-                color: "#6EE7B7",
-                marginLeft: 4,
-                letterSpacing: 1.5,
-              }}
-            >
-              SYSTEM SETTINGS
-            </Text>
-          </View>
-          <Text
-            style={{
-              fontSize: 20,
-              fontFamily: "Inter_700Bold",
-              color: "white",
-            }}
-          >
-            Settings & Config
-          </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              fontFamily: "Inter_400Regular",
-              color: "rgba(255,255,255,0.65)",
-              marginTop: 2,
-            }}
-          >
-            System configuration · AMC Ambernath
-          </Text>
-        </View>
-      </LinearGradient>
+    <TouchableOpacity style={styles.routeCard} onPress={onPress} activeOpacity={0.84} accessibilityRole="button" accessibilityLabel={title}>
+      <View style={[styles.routeIcon, { backgroundColor: `${color}18` }]}><Feather name={icon} size={18} color={color} /></View>
+      <View style={styles.routeText}><Text style={styles.routeTitle}>{title}</Text><Text style={styles.routeDescription}>{description}</Text></View>
+      <Feather name="chevron-right" size={18} color="#CBD5E1" />
+    </TouchableOpacity>
+  );
+}
 
-      <AppScrollView
-        style={{ flex: 1, backgroundColor: "#F0F4F8" }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <TouchableOpacity
-          onPress={() => {
-            setEditName(user?.name || "");
-            setShowEditProfile(true);
-          }}
-          style={{
-            backgroundColor: "white",
-            borderRadius: 16,
-            padding: 16,
-            marginBottom: 16,
-            shadowColor: "#000",
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
-          activeOpacity={0.85}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                backgroundColor: "#DCFCE7",
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 14,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 20,
-                  fontFamily: "Inter_700Bold",
-                  color: "#16A34A",
-                }}
-              >
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontFamily: "Inter_700Bold",
-                  color: "#0F172A",
-                }}
-              >
-                {user?.name}
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 2,
-                }}
-              >
-                <View
-                  style={{
-                    backgroundColor: "#DCFCE7",
-                    borderRadius: 6,
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    marginRight: 8,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontFamily: "Inter_600SemiBold",
-                      color: "#16A34A",
-                    }}
-                  >
-                    SUPER ADMIN
-                  </Text>
-                </View>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontFamily: "Inter_400Regular",
-                    color: "#64748B",
-                  }}
-                >
-                  +91 {user?.mobile}
-                </Text>
-              </View>
-            </View>
-            <Feather name="edit-2" size={16} color="#94A3B8" />
-          </View>
-          <View style={{ flexDirection: "row", marginTop: 12, gap: 8 }}>
-            {[
-              { label: "ID", value: user?.nagarsevakId || "SUPER_ADMIN" },
-              { label: "Ward", value: "All Wards" },
-              { label: "Role", value: "Head Admin" },
-            ].map((item) => (
-              <View
-                key={item.label}
-                style={{
-                  flex: 1,
-                  backgroundColor: "#F8FAFC",
-                  borderRadius: 8,
-                  padding: 8,
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontFamily: "Inter_700Bold",
-                    color: "#0F172A",
-                  }}
-                >
-                  {item.value}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    fontFamily: "Inter_400Regular",
-                    color: "#94A3B8",
-                  }}
-                >
-                  {item.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </TouchableOpacity>
-
-        {maintenanceMode && (
-          <View
-            style={{
-              backgroundColor: "#FEE2E2",
-              borderRadius: 14,
-              padding: 14,
-              marginBottom: 16,
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <Feather name="alert-triangle" size={18} color="#DC2626" />
-            <View style={{ marginLeft: 10, flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontFamily: "Inter_700Bold",
-                  color: "#991B1B",
-                }}
-              >
-                Maintenance Mode Active
-              </Text>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontFamily: "Inter_400Regular",
-                  color: "#B91C1C",
-                }}
-              >
-                Public access is restricted. Toggle off to restore.
-              </Text>
-            </View>
-          </View>
-        )}
-
-        <Text
-          style={{
-            fontSize: 12,
-            fontFamily: "Inter_700Bold",
-            color: "#94A3B8",
-            letterSpacing: 1,
-            marginBottom: 10,
-          }}
-        >
-          APP CONTROLS
-        </Text>
-        <View
-          style={{
-            backgroundColor: "white",
-            borderRadius: 16,
-            marginBottom: 20,
-            shadowColor: "#000",
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-            overflow: "hidden",
-          }}
-        >
-          {settings[0].items.map((item, idx, arr) => (
-            <View
-              key={item.key}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                padding: 16,
-                borderBottomWidth: idx < arr.length - 1 ? 1 : 0,
-                borderBottomColor: "#F1F5F9",
-              }}
-            >
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  backgroundColor: item.color + "18",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginRight: 12,
-                }}
-              >
-                <Feather name={item.icon as any} size={16} color={item.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Inter_600SemiBold",
-                    color: "#0F172A",
-                  }}
-                >
-                  {item.label}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontFamily: "Inter_400Regular",
-                    color: "#94A3B8",
-                  }}
-                >
-                  {item.desc}
-                </Text>
-              </View>
-              <Switch
-                value={item.toggle}
-                onValueChange={item.onToggle}
-                trackColor={{ false: "#E2E8F0", true: "#16A34A" }}
-                thumbColor="white"
-              />
-            </View>
-          ))}
-        </View>
-
-        <Text
-          style={{
-            fontSize: 12,
-            fontFamily: "Inter_700Bold",
-            color: "#94A3B8",
-            letterSpacing: 1,
-            marginBottom: 10,
-          }}
-        >
-          ADMIN ACCESS
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => router.push("/super-admin/access" as any)}
-          style={{
-            backgroundColor: "white",
-            borderRadius: 16,
-            padding: 16,
-            marginBottom: 20,
-            shadowColor: "#000",
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-            flexDirection: "row",
-            alignItems: "center",
-          }}
-          activeOpacity={0.85}
-        >
-          <View
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 12,
-              backgroundColor: "#DCFCE7",
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 12,
-            }}
-          >
-            <Feather name="shield" size={18} color="#16A34A" />
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontSize: 14,
-                fontFamily: "Inter_700Bold",
-                color: "#0F172A",
-              }}
-            >
-              Manage Super Admin Access
-            </Text>
-            <Text
-              style={{
-                fontSize: 11,
-                fontFamily: "Inter_400Regular",
-                color: "#94A3B8",
-                marginTop: 3,
-              }}
-            >
-              Authorize trusted admins by verified mobile number
-            </Text>
-          </View>
-
-          <Feather name="chevron-right" size={18} color="#CBD5E1" />
-        </TouchableOpacity>
-
-        <Text
-          style={{
-            fontSize: 12,
-            fontFamily: "Inter_700Bold",
-            color: "#94A3B8",
-            letterSpacing: 1,
-            marginBottom: 10,
-          }}
-        >
-          APP INFORMATION
-        </Text>
-        <View
-          style={{
-            backgroundColor: "white",
-            borderRadius: 16,
-            marginBottom: 20,
-            shadowColor: "#000",
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-            overflow: "hidden",
-          }}
-        >
-          {[
-            {
-              label: "App Version",
-              value: "v1.0",
-              icon: "code",
-              color: "#7C3AED",
-            },
-            {
-              label: "Auth Mode",
-              value: "Mobile OTP Login",
-              icon: "key",
-              color: "#D97706",
-            },
-            {
-              label: "Municipality",
-              value: "AMC Ambernath",
-              icon: "home",
-              color: "#16A34A",
-            },
-          ].map((item, idx, arr) => (
-            <View
-              key={item.label}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                padding: 14,
-                borderBottomWidth: idx < arr.length - 1 ? 1 : 0,
-                borderBottomColor: "#F1F5F9",
-              }}
-            >
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  backgroundColor: item.color + "18",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginRight: 12,
-                }}
-              >
-                <Feather name={item.icon as any} size={14} color={item.color} />
-              </View>
-              <Text
-                style={{
-                  flex: 1,
-                  fontSize: 13,
-                  fontFamily: "Inter_500Medium",
-                  color: "#334155",
-                }}
-              >
-                {item.label}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontFamily: "Inter_400Regular",
-                  color: "#94A3B8",
-                }}
-              >
-                {item.value}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        <View
-          style={{
-            backgroundColor: "white",
-            borderRadius: 18,
-            padding: 20,
-            alignItems: "center",
-            marginBottom: 16,
-            shadowColor: "#000",
-            shadowOpacity: 0.05,
-            shadowRadius: 6,
-            elevation: 1,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 22,
-              fontWeight: "900",
-              color: "#C2410C",
-              fontFamily: "Inter_700Bold",
-              letterSpacing: -0.5,
-            }}
-          >
-            Connect T
-          </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              color: "#64748B",
-              fontFamily: "Inter_400Regular",
-              marginTop: 4,
-              textAlign: "center",
-            }}
-          >
-            Civic Services · सबका साथ, सबका विकास
-          </Text>
-          <Text
-            style={{
-              fontSize: 10,
-              color: "#94A3B8",
-              fontFamily: "Inter_400Regular",
-              marginTop: 6,
-            }}
-          >
-            v1.0
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => setShowLogout(true)}
-          style={{
-            backgroundColor: "#FEE2E2",
-            borderRadius: 16,
-            padding: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          activeOpacity={0.85}
-        >
-          <Feather name="log-out" size={18} color="#DC2626" />
-          <Text
-            style={{
-              fontSize: 15,
-              fontFamily: "Inter_700Bold",
-              color: "#DC2626",
-              marginLeft: 10,
-            }}
-          >
-            Sign Out
-          </Text>
-        </TouchableOpacity>
-      </AppScrollView>
-
-      <Modal
-        visible={showLogout}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLogout(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 24,
-              padding: 28,
-              margin: 32,
-              alignItems: "center",
-              width: "85%",
-            }}
-          >
-            <View
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                backgroundColor: "#FEE2E2",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 16,
-              }}
-            >
-              <Feather name="log-out" size={26} color="#DC2626" />
-            </View>
-            <Text
-              style={{
-                fontSize: 18,
-                fontFamily: "Inter_700Bold",
-                color: "#0F172A",
-                marginBottom: 8,
-              }}
-            >
-              Sign Out
-            </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                fontFamily: "Inter_400Regular",
-                color: "#64748B",
-                textAlign: "center",
-                marginBottom: 24,
-              }}
-            >
-              Are you sure you want to sign out of the Super Admin panel?
-            </Text>
-            <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
-              <TouchableOpacity
-                onPress={() => setShowLogout(false)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 13,
-                  borderRadius: 14,
-                  backgroundColor: "#F1F5F9",
-                  alignItems: "center",
-                }}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Inter_600SemiBold",
-                    color: "#64748B",
-                  }}
-                >
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={async () => {
-                  setShowLogout(false);
-                  await logout("/login");
-                  router.replace("/login" as any);
-                }}
-                style={{
-                  flex: 1,
-                  paddingVertical: 13,
-                  borderRadius: 14,
-                  backgroundColor: "#DC2626",
-                  alignItems: "center",
-                }}
-                activeOpacity={0.85}
-              >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Inter_600SemiBold",
-                    color: "white",
-                  }}
-                >
-                  Sign Out
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showEditProfile}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowEditProfile(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "flex-end",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "white",
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              padding: 24,
-              paddingBottom: 40,
-            }}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 4,
-                backgroundColor: "#E2E8F0",
-                borderRadius: 2,
-                alignSelf: "center",
-                marginBottom: 20,
-              }}
-            />
-            <Text
-              style={{
-                fontSize: 18,
-                fontFamily: "Inter_700Bold",
-                color: "#0F172A",
-                marginBottom: 20,
-              }}
-            >
-              Edit Profile
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                fontFamily: "Inter_600SemiBold",
-                color: "#94A3B8",
-                letterSpacing: 1,
-                marginBottom: 6,
-              }}
-            >
-              FULL NAME
-            </Text>
-            <TextInput
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Your name"
-              placeholderTextColor="#CBD5E1"
-              style={
-                {
-                  backgroundColor: "#F8FAFC",
-                  borderRadius: 12,
-                  borderWidth: 1.5,
-                  borderColor: "#E2E8F0",
-                  paddingHorizontal: 14,
-                  paddingVertical: 12,
-                  fontSize: 15,
-                  fontFamily: "Inter_400Regular",
-                  color: "#0F172A",
-                  marginBottom: 24,
-                  outlineWidth: 0,
-                } as any
-              }
-            />
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <TouchableOpacity
-                onPress={() => setShowEditProfile(false)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 13,
-                  borderRadius: 14,
-                  backgroundColor: "#F1F5F9",
-                  alignItems: "center",
-                }}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Inter_700Bold",
-                    color: "#64748B",
-                  }}
-                >
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={async () => {
-                  if (editName.trim().split(/\s+/).length < 2) return;
-                  await updateUser({ name: editName.trim() });
-                  setShowEditProfile(false);
-                }}
-                style={{
-                  flex: 2,
-                  borderRadius: 14,
-                  overflow: "hidden",
-                  opacity: editName.trim().split(/\s+/).length >= 2 ? 1 : 0.5,
-                }}
-                disabled={editName.trim().split(/\s+/).length < 2}
-                activeOpacity={0.85}
-              >
-                <LinearGradient
-                  colors={["#166534", "#16A34A"]}
-                  style={{ paddingVertical: 13, alignItems: "center" }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontFamily: "Inter_700Bold",
-                      color: "white",
-                    }}
-                  >
-                    Save Changes
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+function StatusRow({ icon, title, status, tone, description }: { icon: keyof typeof Feather.glyphMap; title: string; status: string; tone: "active" | "warning" | "info"; description: string }) {
+  const theme = tone === "active"
+    ? { color: "#166534", background: "#DCFCE7" }
+    : tone === "warning"
+      ? { color: "#B45309", background: "#FEF3C7" }
+      : { color: "#1D4ED8", background: "#DBEAFE" };
+  return (
+    <View style={styles.statusRow}>
+      <View style={[styles.statusIcon, { backgroundColor: theme.background }]}><Feather name={icon} size={17} color={theme.color} /></View>
+      <View style={styles.statusBody}><Text style={styles.routeTitle}>{title}</Text><Text style={styles.routeDescription}>{description}</Text></View>
+      <View style={[styles.statusPill, { backgroundColor: theme.background }]}><Text style={[styles.statusPillText, { color: theme.color }]}>{status}</Text></View>
     </View>
   );
 }
+
+export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { user } = useAuth();
+  const accountActions = useAccountActions();
+  const topPad = Platform.OS === "web" ? 58 : insets.top;
+
+  return (
+    <View style={styles.root}>
+      <LinearGradient colors={["#052E16", "#166534", GREEN]} style={[styles.header, { paddingTop: topPad + 10 }]}>
+        <View style={styles.headerTop}><View style={styles.headerBadge}><Feather name="settings" size={11} color="#6EE7B7" /><Text style={styles.headerBadgeText}>SYSTEM & ACCOUNT</Text></View></View>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerSub}>Production capability status and verified administration routes</Text>
+      </LinearGradient>
+
+      <AppScrollView style={styles.scroll} contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 12) + 34 }}>
+        <TouchableOpacity style={styles.profileCard} onPress={() => router.push("/super-admin/profile" as any)} activeOpacity={0.84}>
+          <View style={styles.avatar}><Text style={styles.avatarText}>{user?.name?.trim()?.charAt(0)?.toUpperCase() || "A"}</Text></View>
+          <View style={styles.profileText}><Text style={styles.profileName}>{user?.name || "Super Admin"}</Text><View style={styles.verifiedRow}><View style={styles.adminPill}><Feather name="shield" size={10} color="#166534" /><Text style={styles.adminPillText}>SUPER ADMIN</Text></View><Feather name="check-circle" size={12} color={GREEN} /><Text style={styles.mobileText}>+91 {String(user?.mobile || "").replace(/\D/g, "").slice(-10)}</Text></View><Text style={styles.profileHint}>View and edit profile details. Verified mobile remains read-only.</Text></View>
+          <Feather name="edit-2" size={18} color="#94A3B8" />
+        </TouchableOpacity>
+
+        <Text style={styles.sectionTitle}>ADMINISTRATION</Text>
+        <View style={styles.group}>
+          <RouteCard icon="shield" title="Super Admin Access" description="Authorize or revoke trusted mobile numbers" color={GREEN} onPress={() => router.push("/super-admin/access" as any)} />
+          <RouteCard icon="users" title="Officers" description="Review approved Nagarsevaks and ward assignments" color="#2563EB" onPress={() => router.push("/super-admin/officers" as any)} />
+          <RouteCard icon="bell" title="Alerts & News" description="Publish and review official ward or city updates" color={ORANGE} onPress={() => router.push("/alert/list" as any)} />
+          <RouteCard icon="radio" title="Broadcast Center" description="Create auditable in-app broadcasts and review delivery status" color="#7C3AED" onPress={() => router.push("/super-admin/broadcast" as any)} />
+        </View>
+
+        <Text style={styles.sectionTitle}>PRODUCTION CAPABILITIES</Text>
+        <View style={styles.group}>
+          <StatusRow icon="git-branch" title="Complaint ward routing" status="Active" tone="active" description="Complaints are assigned using the verified citizen ward and approved officer mapping." />
+          <StatusRow icon="smartphone" title="In-app broadcasts" status="Active" tone="active" description="Audience, ward, scheduling, delivery and read history are stored in MySQL." />
+          <StatusRow icon="bell-off" title="External push notifications" status="Not configured" tone="warning" description="No device-token registration or push provider is configured. The app does not report fake push success." />
+          <StatusRow icon="tool" title="Maintenance mode" status="Not enabled" tone="info" description="The previous switch changed only local UI state and has been removed until a backend access policy is implemented." />
+        </View>
+
+        <Text style={styles.sectionTitle}>APPLICATION</Text>
+        <View style={styles.group}>
+          <View style={styles.infoRow}><View style={[styles.routeIcon, { backgroundColor: "#EDE9FE" }]}><Feather name="code" size={17} color="#7C3AED" /></View><Text style={styles.infoLabel}>App version</Text><Text style={styles.infoValue}>1.0.0</Text></View>
+          <View style={styles.infoRow}><View style={[styles.routeIcon, { backgroundColor: "#FEF3C7" }]}><Feather name="key" size={17} color="#B45309" /></View><Text style={styles.infoLabel}>Authentication</Text><Text style={styles.infoValue}>Mobile OTP</Text></View>
+          <View style={styles.infoRow}><View style={[styles.routeIcon, { backgroundColor: "#DCFCE7" }]}><Feather name="database" size={17} color="#166534" /></View><Text style={styles.infoLabel}>Backend</Text><Text style={styles.infoValue}>Hostinger MySQL</Text></View>
+        </View>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={accountActions.requestLogout} activeOpacity={0.84} accessibilityRole="button">
+          <Feather name="log-out" size={18} color="#DC2626" /><Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </AppScrollView>
+
+      <ConfirmActionModal
+        visible={accountActions.pendingAction === "logout"}
+        title="Logout from Connect-T?"
+        message="This will securely clear Civic and Job Portal sessions on this device. Administrative records and account access will not be deleted."
+        confirmLabel="Logout"
+        icon="log-out"
+        tone="danger"
+        busy={accountActions.busy}
+        onCancel={accountActions.cancelAction}
+        onConfirm={accountActions.runPendingAction}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: BG },
+  header: { paddingHorizontal: 18, paddingBottom: 20, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  headerTop: { flexDirection: "row", marginBottom: 8 },
+  headerBadge: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.13)" },
+  headerBadgeText: { color: "#6EE7B7", fontSize: 9, letterSpacing: 1.3, fontFamily: "Inter_700Bold" },
+  headerTitle: { color: "white", fontSize: 23, fontFamily: "Inter_700Bold" },
+  headerSub: { marginTop: 4, color: "rgba(255,255,255,0.72)", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" },
+  scroll: { flex: 1 },
+  profileCard: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 20, padding: 15, marginBottom: 18, backgroundColor: "white", borderWidth: 1, borderColor: "#E2E8F0" },
+  avatar: { width: 54, height: 54, borderRadius: 18, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center" },
+  avatarText: { color: "#166534", fontSize: 20, fontFamily: "Inter_700Bold" },
+  profileText: { flex: 1, minWidth: 0 },
+  profileName: { color: "#0F172A", fontSize: 16, fontFamily: "Inter_700Bold" },
+  verifiedRow: { marginTop: 5, flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5 },
+  adminPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: "#DCFCE7" },
+  adminPillText: { color: "#166534", fontSize: 8.5, fontFamily: "Inter_700Bold" },
+  mobileText: { color: "#64748B", fontSize: 10.5, fontFamily: "Inter_500Medium" },
+  profileHint: { marginTop: 5, color: "#94A3B8", fontSize: 10, lineHeight: 14, fontFamily: "Inter_400Regular" },
+  sectionTitle: { marginLeft: 3, marginBottom: 8, color: "#64748B", fontSize: 10, letterSpacing: 1.1, fontFamily: "Inter_700Bold" },
+  group: { marginBottom: 18, borderRadius: 19, overflow: "hidden", backgroundColor: "white", borderWidth: 1, borderColor: "#E2E8F0" },
+  routeCard: { minHeight: 72, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E2E8F0" },
+  routeIcon: { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  routeText: { flex: 1, minWidth: 0 },
+  routeTitle: { color: "#0F172A", fontSize: 13.5, fontFamily: "Inter_700Bold" },
+  routeDescription: { marginTop: 3, color: "#64748B", fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_400Regular" },
+  statusRow: { minHeight: 78, flexDirection: "row", alignItems: "center", gap: 11, padding: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E2E8F0" },
+  statusIcon: { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  statusBody: { flex: 1, minWidth: 0 },
+  statusPill: { maxWidth: 94, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
+  statusPillText: { fontSize: 8.5, textAlign: "center", fontFamily: "Inter_700Bold" },
+  infoRow: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E2E8F0" },
+  infoLabel: { flex: 1, color: "#334155", fontSize: 12.5, fontFamily: "Inter_600SemiBold" },
+  infoValue: { color: "#94A3B8", fontSize: 11, fontFamily: "Inter_500Medium" },
+  logoutButton: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, borderRadius: 16, backgroundColor: "#FEE2E2", borderWidth: 1, borderColor: "#FECACA" },
+  logoutText: { color: "#DC2626", fontSize: 14.5, fontFamily: "Inter_700Bold" },
+});

@@ -12,7 +12,7 @@ const {
   verifyRequestToken,
   verifySignedToken,
 } = require("../authSecurity");
-const { resetForTests, sendOtp, verifyOtp } = require("../otpService");
+const { MAX_VERIFY_ATTEMPTS, resetForTests, sendOtp, verifyOtp } = require("../otpService");
 
 beforeEach(() => resetForTests());
 
@@ -53,7 +53,7 @@ test("OTP sessions require the matching session, mobile, purpose, and code", asy
         code: deliveredCode,
         sessionToken: sent.sessionToken,
       }),
-    /does not match/,
+    (error) => error?.code === "OTP_SESSION_MISMATCH",
   );
 
   resetForTests();
@@ -81,7 +81,34 @@ test("OTP sessions require the matching session, mobile, purpose, and code", asy
         code: deliveredCode,
         sessionToken: second.sessionToken,
       }),
-    /Invalid or expired OTP/,
+    (error) => error?.code === "OTP_SESSION_EXPIRED",
+  );
+});
+
+test("incorrect OTP attempts remain retryable until the maximum is reached", async () => {
+  let deliveredCode = "";
+  const sent = await sendOtp({
+    mobile: "9000000001",
+    purpose: "login",
+    sendSms: async (_mobile, code) => {
+      deliveredCode = code;
+    },
+  });
+
+  for (let attempt = 1; attempt < MAX_VERIFY_ATTEMPTS; attempt += 1) {
+    assert.throws(
+      () => verifyOtp({ mobile: "9000000001", purpose: "login", code: "000000", sessionToken: sent.sessionToken }),
+      (error) => error?.code === "OTP_INVALID",
+    );
+  }
+
+  assert.throws(
+    () => verifyOtp({ mobile: "9000000001", purpose: "login", code: "000000", sessionToken: sent.sessionToken }),
+    (error) => error?.code === "OTP_MAX_ATTEMPTS" && error?.status === 429,
+  );
+  assert.throws(
+    () => verifyOtp({ mobile: "9000000001", purpose: "login", code: deliveredCode, sessionToken: sent.sessionToken }),
+    (error) => error?.code === "OTP_SESSION_EXPIRED",
   );
 });
 
@@ -93,4 +120,31 @@ test("OTP resend throttling is enforced", async () => {
     sendOtp({ mobile: "9123456789", purpose: "login", sendSms }),
     (error) => error?.status === 429 && error?.code === "OTP_RESEND_TOO_SOON",
   );
+});
+
+test("replacement OTP supersedes the previous session", async () => {
+  const originalNow = Date.now;
+  let now = 1_800_000_000_000;
+  Date.now = () => now;
+  const codes = [];
+  try {
+    const first = await sendOtp({
+      mobile: "9988776655",
+      purpose: "login",
+      sendSms: async (_mobile, code) => codes.push(code),
+    });
+    now += 46_000;
+    const second = await sendOtp({
+      mobile: "9988776655",
+      purpose: "login",
+      sendSms: async (_mobile, code) => codes.push(code),
+    });
+    assert.throws(
+      () => verifyOtp({ mobile: "9988776655", purpose: "login", code: codes[0], sessionToken: first.sessionToken }),
+      (error) => error?.code === "OTP_SESSION_EXPIRED",
+    );
+    assert.equal(verifyOtp({ mobile: "9988776655", purpose: "login", code: codes[1], sessionToken: second.sessionToken }).mobile, "9988776655");
+  } finally {
+    Date.now = originalNow;
+  }
 });

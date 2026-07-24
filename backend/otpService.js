@@ -9,6 +9,7 @@ const MAX_SENDS_PER_WINDOW = 6;
 const MAX_VERIFY_ATTEMPTS = 5;
 
 const sessions = new Map();
+const activeSessions = new Map();
 const rateLimits = new Map();
 
 class OtpError extends Error {
@@ -21,9 +22,30 @@ class OtpError extends Error {
   }
 }
 
+function cleanPurpose(value) {
+  return String(value || "login").trim().slice(0, 40) || "login";
+}
+
+function activeKey(mobile, purpose) {
+  return `${mobile}:${cleanPurpose(purpose)}`;
+}
+
+function otpDigest(sessionToken, code) {
+  return crypto.createHash("sha256").update(`${sessionToken}:${code}`).digest();
+}
+
+function removeSession(token) {
+  const session = sessions.get(token);
+  sessions.delete(token);
+  if (session) {
+    const key = activeKey(session.mobile, session.purpose);
+    if (activeSessions.get(key) === token) activeSessions.delete(key);
+  }
+}
+
 function cleanup(now = Date.now()) {
   for (const [token, session] of sessions.entries()) {
-    if (!session || session.expiresAt <= now) sessions.delete(token);
+    if (!session || session.expiresAt <= now) removeSession(token);
   }
 
   for (const [mobile, item] of rateLimits.entries()) {
@@ -41,11 +63,12 @@ function nextRateState(mobile, now) {
 
 async function sendOtp({ mobile: rawMobile, purpose = "login", sendSms }) {
   const mobile = normalizeMobile(rawMobile);
+  const normalizedPurpose = cleanPurpose(purpose);
   if (mobile.length !== 10) {
     throw new OtpError("Valid 10 digit mobile number is required", 400, "INVALID_MOBILE");
   }
   if (typeof sendSms !== "function") {
-    throw new OtpError("SMS provider is unavailable", 503, "SMS_UNAVAILABLE");
+    throw new OtpError("OTP service is temporarily unavailable", 503, "SMS_UNAVAILABLE");
   }
 
   const now = Date.now();
@@ -72,46 +95,73 @@ async function sendOtp({ mobile: rawMobile, purpose = "login", sendSms }) {
 
   const code = String(crypto.randomInt(100000, 1000000));
   const sessionToken = `otp_${crypto.randomBytes(24).toString("hex")}`;
-  await sendSms(mobile, code);
+  try {
+    await sendSms(mobile, code);
+  } catch (error) {
+    console.warn("[OTP] SMS provider request failed", error?.code || error?.name || "provider_error");
+    throw new OtpError("OTP service is temporarily unavailable", 503, "SMS_UNAVAILABLE");
+  }
+
+  // A successfully issued replacement OTP always supersedes the previous code
+  // for the same mobile and purpose. This guarantees one active verification
+  // transaction and prevents an older SMS from authenticating after resend.
+  const key = activeKey(mobile, normalizedPurpose);
+  const previousToken = activeSessions.get(key);
+  if (previousToken) removeSession(previousToken);
 
   sessions.set(sessionToken, {
     mobile,
-    purpose: String(purpose || "login"),
-    code,
+    purpose: normalizedPurpose,
+    codeDigest: otpDigest(sessionToken, code),
     attempts: 0,
     expiresAt: now + OTP_TTL_MS,
   });
+  activeSessions.set(key, sessionToken);
   rateLimits.set(mobile, { ...rate, count: rate.count + 1, lastSentAt: now });
 
-  return { sessionToken, otpLength: 6, expiresInSeconds: OTP_TTL_MS / 1000 };
+  return {
+    sessionToken,
+    otpLength: 6,
+    expiresInSeconds: OTP_TTL_MS / 1000,
+    resendAfterSeconds: RESEND_DELAY_MS / 1000,
+  };
 }
 
 function verifyOtp({ mobile: rawMobile, code: rawCode, purpose = "login", sessionToken }) {
   const mobile = normalizeMobile(rawMobile);
+  const normalizedPurpose = cleanPurpose(purpose);
   const code = String(rawCode || "").replace(/\D/g, "");
   const token = String(sessionToken || "").trim();
   cleanup();
 
   if (!token) throw new OtpError("OTP session is required", 400, "OTP_SESSION_REQUIRED");
   const session = sessions.get(token);
-  if (!session) throw new OtpError("Invalid or expired OTP", 400, "OTP_INVALID_OR_EXPIRED");
+  if (!session) throw new OtpError("OTP session expired or was replaced. Request a new OTP.", 400, "OTP_SESSION_EXPIRED");
 
-  if (session.mobile !== mobile || session.purpose !== String(purpose || "login")) {
-    sessions.delete(token);
+  if (session.mobile !== mobile || session.purpose !== normalizedPurpose || activeSessions.get(activeKey(mobile, normalizedPurpose)) !== token) {
+    removeSession(token);
     throw new OtpError("OTP session does not match this request", 400, "OTP_SESSION_MISMATCH");
   }
 
   session.attempts += 1;
-  const expected = Buffer.from(session.code);
-  const received = Buffer.from(code);
+  const expected = session.codeDigest;
+  const received = otpDigest(token, code);
   const valid = expected.length === received.length && crypto.timingSafeEqual(expected, received);
 
   if (!valid) {
-    if (session.attempts >= MAX_VERIFY_ATTEMPTS) sessions.delete(token);
-    throw new OtpError("Invalid or expired OTP", 400, "OTP_INVALID_OR_EXPIRED");
+    if (session.attempts >= MAX_VERIFY_ATTEMPTS) {
+      removeSession(token);
+      throw new OtpError(
+        "Too many invalid attempts. Request a new OTP.",
+        429,
+        "OTP_MAX_ATTEMPTS",
+        RESEND_DELAY_MS,
+      );
+    }
+    throw new OtpError("The OTP is incorrect. Please try again.", 400, "OTP_INVALID");
   }
 
-  sessions.delete(token);
+  removeSession(token);
   return {
     mobile,
     purpose: session.purpose,
@@ -121,10 +171,15 @@ function verifyOtp({ mobile: rawMobile, code: rawCode, purpose = "login", sessio
 
 function resetForTests() {
   sessions.clear();
+  activeSessions.clear();
   rateLimits.clear();
 }
 
 module.exports = {
+  MAX_SENDS_PER_WINDOW,
+  MAX_VERIFY_ATTEMPTS,
+  OTP_TTL_MS,
+  RESEND_DELAY_MS,
   OtpError,
   resetForTests,
   sendOtp,

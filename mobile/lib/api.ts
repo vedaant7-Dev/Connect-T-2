@@ -1,9 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { apiUrl } from "@/constants/api";
 import { safeUserMessage } from "@/lib/errorSafety";
+import { deleteSessionSecret, getSessionSecret, setSessionSecret } from "@/lib/secureSessionStorage";
 
 const REQUEST_TIMEOUT_MS = 15_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
 const AUTH_TOKEN_KEY = "connect_t_auth_token_v1";
 const JOB_AUTH_TOKEN_KEY = "connect_t_job_auth_token_v1";
 const OTP_VERIFICATION_KEY = "connect_t_otp_verification_v1";
@@ -31,42 +31,40 @@ export function isApiError(error: unknown): error is ApiError {
 
 export function getUserErrorMessage(error: unknown, fallback = "Something went wrong. Please try again after some time.") {
   if (isApiError(error)) return error.message || fallback;
-  if (error instanceof Error) {
-    return safeUserMessage(error.message, fallback);
-  }
+  if (error instanceof Error) return safeUserMessage(error.message, fallback);
   return fallback;
 }
 
 export async function storeAuthToken(token?: string | null) {
-  if (token) {
-    await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
-    await AsyncStorage.removeItem(OTP_VERIFICATION_KEY);
-    clearGetCache();
-  }
+  if (!token) return;
+  await setSessionSecret(AUTH_TOKEN_KEY, token);
+  await deleteSessionSecret(OTP_VERIFICATION_KEY);
+  clearGetCache();
 }
 
 export async function clearAuthToken() {
-  await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
-  await AsyncStorage.removeItem(OTP_VERIFICATION_KEY);
+  await Promise.all([
+    deleteSessionSecret(AUTH_TOKEN_KEY),
+    deleteSessionSecret(OTP_VERIFICATION_KEY),
+  ]);
   clearGetCache();
 }
 
 export async function storeJobsAuthToken(token?: string | null) {
-  if (token) {
-    await AsyncStorage.setItem(JOB_AUTH_TOKEN_KEY, token);
-    await AsyncStorage.removeItem(OTP_VERIFICATION_KEY);
-    clearGetCache();
-  }
+  if (!token) return;
+  await setSessionSecret(JOB_AUTH_TOKEN_KEY, token);
+  await deleteSessionSecret(OTP_VERIFICATION_KEY);
+  clearGetCache();
 }
 
 export async function clearJobsAuthToken() {
-  await AsyncStorage.removeItem(JOB_AUTH_TOKEN_KEY);
+  await deleteSessionSecret(JOB_AUTH_TOKEN_KEY);
   clearGetCache();
 }
 
 export async function storeOtpVerificationToken(token?: string | null) {
-  if (token) await AsyncStorage.setItem(OTP_VERIFICATION_KEY, token);
-  else await AsyncStorage.removeItem(OTP_VERIFICATION_KEY);
+  if (token) await setSessionSecret(OTP_VERIFICATION_KEY, token);
+  else await deleteSessionSecret(OTP_VERIFICATION_KEY);
 }
 
 function tokenPayload(token?: string | null): Record<string, any> | null {
@@ -92,26 +90,30 @@ function isSuperAdminToken(token?: string | null) {
 }
 
 export async function getStoredAuthToken() {
-  const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-  return isUsableToken(token) ? token : null;
+  const token = await getSessionSecret(AUTH_TOKEN_KEY);
+  if (isUsableToken(token)) return token;
+  if (token) await deleteSessionSecret(AUTH_TOKEN_KEY);
+  return null;
 }
 
 export async function getStoredJobsAuthToken() {
-  const token = await AsyncStorage.getItem(JOB_AUTH_TOKEN_KEY);
-  return isUsableToken(token) ? token : null;
+  const token = await getSessionSecret(JOB_AUTH_TOKEN_KEY);
+  if (isUsableToken(token)) return token;
+  if (token) await deleteSessionSecret(JOB_AUTH_TOKEN_KEY);
+  return null;
 }
 
-async function getAuthHeaders(path: string, body?: unknown) {
+async function getAuthHeaders(path: string, body?: unknown, multipart = false) {
   const [storedCivicToken, storedJobsToken, otpVerification] = await Promise.all([
-    AsyncStorage.getItem(AUTH_TOKEN_KEY),
-    AsyncStorage.getItem(JOB_AUTH_TOKEN_KEY),
-    AsyncStorage.getItem(OTP_VERIFICATION_KEY),
+    getSessionSecret(AUTH_TOKEN_KEY),
+    getSessionSecret(JOB_AUTH_TOKEN_KEY),
+    getSessionSecret(OTP_VERIFICATION_KEY),
   ]);
   const civicToken = isUsableToken(storedCivicToken) ? storedCivicToken : null;
   const jobsToken = isUsableToken(storedJobsToken) ? storedJobsToken : null;
 
-  if (storedCivicToken && !civicToken) void AsyncStorage.removeItem(AUTH_TOKEN_KEY);
-  if (storedJobsToken && !jobsToken) void AsyncStorage.removeItem(JOB_AUTH_TOKEN_KEY);
+  if (storedCivicToken && !civicToken) void deleteSessionSecret(AUTH_TOKEN_KEY);
+  if (storedJobsToken && !jobsToken) void deleteSessionSecret(JOB_AUTH_TOKEN_KEY);
   const isUnifiedJobsSession = path === "/api/job-portal/session";
   const token = path.startsWith("/api/job-portal/") && !isUnifiedJobsSession
     ? isSuperAdminToken(civicToken)
@@ -120,7 +122,8 @@ async function getAuthHeaders(path: string, body?: unknown) {
     : civicToken;
   const headers: Record<string, string> = {};
 
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // React Native and browsers must generate the multipart boundary themselves.
+  if (body !== undefined && !multipart) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
   if (otpVerification) headers["X-OTP-Verification"] = otpVerification;
 
@@ -162,25 +165,44 @@ function friendlyStatusMessage(status: number, serverMessage: string) {
   if (status === 404) return safeMessage || "The requested information was not found.";
   if (status === 408 || status === 429) return safeMessage || "Please wait a moment and try again.";
   if (status >= 500) return "Something went wrong. Please try again after some time.";
-
-  // Validation and conflict messages are intentionally supplied by our API and
-  // help the user correct a field. Never expose transport or infrastructure text.
-  if ([400, 409, 422].includes(status)) {
+  if ([400, 409, 413, 415, 422].includes(status)) {
     return safeMessage || "We could not complete that request. Please check the details and try again.";
   }
-
   return "We could not complete that request. Please try again.";
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit) {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function parseSuccess<T>(res: Response, method: string, path: string): Promise<T> {
+  if (res.status === 204) return {} as T;
+  const text = await res.text().catch(() => "");
+  if (!text) return {} as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError("The server returned an invalid response. Please try again.", {
+      status: res.status,
+      internalMessage: `${method} ${path}: invalid JSON response`,
+    });
+  }
+}
+
+async function assertResponse(res: Response, method: string, path: string) {
+  if (res.ok) return;
+  const serverError = await readError(res, "");
+  throw new ApiError(friendlyStatusMessage(res.status, serverError.message), {
+    status: res.status,
+    code: serverError.code,
+    internalMessage: `${method} ${path}: ${res.status} ${serverError.message}`,
+  });
 }
 
 async function request<T = any>(
@@ -201,7 +223,6 @@ async function request<T = any>(
 
   const promise = (async () => {
     let res: Response;
-
     try {
       res = await fetchWithTimeout(url, {
         method,
@@ -212,28 +233,8 @@ async function request<T = any>(
       const internalMessage = error instanceof Error ? error.message : String(error || "Network request failed");
       throw new ApiError("Unable to connect right now. Check your internet and try again.", { internalMessage });
     }
-
-    if (!res.ok) {
-      const serverError = await readError(res, "");
-      throw new ApiError(friendlyStatusMessage(res.status, serverError.message), {
-        status: res.status,
-        code: serverError.code,
-        internalMessage: `${method} ${path}: ${res.status} ${serverError.message}`,
-      });
-    }
-
-    if (res.status === 204) return {} as T;
-
-    const text = await res.text().catch(() => "");
-    if (!text) return {} as T;
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      throw new ApiError("The server returned an invalid response. Please try again.", {
-        status: res.status,
-        internalMessage: `${method} ${path}: invalid JSON response`,
-      });
-    }
+    await assertResponse(res, method, path);
+    return parseSuccess<T>(res, method, path);
   })();
 
   if (method === "GET") {
@@ -243,8 +244,24 @@ async function request<T = any>(
       () => inFlightGets.delete(key),
     );
   }
-
   return promise;
+}
+
+export async function apiPostForm<T = any>(path: string, form: FormData): Promise<T> {
+  clearGetCache();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(apiUrl(path), {
+      method: "POST",
+      headers: await getAuthHeaders(path, form, true),
+      body: form,
+    }, UPLOAD_TIMEOUT_MS);
+  } catch (error) {
+    const internalMessage = error instanceof Error ? error.message : String(error || "Upload failed");
+    throw new ApiError("The upload could not be completed. Check your connection and try again.", { internalMessage });
+  }
+  await assertResponse(res, "POST", path);
+  return parseSuccess<T>(res, "POST", path);
 }
 
 export async function apiGet<T = any>(path: string): Promise<T> {

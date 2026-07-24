@@ -7,9 +7,10 @@ type OtpDigitInputProps = {
   value: string;
   onChange: (value: string) => void;
   autoFocus?: boolean;
+  disabled?: boolean;
 };
 
-export default function OtpDigitInput({ value, onChange, autoFocus = false }: OtpDigitInputProps) {
+export default function OtpDigitInput({ value, onChange, autoFocus = false, disabled = false }: OtpDigitInputProps) {
   const refs = [
     useRef<TextInput>(null),
     useRef<TextInput>(null),
@@ -21,6 +22,7 @@ export default function OtpDigitInput({ value, onChange, autoFocus = false }: Ot
   const digits = String(value || "").replace(/\D/g, "").slice(0, OTP_LENGTH).split("");
 
   const setDigit = (index: number, text: string) => {
+    if (disabled) return;
     const cleaned = text.replace(/\D/g, "");
     const next = Array.from({ length: OTP_LENGTH }, (_, i) => digits[i] || "");
 
@@ -42,7 +44,7 @@ export default function OtpDigitInput({ value, onChange, autoFocus = false }: Ot
   };
 
   return (
-    <View style={styles.row}>
+    <View style={styles.row} accessibilityRole="none">
       {Array.from({ length: OTP_LENGTH }, (_, index) => (
         <TextInput
           key={index}
@@ -51,10 +53,15 @@ export default function OtpDigitInput({ value, onChange, autoFocus = false }: Ot
           onChangeText={(text) => setDigit(index, text)}
           keyboardType="number-pad"
           inputMode="numeric"
-          maxLength={1}
+          maxLength={OTP_LENGTH}
           textAlign="center"
           autoFocus={autoFocus && index === 0}
-          style={[styles.box, digits[index] ? styles.boxFilled : null]}
+          autoComplete={index === 0 ? "sms-otp" : "off"}
+          textContentType={index === 0 ? "oneTimeCode" : "none"}
+          importantForAutofill={index === 0 ? "yes" : "no"}
+          accessibilityLabel={`OTP digit ${index + 1} of ${OTP_LENGTH}`}
+          editable={!disabled}
+          style={[styles.box, digits[index] ? styles.boxFilled : null, disabled ? styles.boxDisabled : null]}
           placeholder=""
           placeholderTextColor="#CBD5E1"
           selectTextOnFocus
@@ -85,4 +92,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF7ED",
     color: "#000000",
   },
+  boxDisabled: { opacity: 0.65 },
 });

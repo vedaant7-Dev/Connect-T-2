@@ -11,7 +11,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.connectt.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Connect T uses your location to attach accurate coordinates to civic complaints."
+        "NSLocationWhenInUseUsageDescription": "Connect T uses your location to attach accurate coordinates to civic complaints.",
+        "NSCameraUsageDescription": "Connect T uses your camera to capture evidence for civic complaints.",
+        "NSPhotoLibraryUsageDescription": "Connect T uses your photo library to attach evidence to civic complaints."
       }
     },
     "android": {
@@ -45,6 +47,14 @@
       "expo-web-browser",
       "expo-status-bar",
       "expo-location",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Connect T uses your photo library to attach evidence to civic complaints.",
+          "cameraPermission": "Connect T uses your camera to capture evidence for civic complaints.",
+          "microphonePermission": false
+        }
+      ],
       "expo-build-properties",
       "./plugins/withAndroidAbiSplits"
     ],

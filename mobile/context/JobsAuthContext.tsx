@@ -5,8 +5,6 @@ import { apiPatch, apiPost, clearJobsAuthToken, storeJobsAuthToken } from "@/lib
 import { toUploadableMediaUri } from "@/lib/mediaUpload";
 import { useAuth } from "@/context/AuthContext";
 
-
-
 export type JobsUserRole = "seeker" | "employer";
 export type CurrentStatus = "employed" | "unemployed" | "student" | "fresher";
 
@@ -50,7 +48,7 @@ export interface JobsUser {
   fieldOfStudy?: string;
   location?: string;
   languages?: string;
-  profilePhoto?: string;
+  profilePhoto?: string | null;
 
   company?: string;
   gstNo?: string;
@@ -74,60 +72,50 @@ export interface ProfileField {
 }
 
 export const SEEKER_PROFILE_FIELDS: ProfileField[] = [
-  { key: "name",           label: "Full Name",            weight: 1 },
-  { key: "dob",            label: "Date of Birth",        weight: 1 },
-  { key: "phone",          label: "Mobile Number",        weight: 1 },
-  { key: "qualification",  label: "Qualification",        weight: 1 },
-  { key: "email",          label: "Email Address",        weight: 1 },
-  { key: "skills",         label: "Skills",               weight: 1 },
-  { key: "profilePhoto",   label: "Profile Photo",        weight: 1 },
-  { key: "about",          label: "About / Objective",    weight: 1 },
-  { key: "currentStatus",  label: "Current Status",       weight: 1 },
-  { key: "experience",     label: "Work Experience",      weight: 1 },
-  { key: "location",       label: "Location",             weight: 1 },
-  { key: "languages",      label: "Languages Known",      weight: 1 },
+  { key: "name", label: "Full Name", weight: 1 },
+  { key: "dob", label: "Date of Birth", weight: 1 },
+  { key: "phone", label: "Mobile Number", weight: 1 },
+  { key: "qualification", label: "Qualification", weight: 1 },
+  { key: "email", label: "Email Address", weight: 1 },
+  { key: "skills", label: "Skills", weight: 1 },
+  { key: "profilePhoto", label: "Profile Photo", weight: 1 },
+  { key: "about", label: "About / Objective", weight: 1 },
+  { key: "currentStatus", label: "Current Status", weight: 1 },
+  { key: "experience", label: "Work Experience", weight: 1 },
+  { key: "location", label: "Location", weight: 1 },
+  { key: "languages", label: "Languages Known", weight: 1 },
 ];
 
 export function getSeekerFields(user: JobsUser): ProfileField[] {
   const base = SEEKER_PROFILE_FIELDS.slice();
-
   if (user.currentStatus === "employed") {
     base.push(
       { key: "currentCompany", label: "Current Company", weight: 1 },
-      { key: "currentRole",    label: "Current Role",    weight: 1 },
+      { key: "currentRole", label: "Current Role", weight: 1 },
     );
   } else if (user.currentStatus === "student") {
     base.push(
-      { key: "collegeName",  label: "College Name",   weight: 1 },
+      { key: "collegeName", label: "College Name", weight: 1 },
       { key: "fieldOfStudy", label: "Field of Study", weight: 1 },
     );
   }
-
-  if (user.currentStatus === "fresher") {
-    return base.filter((f) => f.key !== "experience");
-  }
-
-  return base;
+  return user.currentStatus === "fresher" ? base.filter((field) => field.key !== "experience") : base;
 }
 
 export function calcProfileCompletion(user: JobsUser): number {
   if (user.role !== "seeker") return 100;
-
   const fields = getSeekerFields(user);
-  const filled = fields.filter((f) => {
-    const val = user[f.key];
-    return val !== undefined && val !== null && String(val).trim() !== "";
+  const filled = fields.filter((field) => {
+    const value = user[field.key];
+    return value !== undefined && value !== null && String(value).trim() !== "";
   });
-
   return Math.round((filled.length / fields.length) * 100);
 }
-
 
 interface JobsAuthContextType {
   jobsUser: JobsUser | null;
   loading: boolean;
   activateJobs: (role: JobsUserRole, data?: Partial<JobsUser>) => Promise<void>;
-  switchJobsRole: (role: JobsUserRole, data?: Partial<JobsUser>) => Promise<void>;
   logoutJobs: () => Promise<void>;
   updateJobsUser: (data: Partial<JobsUser>) => Promise<void>;
   addCompany: (company: Omit<CompanyProfile, "id">) => Promise<string | undefined>;
@@ -135,7 +123,6 @@ interface JobsAuthContextType {
 }
 
 const JobsContext = createContext<JobsAuthContextType | null>(null);
-
 const SESSION_KEY = "connectt_jobs_session_v2";
 const COLORS = ["#C2410C", "#EA580C", "#F97316", "#FB923C", "#B45309", "#92400E", "#0F172A"];
 
@@ -150,18 +137,10 @@ function cleanPhone(value?: string) {
 function normalizeDob(value?: string) {
   const raw = String(value || "").trim();
   if (!raw) return undefined;
-
   const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) return raw;
-
   const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (slash) {
-    const dd = slash[1].padStart(2, "0");
-    const mm = slash[2].padStart(2, "0");
-    const yyyy = slash[3];
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
+  if (slash) return `${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`;
   return raw;
 }
 
@@ -173,6 +152,9 @@ function normalizeUser(raw: any): JobsUser {
   const contactPerson = raw.contactPerson || raw.contact_person;
   const gstNo = raw.gstNo || raw.gst_no;
   const companyDescription = raw.companyDescription || raw.company_description;
+  const profilePhoto = raw.profilePhoto === null || raw.profile_photo === null
+    ? null
+    : raw.profilePhoto || raw.profile_photo || undefined;
 
   const company: CompanyProfile | null = companyName
     ? {
@@ -199,7 +181,6 @@ function normalizeUser(raw: any): JobsUser {
     role: (raw.role === "employer" ? "employer" : "seeker") as JobsUserRole,
     avatarColor: raw.avatarColor || raw.avatar_color || randomColor(),
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
-
     dob: normalizeDob(raw.dob),
     age: raw.age ? String(raw.age) : undefined,
     qualification: raw.qualification,
@@ -216,8 +197,7 @@ function normalizeUser(raw: any): JobsUser {
     fieldOfStudy: raw.fieldOfStudy || raw.field_of_study,
     location: raw.location,
     languages: raw.languages,
-    profilePhoto: raw.profilePhoto || raw.profile_photo,
-
+    profilePhoto,
     company: companyName || undefined,
     gstNo,
     companyType,
@@ -240,20 +220,20 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const persist = async (user: JobsUser | null) => {
-    if (user) {
-      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    } else {
-      await AsyncStorage.removeItem(SESSION_KEY);
-    }
+    if (user) await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    else await AsyncStorage.removeItem(SESSION_KEY);
     setJobsUser(user);
   };
 
   const openUnifiedSession = async (role?: JobsUserRole, data: Partial<JobsUser> = {}) => {
     const payload = { ...data, role } as Record<string, unknown>;
     delete payload.phone;
-    const res = await apiPost<any>("/api/job-portal/session", payload);
-    await storeJobsAuthToken(res.token);
-    const nextUser = normalizeUser(res.user || res.data || res);
+    delete payload.id;
+    delete payload.createdAt;
+    delete payload.companies;
+    const response = await apiPost<any>("/api/job-portal/session", payload);
+    await storeJobsAuthToken(response.token);
+    const nextUser = normalizeUser(response.user || response.data || response);
     await persist(nextUser);
     return nextUser;
   };
@@ -279,8 +259,7 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
         }
         try {
           const next = await openUnifiedSession(role);
-          if (!active) return;
-          setJobsUser(next);
+          if (active) setJobsUser(next);
         } catch {
           if (!active) return;
           await clearJobsAuthToken();
@@ -300,14 +279,6 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
     await openUnifiedSession(role, data);
   };
 
-  const switchJobsRole = async (role: JobsUserRole, data: Partial<JobsUser> = {}) => {
-    try {
-      await openUnifiedSession(role, data);
-    } catch (error) {
-      throw error;
-    }
-  };
-
   const logoutJobs = async () => {
     await clearJobsAuthToken();
     await persist(null);
@@ -315,55 +286,73 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
 
   const updateJobsUser = async (data: Partial<JobsUser>) => {
     if (!jobsUser) return;
-    const safeData = { ...data };
-    delete safeData.phone;
-    if (Object.prototype.hasOwnProperty.call(safeData, "name") && String(safeData.name || "").trim().split(/\s+/).length < 2) {
+    const payload: Record<string, unknown> = { ...data };
+    delete payload.id;
+    delete payload.phone;
+    delete payload.role;
+    delete payload.createdAt;
+    delete payload.companies;
+    delete payload.age;
+
+    if (Object.prototype.hasOwnProperty.call(data, "name") && String(data.name || "").trim().split(/\s+/).filter(Boolean).length < 2) {
       throw new Error("Enter your full name, including surname.");
     }
-    const profilePhoto = Object.prototype.hasOwnProperty.call(data, "profilePhoto")
-      ? await toUploadableMediaUri(data.profilePhoto)
-      : jobsUser.profilePhoto;
-    const next = normalizeUser({ ...jobsUser, ...safeData, phone: jobsUser.phone, profilePhoto });
-    const res = await apiPatch<any>(`/api/job-portal/users/${jobsUser.id}`, next);
-    await persist(normalizeUser(res.user || next));
+    if (Object.prototype.hasOwnProperty.call(data, "profilePhoto")) {
+      payload.profilePhoto = await toUploadableMediaUri(data.profilePhoto);
+    }
+
+    const response = await apiPatch<any>(`/api/job-portal/users/${jobsUser.id}`, payload);
+    if (!response?.user) throw new Error("The updated profile could not be loaded. Please try again.");
+    await persist(normalizeUser(response.user));
   };
 
   const addCompany = async (company: Omit<CompanyProfile, "id">) => {
     if (!jobsUser) return undefined;
     const id = `company_${Date.now()}`;
-    const nextCompanies = [...(jobsUser.companies || []), { ...company, id }];
-    await updateJobsUser({ companies: nextCompanies, company: company.name });
+    await updateJobsUser({
+      company: company.name,
+      companyType: company.type,
+      companySize: company.size,
+      industry: company.industry,
+      website: company.website,
+      companyDescription: company.description,
+      address: company.address,
+      pincode: company.pincode,
+      whatsapp: company.whatsapp,
+      yearEstablished: company.yearEstablished,
+      contactPerson: company.contactPerson,
+      gstNo: company.gstNo,
+    });
     return id;
   };
 
-  const updateCompany = async (companyId: string, company: Partial<CompanyProfile>) => {
+  const updateCompany = async (_companyId: string, company: Partial<CompanyProfile>) => {
     if (!jobsUser) return;
-    const nextCompanies = (jobsUser.companies || []).map((item) =>
-      item.id === companyId ? { ...item, ...company } : item,
-    );
-    await updateJobsUser({ companies: nextCompanies });
+    await updateJobsUser({
+      company: company.name,
+      companyType: company.type,
+      companySize: company.size,
+      industry: company.industry,
+      website: company.website,
+      companyDescription: company.description,
+      address: company.address,
+      pincode: company.pincode,
+      whatsapp: company.whatsapp,
+      yearEstablished: company.yearEstablished,
+      contactPerson: company.contactPerson,
+      gstNo: company.gstNo,
+    });
   };
 
   return (
-    <JobsContext.Provider
-      value={{
-        jobsUser,
-        loading,
-        activateJobs,
-        switchJobsRole,
-        logoutJobs,
-        updateJobsUser,
-        addCompany,
-        updateCompany,
-      }}
-    >
+    <JobsContext.Provider value={{ jobsUser, loading, activateJobs, logoutJobs, updateJobsUser, addCompany, updateCompany }}>
       {children}
     </JobsContext.Provider>
   );
 }
 
 export function useJobsAuth() {
-  const ctx = useContext(JobsContext);
-  if (!ctx) throw new Error("useJobsAuth must be used inside JobsAuthProvider");
-  return ctx;
+  const context = useContext(JobsContext);
+  if (!context) throw new Error("useJobsAuth must be used inside JobsAuthProvider");
+  return context;
 }

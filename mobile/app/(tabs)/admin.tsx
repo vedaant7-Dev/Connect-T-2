@@ -1,4 +1,5 @@
 import { AppScrollView } from "@/components/AppScrollView";
+import ConfirmActionModal from "@/components/ConfirmActionModal";
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Modal, TextInput } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,6 +14,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { wardMatchesNagarsevak } from "@/data/wards";
 import { displayUtilityStatus, postUtilityStatus, UtilityType } from "@/lib/utilityStatusApi";
 import { getUserErrorMessage } from "@/lib/api";
+import { useAccountActions } from "@/hooks/useAccountActions";
 
 const statusLabelKeys: Record<ComplaintStatus, string> = {
   submitted: "submitted",
@@ -193,7 +195,7 @@ function DetailedComplaintCard({ complaint, onAction }: { complaint: Complaint; 
 export default function AdminScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { user, logout, updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const { complaints, updateStatus, refreshComplaints } = useComplaints();
   const { alerts: allAlerts, removeAlert, refreshAlerts } = useAlerts();
   const alerts = allAlerts.filter((a) => a.postedById && user?.id ? a.postedById === user.id : a.postedBy === user?.name);
@@ -201,7 +203,6 @@ export default function AdminScreen() {
   const { t } = useLanguage();
   const [filter, setFilter] = useState<ComplaintStatus | "all">("all");
   const [active, setActive] = useState<Complaint | null>(null);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editName, setEditName] = useState("");
@@ -213,6 +214,7 @@ export default function AdminScreen() {
   const [utilityDescription, setUtilityDescription] = useState("");
   const [utilitySaving, setUtilitySaving] = useState(false);
   const [utilityMessage, setUtilityMessage] = useState("");
+  const accountActions = useAccountActions();
 
   if (!user || user.role !== "nagarsevak") {
     return (
@@ -258,12 +260,6 @@ export default function AdminScreen() {
     if (Platform.OS !== "web") Haptics.selectionAsync();
     setFilter(nextFilter);
     router.push({ pathname: "/complaint/list" as any, params: { status: nextFilter } });
-  };
-
-  const handleLogout = async () => {
-    setShowLogoutModal(false);
-    await logout("/login");
-    router.replace("/login" as any);
   };
 
   const openEditProfile = () => {
@@ -727,7 +723,7 @@ export default function AdminScreen() {
               <Text style={pStyles.appInfoVersion}>v1.0 · AMC Ambernath</Text>
             </View>
 
-            <TouchableOpacity style={pStyles.logoutBtn} onPress={() => { setShowProfile(false); setShowLogoutModal(true); }} activeOpacity={0.85}>
+            <TouchableOpacity style={pStyles.logoutBtn} onPress={() => { setShowProfile(false); accountActions.requestLogout(); }} activeOpacity={0.85}>
               <View style={pStyles.logoutInner}>
                 <Feather name="log-out" size={18} color="#DC2626" />
                 <Text style={pStyles.logoutText}>{t("logout")}</Text>
@@ -772,26 +768,17 @@ export default function AdminScreen() {
         </View>
       </Modal>
 
-      <Modal visible={showLogoutModal} transparent animationType="fade" onRequestClose={() => setShowLogoutModal(false)}>
-        <View style={styles.logoutModalOverlay}>
-          <View style={styles.logoutModalSheet}>
-            <View style={styles.logoutModalIconWrap}>
-              <Feather name="log-out" size={28} color="#DC2626" />
-            </View>
-            <Text style={styles.logoutModalTitle}>{t("logout")}</Text>
-            <Text style={styles.logoutModalBody}>{t("logoutConfirm")}</Text>
-            <View style={styles.logoutModalBtnRow}>
-              <TouchableOpacity style={styles.logoutModalCancelBtn} onPress={() => setShowLogoutModal(false)} activeOpacity={0.8}>
-                <Text style={styles.logoutModalCancelText}>{t("cancel")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.logoutModalConfirmBtn} onPress={handleLogout} activeOpacity={0.85}>
-                <Feather name="log-out" size={15} color="white" />
-                <Text style={styles.logoutModalConfirmText}>{t("yesLogout")}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ConfirmActionModal
+        visible={accountActions.pendingAction === "logout"}
+        title="Logout from Connect-T?"
+        message="This will securely clear Civic and Job Portal sessions on this device. Complaints, alerts and account data will remain saved."
+        confirmLabel="Logout"
+        icon="log-out"
+        tone="danger"
+        busy={accountActions.busy}
+        onCancel={accountActions.cancelAction}
+        onConfirm={accountActions.runPendingAction}
+      />
     </View>
   );
 }
@@ -978,3 +965,4 @@ const pStyles = StyleSheet.create({
   logoutInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 16 },
   logoutText: { fontSize: 15, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_700Bold" },
 });
+
