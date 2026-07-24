@@ -6,12 +6,15 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
+const jobsProfile = () => read("screens/LocalizedJobPortalProfileScreen.tsx");
 
 test("all profile portal actions bypass portal selection after initial choice", () => {
   const civic = read("screens/CivicProfileScreen.tsx");
-  const jobs = read("app/jobs/(tabs)/profile.tsx");
+  const route = read("app/jobs/(tabs)/profile.tsx");
+  const jobs = jobsProfile();
   const hook = read("hooks/useAccountActions.ts");
   assert.match(civic, /requestJobsPortal/);
+  assert.match(route, /LocalizedJobPortalProfileScreen/);
   assert.match(jobs, /requestCivicPortal/);
   assert.doesNotMatch(jobs, /portal-select/);
   assert.ok(hook.includes('resetNavigation("/jobs")'));
@@ -19,7 +22,7 @@ test("all profile portal actions bypass portal selection after initial choice", 
 });
 
 test("shared logout confirmation is used by civic jobs nagarsevak and super admin", () => {
-  for (const file of ["screens/CivicProfileScreen.tsx", "app/jobs/(tabs)/profile.tsx", "app/(tabs)/admin.tsx", "app/super-admin/settings.tsx"]) {
+  for (const file of ["screens/CivicProfileScreen.tsx", "screens/LocalizedJobPortalProfileScreen.tsx", "app/(tabs)/admin.tsx", "app/super-admin/settings.tsx"]) {
     assert.match(read(file), /ConfirmActionModal/, file);
     assert.match(read(file), /requestLogout/, file);
   }
@@ -51,14 +54,14 @@ test("civic profile exposes registration, official, preference and account field
 });
 
 test("Job Portal profiles expose complete role-specific fields and verified mobile is read-only", () => {
-  const screen = read("app/jobs/(tabs)/profile.tsx");
+  const screen = jobsProfile();
   const context = read("context/JobsAuthContext.tsx");
   for (const field of [
     "currentCompany", "currentRole", "previousCompany", "previousRole", "collegeName", "fieldOfStudy",
     "companyType", "companySize", "companyDescription", "pincode", "whatsapp", "gstNo", "yearEstablished",
   ]) assert.match(screen, new RegExp(field));
-  assert.match(screen, /Verified Mobile Number/);
-  assert.match(screen, /cannot be edited here/);
+  assert.match(screen, /c\("verifiedMobile"\)/);
+  assert.match(screen, /c\("mobileReadOnly"\)/);
   assert.match(screen, /setField\("profilePhoto", null\)/);
   assert.match(screen, /requestCivicPortal/);
   assert.match(screen, /role-change-requests/);
