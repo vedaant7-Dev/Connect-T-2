@@ -1,12 +1,23 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, AppStateStatus } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
-import { apiGet, apiPatch, apiPost, getUserErrorMessage } from "@/lib/api";
+import { apiGet, apiPatch, apiPost, apiPostForm, getUserErrorMessage, isApiError } from "@/lib/api";
 
 export type BroadcastStatus = "draft" | "scheduled" | "sent" | "archived";
 export type BroadcastAudience = "all" | "citizen" | "nagarsevak" | "seeker" | "employer";
 export type BroadcastLanguage = "en" | "mr" | "hi";
+export type BroadcastMediaType = "image" | "video";
+
+export type BroadcastMediaUpload = {
+  uri: string;
+  type: BroadcastMediaType;
+  mimeType: string;
+  fileName: string;
+  sizeBytes?: number;
+  durationMs?: number | null;
+  webFile?: Blob | null;
+};
 
 export type AppBroadcast = {
   id: string;
@@ -22,6 +33,12 @@ export type AppBroadcast = {
   createdAt: string;
   createdBy: string;
   createdByName: string;
+  mediaUri?: string;
+  mediaType?: BroadcastMediaType;
+  mediaFileName?: string;
+  mediaMimeType?: string;
+  mediaSizeBytes?: number;
+  mediaDurationSeconds?: number;
   externalPushStatus: "not_configured" | "pending" | "sent" | "failed";
   externalPushMessage?: string;
   deliveredCount: number;
@@ -38,6 +55,7 @@ export type NewBroadcast = {
   ward?: string;
   scheduledAt?: string;
   idempotencyKey?: string;
+  media?: BroadcastMediaUpload | null;
 };
 
 type BroadcastContextValue = {
@@ -57,6 +75,7 @@ function toBoolean(value: unknown) {
 }
 
 function normalizeBroadcast(raw: any): AppBroadcast {
+  const rawMediaType = raw.mediaType || raw.media_type;
   return {
     id: String(raw.id),
     title: String(raw.title || "Broadcast"),
@@ -73,6 +92,12 @@ function normalizeBroadcast(raw: any): AppBroadcast {
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
     createdBy: String(raw.createdBy || raw.created_by || ""),
     createdByName: String(raw.createdByName || raw.created_by_name || "Connect-T"),
+    mediaUri: raw.mediaUri || raw.media_uri || undefined,
+    mediaType: rawMediaType === "video" ? "video" : rawMediaType === "image" ? "image" : undefined,
+    mediaFileName: raw.mediaFileName || raw.media_file_name || undefined,
+    mediaMimeType: raw.mediaMimeType || raw.media_mime_type || undefined,
+    mediaSizeBytes: Number(raw.mediaSizeBytes ?? raw.media_size_bytes ?? 0) || undefined,
+    mediaDurationSeconds: Number(raw.mediaDurationSeconds ?? raw.media_duration_seconds ?? 0) || undefined,
     externalPushStatus: ["pending", "sent", "failed"].includes(raw.externalPushStatus || raw.external_push_status)
       ? raw.externalPushStatus || raw.external_push_status
       : "not_configured",
@@ -92,11 +117,49 @@ function broadcastFingerprint(data: NewBroadcast) {
     audienceRole: data.audienceRole,
     ward: data.ward || "",
     scheduledAt: data.scheduledAt || "",
+    media: data.media ? `${data.media.fileName}:${data.media.sizeBytes || 0}:${data.media.durationMs || 0}` : "",
   });
 }
 
 function makeIdempotencyKey() {
   return `broadcast_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 14)}`;
+}
+
+function routeAwareMessage(error: unknown, fallback: string) {
+  if (isApiError(error) && error.code === "ROUTE_NOT_FOUND") {
+    return "Broadcast API is not deployed on the connected backend. Redeploy the connect-t-2 backend from the latest main branch, then try again.";
+  }
+  return getUserErrorMessage(error, fallback);
+}
+
+function appendField(form: FormData, key: string, value?: string) {
+  if (value !== undefined && value !== "") form.append(key, value);
+}
+
+function buildBroadcastForm(data: NewBroadcast, idempotencyKey: string) {
+  const form = new FormData();
+  appendField(form, "title", data.title);
+  appendField(form, "body", data.body);
+  appendField(form, "category", data.category);
+  appendField(form, "language", data.language);
+  appendField(form, "audienceRole", data.audienceRole);
+  appendField(form, "ward", data.ward);
+  appendField(form, "scheduledAt", data.scheduledAt);
+  appendField(form, "idempotencyKey", idempotencyKey);
+
+  const media = data.media;
+  if (media) {
+    if (Platform.OS === "web" && media.webFile) {
+      form.append("media", media.webFile, media.fileName);
+    } else {
+      form.append("media", {
+        uri: media.uri,
+        name: media.fileName,
+        type: media.mimeType,
+      } as any);
+    }
+  }
+  return form;
 }
 
 export function BroadcastProvider({ children }: { children: ReactNode }) {
@@ -121,7 +184,7 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
         setBroadcasts((result.broadcasts || []).map(normalizeBroadcast));
         setError("");
       } catch (requestError) {
-        setError(getUserErrorMessage(requestError, "Broadcasts could not be loaded. Pull down to try again."));
+        setError(routeAwareMessage(requestError, "Broadcasts could not be loaded. Pull down to try again."));
         throw requestError;
       } finally {
         setLoading(false);
@@ -154,14 +217,20 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
     const idempotencyKey = pendingIdempotencyKeys.current.get(fingerprint) || data.idempotencyKey || makeIdempotencyKey();
     pendingIdempotencyKeys.current.set(fingerprint, idempotencyKey);
 
-    const result = await apiPost<{ broadcast: any }>("/api/broadcasts", {
-      ...data,
-      idempotencyKey,
-    });
-    pendingIdempotencyKeys.current.delete(fingerprint);
-    const created = normalizeBroadcast(result.broadcast);
-    setBroadcasts((current) => [created, ...current.filter((item) => item.id !== created.id)]);
-    return created;
+    try {
+      const result = data.media
+        ? await apiPostForm<{ broadcast: any }>("/api/broadcasts", buildBroadcastForm(data, idempotencyKey))
+        : await apiPost<{ broadcast: any }>("/api/broadcasts", { ...data, idempotencyKey });
+      pendingIdempotencyKeys.current.delete(fingerprint);
+      const created = normalizeBroadcast(result.broadcast);
+      setBroadcasts((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+      return created;
+    } catch (requestError) {
+      if (isApiError(requestError) && requestError.code === "ROUTE_NOT_FOUND") {
+        throw new Error(routeAwareMessage(requestError, "Broadcast service is unavailable."));
+      }
+      throw requestError;
+    }
   }, []);
 
   const archiveBroadcast = useCallback(async (id: string) => {
