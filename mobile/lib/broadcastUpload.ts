@@ -13,48 +13,76 @@ function userMessage(status: number, serverMessage: string) {
   return serverMessage || "The broadcast upload could not be completed.";
 }
 
-export async function uploadBroadcastForm<T = any>(path: string, form: FormData): Promise<T> {
-  invalidateApiCache();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), BROADCAST_UPLOAD_TIMEOUT_MS);
-
+function parsePayload(text: string, status: number) {
+  if (!text) return {};
   try {
-    const token = await getStoredAuthToken();
-    const response = await fetch(apiUrl(path), {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      body: form,
-      signal: controller.signal,
-    });
-    const text = await response.text().catch(() => "");
-    let payload: any = {};
-    if (text) {
-      try {
-        payload = JSON.parse(text);
-      } catch {
-        if (!response.ok) payload = { message: text };
-        else throw new ApiError("The server returned an invalid response. Please try again.", { status: response.status });
-      }
+    return JSON.parse(text);
+  } catch {
+    if (status >= 200 && status < 300) {
+      throw new ApiError("The server returned an invalid response. Please try again.", { status });
     }
-    if (!response.ok) {
-      const serverMessage = String(payload?.error || payload?.message || "");
-      throw new ApiError(userMessage(response.status, serverMessage), {
-        status: response.status,
-        code: payload?.code ? String(payload.code) : undefined,
-        internalMessage: `POST ${path}: ${response.status} ${serverMessage}`,
-      });
-    }
-    return payload as T;
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    const internalMessage = error instanceof Error ? error.message : String(error || "Broadcast upload failed");
-    if (internalMessage.toLowerCase().includes("abort")) {
-      throw new ApiError("The media upload took too long. Check your connection and try again.", { internalMessage });
-    }
-    throw new ApiError("The upload could not be completed. Check your internet and try again.", { internalMessage });
-  } finally {
-    clearTimeout(timeout);
+    return { message: text };
   }
+}
+
+export async function uploadBroadcastForm<T = any>(
+  path: string,
+  form: FormData,
+  onProgress?: (percentage: number) => void,
+): Promise<T> {
+  invalidateApiCache();
+  const token = await getStoredAuthToken();
+
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl(path));
+    xhr.timeout = BROADCAST_UPLOAD_TIMEOUT_MS;
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || !event.total) return;
+      const percentage = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      onProgress?.(percentage);
+    };
+
+    xhr.onload = () => {
+      try {
+        const payload: any = parsePayload(xhr.responseText || "", xhr.status);
+        if (xhr.status < 200 || xhr.status >= 300) {
+          const serverMessage = String(payload?.error || payload?.message || "");
+          reject(new ApiError(userMessage(xhr.status, serverMessage), {
+            status: xhr.status,
+            code: payload?.code ? String(payload.code) : undefined,
+            internalMessage: `POST ${path}: ${xhr.status} ${serverMessage}`,
+          }));
+          return;
+        }
+        onProgress?.(100);
+        resolve(payload as T);
+      } catch (error) {
+        reject(error instanceof ApiError ? error : new ApiError("The server returned an invalid response. Please try again."));
+      }
+    };
+
+    xhr.onerror = () => reject(new ApiError("The upload could not be completed. Check your internet and try again.", {
+      internalMessage: `POST ${path}: XMLHttpRequest network error`,
+    }));
+    xhr.ontimeout = () => reject(new ApiError("The media upload took too long. Check your connection and try again.", {
+      internalMessage: `POST ${path}: upload timed out after ${BROADCAST_UPLOAD_TIMEOUT_MS}ms`,
+    }));
+    xhr.onabort = () => reject(new ApiError("The media upload was cancelled.", {
+      internalMessage: `POST ${path}: upload aborted`,
+    }));
+
+    try {
+      onProgress?.(0);
+      xhr.send(form);
+    } catch (error) {
+      reject(new ApiError("The upload could not be started. Please try again.", {
+        internalMessage: error instanceof Error ? error.message : String(error || "XHR send failed"),
+      }));
+    }
+  });
 }
 
 export { BROADCAST_UPLOAD_TIMEOUT_MS };
