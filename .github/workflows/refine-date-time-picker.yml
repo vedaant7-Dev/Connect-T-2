@@ -1,0 +1,43 @@
+name: Refine Date Time Picker
+
+on:
+  push:
+    branches:
+      - fix/remove-complaint-age-row
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/remove-complaint-age-row
+          fetch-depth: 0
+      - name: Refine picker
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("mobile/components/AppDateTimePicker.tsx")
+          text = path.read_text(encoding="utf-8")
+          replacements = {
+            'useState(Math.ceil(initial.getMinutes() / 5) * 5 % 60)': 'useState(Math.floor(initial.getMinutes() / 5) * 5)',
+            'Array.from({ length: 90 }, (_, index)': 'Array.from({ length: 366 }, (_, index)',
+            'webWrap: { position: "relative", minHeight: 50, justifyContent: "center" }': 'webWrap: { position: "relative", minHeight: 50, flexDirection: "row", alignItems: "center", gap: 8 }',
+          }
+          for old, new in replacements.items():
+            if text.count(old) != 1:
+              raise SystemExit(f"Expected one match for {old!r}")
+            text = text.replace(old, new)
+          path.write_text(text, encoding="utf-8")
+          Path(".github/workflows/refine-date-time-picker.yml").unlink()
+      - name: Commit refinement
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile/components/AppDateTimePicker.tsx .github/workflows/refine-date-time-picker.yml
+          git commit -m "Refine date time picker layout"
+          git push origin HEAD:fix/remove-complaint-age-row
