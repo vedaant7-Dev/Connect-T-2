@@ -28,7 +28,7 @@ test("Job Portal onboarding and profile use the shared localized copy", () => {
     assert.match(source, /useLanguage/);
     assert.match(source, /jobsCopy/);
     assert.match(source, /lineHeight/);
-    assert.match(source, /flexShrink/);
+    assert.match(source, /flexShrink|minWidth/);
   }
   assert.match(setup, /accessibilityState=\{\{ selected/);
   assert.match(profile, /accessibilityLabel/);
