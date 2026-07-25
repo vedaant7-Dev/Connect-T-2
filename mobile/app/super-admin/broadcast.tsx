@@ -1,1 +1,1 @@
-export { default } from "@/screens/BroadcastCenterMediaScreen";
+export { default } from "@/screens/BroadcastCenterWithProgress";
