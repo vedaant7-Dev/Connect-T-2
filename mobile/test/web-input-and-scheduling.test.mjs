@@ -20,6 +20,8 @@ test("official update and broadcast schedules use the shared date time picker", 
   assert.match(broadcasts, /AppDateTimePicker/);
   assert.doesNotMatch(broadcasts, /placeholder="YYYY-MM-DD HH:mm"/);
   assert.match(picker, /type:\s*"datetime-local"/);
+  assert.match(picker, /Array\.from\(\{ length: 366 \}/);
+  assert.match(picker, /webWrap:\s*\{[^}]*flexDirection:\s*"row"/);
   assert.match(picker, /Select date and time/);
 });
 
