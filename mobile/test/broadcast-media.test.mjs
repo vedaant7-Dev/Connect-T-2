@@ -7,6 +7,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 test("Broadcast Center accepts one image or a five-minute video", () => {
   const picker = read("components/BroadcastMediaPicker.tsx");
   const screen = read("screens/BroadcastCenterMediaScreen.tsx");
+  const wrapper = read("screens/BroadcastCenterWithProgress.tsx");
   const route = read("app/super-admin/broadcast.tsx");
 
   assert.match(picker, /MAX_IMAGE_BYTES = 10 \* 1024 \* 1024/);
@@ -16,7 +17,9 @@ test("Broadcast Center accepts one image or a five-minute video", () => {
   assert.match(picker, /Video duration cannot exceed 5 minutes/);
   assert.match(screen, /BroadcastMediaPicker/);
   assert.match(screen, /media,/);
-  assert.match(route, /BroadcastCenterMediaScreen/);
+  assert.match(wrapper, /uploadProgress/);
+  assert.match(wrapper, /Uploading broadcast media/);
+  assert.match(route, /BroadcastCenterWithProgress/);
 });
 
 test("broadcast context uses multipart only when media exists and diagnoses stale backend routes", () => {
@@ -27,9 +30,11 @@ test("broadcast context uses multipart only when media exists and diagnoses stal
   assert.match(context, /ROUTE_NOT_FOUND/);
   assert.match(context, /Redeploy the connect-t-2 backend/);
   assert.match(context, /mediaDurationSeconds/);
+  assert.match(context, /setUploadProgress/);
   assert.match(upload, /BROADCAST_UPLOAD_TIMEOUT_MS = 3 \* 60 \* 1000/);
   assert.match(upload, /getStoredAuthToken/);
-  assert.match(upload, /AbortController/);
+  assert.match(upload, /XMLHttpRequest/);
+  assert.match(upload, /xhr\.upload\.onprogress/);
 });
 
 test("citizen official updates show broadcast image and video attachments", () => {
