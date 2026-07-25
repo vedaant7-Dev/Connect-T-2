@@ -14,6 +14,7 @@ type ConfirmActionModalProps = {
   confirmIcon?: keyof typeof Feather.glyphMap;
   tone?: ConfirmActionTone;
   busy?: boolean;
+  errorMessage?: string;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
 };
@@ -28,6 +29,7 @@ export default function ConfirmActionModal({
   confirmIcon,
   tone = "primary",
   busy = false,
+  errorMessage = "",
   onCancel,
   onConfirm,
 }: ConfirmActionModalProps) {
@@ -44,6 +46,12 @@ export default function ConfirmActionModal({
           </View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
+          {errorMessage ? (
+            <View style={styles.errorBox} accessibilityLiveRegion="assertive">
+              <Feather name="alert-triangle" size={16} color="#B91C1C" />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.cancelButton}
@@ -95,6 +103,8 @@ const styles = StyleSheet.create({
   iconWrap: { width: 58, height: 58, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 14 },
   title: { fontSize: 19, color: "#0F172A", fontFamily: "Inter_700Bold", textAlign: "center" },
   message: { marginTop: 7, fontSize: 13, lineHeight: 20, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center" },
+  errorBox: { marginTop: 14, width: "100%", borderRadius: 13, borderWidth: 1, borderColor: "#FECACA", backgroundColor: "#FEF2F2", padding: 10, flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  errorText: { flex: 1, color: "#991B1B", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_600SemiBold" },
   actions: { width: "100%", flexDirection: "row", gap: 10, marginTop: 22 },
   cancelButton: { flex: 1, minHeight: 48, borderRadius: 14, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
   cancelText: { color: "#475569", fontSize: 14, fontFamily: "Inter_700Bold" },
