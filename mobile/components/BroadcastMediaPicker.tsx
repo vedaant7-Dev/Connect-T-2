@@ -60,7 +60,7 @@ export default function BroadcastMediaPicker({
     const type = asset.type === "video" ? "video" : "image";
     const mimeType = mimeFrom(asset);
     const fileName = fileNameFrom(asset);
-    const sizeBytes = asset.fileSize || (asset.file instanceof Blob ? asset.file.size : undefined);
+    const sizeBytes = asset.fileSize || asset.file?.size || undefined;
     const durationMs = asset.duration ?? null;
 
     if (type === "image" && !["image/jpeg", "image/png", "image/webp"].includes(mimeType)) {
