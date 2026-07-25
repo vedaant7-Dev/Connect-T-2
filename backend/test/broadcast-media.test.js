@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("node:child_process");
 const test = require("node:test");
 
 const root = path.resolve(__dirname, "..");
@@ -29,6 +30,21 @@ test("broadcast media route provides deployment diagnostics and strict upload li
   assert.match(source, /mp4DurationSeconds/);
 });
 
+test("MP4 duration parser reads the movie header timescale and duration", () => {
+  const script = `
+    const { mp4DurationSeconds } = require('./broadcastMediaPatch');
+    const buffer = Buffer.alloc(80);
+    buffer.write('mvhd', 8, 'ascii');
+    buffer[12] = 0;
+    buffer.writeUInt32BE(1000, 24);
+    buffer.writeUInt32BE(300000, 28);
+    const seconds = mp4DurationSeconds(buffer);
+    if (seconds !== 300) throw new Error('Expected 300 seconds, received ' + seconds);
+  `;
+  const result = spawnSync(process.execPath, ["-e", script], { cwd: root, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 test("broadcast media persistence is additive, idempotent, owner-bound and failure-safe", () => {
   const source = read("broadcastMediaPatch.js");
   assert.match(source, /media_uri TEXT NULL/);
@@ -39,6 +55,7 @@ test("broadcast media persistence is additive, idempotent, owner-bound and failu
   assert.match(source, /storedMedia\?\.filePath/);
   assert.match(source, /fs\.promises\.unlink/);
   assert.match(source, /LIMIT_FILE_SIZE/);
+  assert.match(source, /authorizeBroadcastUpload, uploadMiddleware, createBroadcast/);
 });
 
 test("super-admin broadcast ward input cannot silently widen to all wards", () => {
