@@ -26,12 +26,13 @@ test("Citizen, Nagarsevak and Super Admin share the Civic profile language selec
   assert.match(civic, /setLanguage\(option\.code\)/);
 });
 
-test("Job Seeker and Employer profiles expose the persisted language selector", () => {
+test("Job Seeker and Employer profiles use the same integrated profile language selector", () => {
   const route = read("app/jobs/(tabs)/profile.tsx");
-  const control = read("components/ProfileLanguageButton.tsx");
-  assert.match(route, /ProfileLanguageButton/);
+  const profile = read("screens/LocalizedJobPortalProfileScreen.tsx");
   assert.match(route, /LocalizedJobPortalProfileScreen/);
-  assert.match(control, /languageOptions/);
-  assert.match(control, /void setLanguage\(option\.code\)/);
-  assert.match(control, /accessibilityState=\{\{ selected: active \}\}/);
+  assert.doesNotMatch(route, /ProfileLanguageButton/);
+  assert.match(profile, /languageOptions/);
+  assert.match(profile, /setLanguageVisible\(true\)/);
+  assert.match(profile, /setLanguage\(option\.code\)/);
+  assert.match(profile, /accessibilityState=\{\{ selected: language === option\.code \}\}/);
 });
