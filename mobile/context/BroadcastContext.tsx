@@ -2,7 +2,8 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import { AppState, AppStateStatus, Platform } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
-import { apiGet, apiPatch, apiPost, apiPostForm, getUserErrorMessage, isApiError } from "@/lib/api";
+import { apiGet, apiPatch, apiPost, getUserErrorMessage, isApiError } from "@/lib/api";
+import { uploadBroadcastForm } from "@/lib/broadcastUpload";
 
 export type BroadcastStatus = "draft" | "scheduled" | "sent" | "archived";
 export type BroadcastAudience = "all" | "citizen" | "nagarsevak" | "seeker" | "employer";
@@ -219,7 +220,7 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
 
     try {
       const result = data.media
-        ? await apiPostForm<{ broadcast: any }>("/api/broadcasts", buildBroadcastForm(data, idempotencyKey))
+        ? await uploadBroadcastForm<{ broadcast: any }>("/api/broadcasts", buildBroadcastForm(data, idempotencyKey))
         : await apiPost<{ broadcast: any }>("/api/broadcasts", { ...data, idempotencyKey });
       pendingIdempotencyKeys.current.delete(fingerprint);
       const created = normalizeBroadcast(result.broadcast);
