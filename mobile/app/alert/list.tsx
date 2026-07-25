@@ -1,1 +1,1 @@
-export { default } from "@/screens/OfficialUpdatesScreen";
+export { default } from "@/screens/OfficialUpdatesMediaScreen";
