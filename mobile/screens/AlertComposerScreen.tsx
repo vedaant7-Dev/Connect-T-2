@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppScrollView } from "@/components/AppScrollView";
+import AppDateTimePicker from "@/components/AppDateTimePicker";
 import { AlertLanguage, AlertPriority, AlertStatus, AlertType, useAlerts } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -252,8 +253,8 @@ export default function AlertComposerScreen() {
 
           <Text style={styles.label}>{c("schedule")}</Text>
           <View style={styles.choices}>{MODE_OPTIONS.map((item) => <ChoiceButton key={item} active={mode === item} label={modeLabel(item, c)} icon={item === "draft" ? "file" : item === "scheduled" ? "clock" : "send"} onPress={() => setMode(item)} />)}</View>
-          {mode === "scheduled" ? <><Text style={styles.label}>{c("publishAt")} *</Text><TextInput style={styles.input} value={publishAtText} onChangeText={setPublishAtText} placeholder="2026-08-15 10:30" placeholderTextColor="#94A3B8" autoCapitalize="none" /><Text style={styles.help}>{c("dateHint")}</Text></> : null}
-          {mode !== "draft" ? <><Text style={styles.label}>{c("expiry")}</Text><TextInput style={styles.input} value={expiryText} onChangeText={setExpiryText} placeholder="2026-08-16 18:00" placeholderTextColor="#94A3B8" autoCapitalize="none" /><Text style={styles.help}>{c("dateHint")}</Text></> : null}
+          {mode === "scheduled" ? <><Text style={styles.label}>{c("publishAt")} *</Text><AppDateTimePicker value={publishAtText} onChange={setPublishAtText} placeholder={c("selectDateTime")} minimumDate={new Date(Date.now() + 60_000)} accessibilityLabel={c("publishAt")} /><Text style={styles.help}>{c("dateHint")}</Text></> : null}
+          {mode !== "draft" ? <><Text style={styles.label}>{c("expiry")}</Text><AppDateTimePicker value={expiryText} onChange={setExpiryText} placeholder={c("selectDateTime")} minimumDate={new Date(Date.now() + 60_000)} accessibilityLabel={c("expiry")} /><Text style={styles.help}>{c("dateHint")}</Text></> : null}
 
           <Text style={styles.label}>{c("image")}</Text>
           {image ? <View style={styles.imagePreview}><Image source={{ uri: image.uri }} style={styles.previewImage} /><TouchableOpacity style={styles.removeImage} onPress={() => setImage(null)} accessibilityLabel={c("removeImage")}><Feather name="x" size={17} color="white" /></TouchableOpacity></View> : <TouchableOpacity style={styles.imagePicker} onPress={pickImage}><Feather name="image" size={22} color={ORANGE} /><Text style={styles.imagePickerTitle}>{c("chooseImage")}</Text><Text style={styles.imagePickerSub}>JPEG, PNG or WebP · max 8MB</Text></TouchableOpacity>}

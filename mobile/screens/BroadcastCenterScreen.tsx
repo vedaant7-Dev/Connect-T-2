@@ -17,6 +17,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppScrollView } from "@/components/AppScrollView";
+import AppDateTimePicker from "@/components/AppDateTimePicker";
 import {
   AppBroadcast,
   BroadcastAudience,
@@ -224,8 +225,8 @@ export default function BroadcastCenterScreen() {
               <Text style={styles.label}>WARD</Text><TouchableOpacity style={[styles.input, styles.picker]} onPress={() => setWardPicker(true)}><Text style={styles.pickerText}>{ward}</Text><Feather name="chevron-down" size={16} color="#64748B" /></TouchableOpacity></> : <View style={styles.scopeBanner}><Feather name="shield" size={14} color="#166534" /><Text style={styles.scopeText}>Nagarsevak broadcasts are restricted to citizens in {user?.ward || "the assigned ward"}.</Text></View>}
 
               <Text style={styles.label}>SCHEDULE (OPTIONAL)</Text>
-              <TextInput style={styles.input} value={scheduledAt} onChangeText={setScheduledAt} placeholder="YYYY-MM-DD HH:mm" placeholderTextColor="#94A3B8" autoCapitalize="none" />
-              <Text style={styles.help}>Leave blank to send in-app immediately. Scheduled broadcasts activate when the server next processes broadcast delivery.</Text>
+              <AppDateTimePicker value={scheduledAt} onChange={setScheduledAt} placeholder="Select date and time" minimumDate={new Date(Date.now() + 60_000)} accessibilityLabel="Schedule date and time" />
+              <Text style={styles.help}>Leave blank to send in-app immediately. Use the picker to choose a future date and time.</Text>
 
               <View style={styles.preview}><Text style={styles.previewLabel}>PREVIEW</Text><View style={styles.previewTop}><Feather name={CATEGORIES.find((item) => item.key === category)?.icon || "radio"} size={17} color={ORANGE} /><Text style={styles.previewTitle}>{title.trim() || "Broadcast title"}</Text></View><Text style={styles.previewBody}>{body.trim() || "Your message preview will appear here."}</Text><Text style={styles.previewMeta}>{ward} · {audienceRole} · {language.toUpperCase()}</Text></View>
 

@@ -307,7 +307,6 @@ export default function ComplaintDetailScreen() {
               {complaint.userEmail ? <InfoRow icon="mail" label={t("email")} value={complaint.userEmail} color="#DB2777" bg="#FCE7F3" /> : null}
               <InfoRow icon="map-pin" label={t("ward")} value={complaint.ward} color="#059669" bg="#D1FAE5" />
               {complaint.userAddress ? <InfoRow icon="home" label={t("address")} value={complaint.userAddress} color="#D97706" bg="#FEF3C7" /> : null}
-              {complaint.userAge ? <InfoRow icon="calendar" label={t("age")} value={`${complaint.userAge} years`} color="#7C3AED" bg="#EDE9FE" /> : null}
               {complaint.userDob ? <InfoRow icon="gift" label="Date of Birth" value={complaint.userDob} color="#2563EB" bg="#DBEAFE" /> : null}
             </View>
           </View>
