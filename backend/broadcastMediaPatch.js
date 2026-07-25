@@ -30,11 +30,16 @@ function cleanText(value, maxLength = 500) {
 
 function normalizeWard(value) {
   const raw = cleanText(value, 80).toLowerCase();
-  if (!raw || raw === "all" || raw === "all wards" || raw === "all citizens") return "";
+  if (!raw || ["all", "all wards", "all citizens"].includes(raw)) return "";
   const match = raw.match(/(?:ward\s*)?(\d{1,2})/i);
   if (!match) return "";
   const ward = Number(match[1]);
   return ward >= 1 && ward <= 29 ? String(ward) : "";
+}
+
+function isExplicitAllWard(value) {
+  const raw = cleanText(value, 80).toLowerCase();
+  return !raw || ["all", "all wards", "all citizens"].includes(raw);
 }
 
 function mysqlDate(date) {
@@ -129,7 +134,10 @@ async function ensureSchema() {
       external_push_message VARCHAR(255) NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      UNIQUE KEY uniq_broadcast_idempotency (idempotency_key)
+      UNIQUE KEY uniq_broadcast_idempotency (idempotency_key),
+      KEY idx_broadcast_status_schedule (status, scheduled_at),
+      KEY idx_broadcast_audience (audience_role),
+      KEY idx_broadcast_ward (ward)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     await ensureColumn("media_uri", "TEXT NULL AFTER created_by_name");
     await ensureColumn("media_type", "VARCHAR(20) NULL AFTER media_uri");
@@ -222,8 +230,7 @@ async function saveMedia(file, metadata, req) {
   return { filePath, uri: `${publicBaseUrl(req)}/uploads/${fileName}` };
 }
 
-async function createBroadcast(req, res) {
-  let storedMedia = null;
+async function authorizeBroadcastUpload(req, res, next) {
   try {
     await ensureSchema();
     const user = await civicUser(req);
@@ -231,7 +238,32 @@ async function createBroadcast(req, res) {
     if (!isSuperAdmin(user) && !isApprovedNagarsevak(user)) {
       return sendJson(res, 403, { success: false, code: "BROADCAST_FORBIDDEN", message: "You do not have permission to create broadcasts." });
     }
+    req.broadcastUser = user;
+    return next();
+  } catch (error) {
+    console.warn("[BroadcastMediaPatch] pre-upload authorization failed", error?.code || error?.name || "broadcast_auth_error");
+    return sendJson(res, 500, { success: false, message: "This broadcast could not be verified right now." });
+  }
+}
 
+async function duplicateResult(idempotencyKey, user, res) {
+  const [rows] = await pool.query("SELECT * FROM broadcasts WHERE idempotency_key = ? LIMIT 1", [idempotencyKey]);
+  const existing = rows[0];
+  if (!existing) return null;
+  if (String(existing.created_by || "") !== String(user.id)) {
+    return sendJson(res, 409, {
+      success: false,
+      code: "BROADCAST_REQUEST_CONFLICT",
+      message: "This broadcast request conflicts with an existing message. Please try again.",
+    });
+  }
+  return sendJson(res, 200, { success: true, duplicate: true, broadcast: existing });
+}
+
+async function createBroadcast(req, res) {
+  let storedMedia = null;
+  try {
+    const user = req.broadcastUser;
     const title = cleanText(req.body?.title, 255);
     const body = cleanText(req.body?.body, 10000);
     const category = cleanText(req.body?.category || "announcement", 60).toLowerCase();
@@ -248,34 +280,53 @@ async function createBroadcast(req, res) {
     if (schedule === undefined) return sendJson(res, 400, { success: false, message: "Enter a valid schedule date and time." });
     if (schedule && schedule.getTime() <= Date.now()) return sendJson(res, 400, { success: false, message: "Scheduled broadcasts require a future date and time." });
 
-    const [duplicateRows] = await pool.query("SELECT * FROM broadcasts WHERE idempotency_key = ? LIMIT 1", [idempotencyKey]);
-    if (duplicateRows[0]) return sendJson(res, 200, { success: true, duplicate: true, broadcast: duplicateRows[0] });
+    const duplicate = await duplicateResult(idempotencyKey, user, res);
+    if (duplicate) return duplicate;
 
     const media = validateMedia(req.file);
     const audienceRole = isSuperAdmin(user) ? requestedAudience : "citizen";
-    const requestedWard = normalizeWard(req.body?.ward);
-    const ward = isSuperAdmin(user) ? (requestedWard ? `Ward ${requestedWard}` : null) : (user.ward || (user.ward_code ? `Ward ${user.ward_code}` : null));
-    if (!isSuperAdmin(user) && !ward) return sendJson(res, 400, { success: false, message: "A Nagarsevak broadcast requires an assigned ward." });
+    const rawWard = req.body?.ward;
+    const requestedWard = normalizeWard(rawWard);
+    if (isSuperAdmin(user) && !isExplicitAllWard(rawWard) && !requestedWard) {
+      return sendJson(res, 400, {
+        success: false,
+        code: "INVALID_BROADCAST_WARD",
+        message: "Select a valid ward from Ward 1 to Ward 29, or choose All Wards.",
+      });
+    }
+    const ward = isSuperAdmin(user)
+      ? (requestedWard ? `Ward ${requestedWard}` : null)
+      : (user.ward || (user.ward_code ? `Ward ${user.ward_code}` : null));
+    if (!isSuperAdmin(user) && !normalizeWard(ward)) return sendJson(res, 400, { success: false, message: "A Nagarsevak broadcast requires a valid assigned ward." });
 
     if (media) storedMedia = await saveMedia(req.file, media, req);
     const status = schedule ? "scheduled" : "sent";
     const id = makeId("broadcast");
     const pushMessage = "External push provider and device-token registration are not configured. In-app delivery remains active.";
 
-    await pool.query(
-      `INSERT INTO broadcasts
-       (id, idempotency_key, title, body, category, language, audience_role, ward, status,
-        scheduled_at, sent_at, created_by, created_by_name, media_uri, media_type, media_file_name,
-        media_mime_type, media_size_bytes, media_duration_seconds, external_push_status, external_push_message)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'not_configured', ?)`,
-      [
-        id, idempotencyKey, title, body, category, language, audienceRole, ward, status,
-        mysqlDate(schedule), status === "sent" ? mysqlDate(new Date()) : null,
-        user.id, cleanText(user.name, 160) || "Connect-T",
-        storedMedia?.uri || null, media?.type || null, media?.originalName || null,
-        media?.mime || null, media?.size || null, media?.duration || null, pushMessage,
-      ],
-    );
+    try {
+      await pool.query(
+        `INSERT INTO broadcasts
+         (id, idempotency_key, title, body, category, language, audience_role, ward, status,
+          scheduled_at, sent_at, created_by, created_by_name, media_uri, media_type, media_file_name,
+          media_mime_type, media_size_bytes, media_duration_seconds, external_push_status, external_push_message)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'not_configured', ?)`,
+        [
+          id, idempotencyKey, title, body, category, language, audienceRole, ward, status,
+          mysqlDate(schedule), status === "sent" ? mysqlDate(new Date()) : null,
+          user.id, cleanText(user.name, 160) || "Connect-T",
+          storedMedia?.uri || null, media?.type || null, media?.originalName || null,
+          media?.mime || null, media?.size || null, media?.duration || null, pushMessage,
+        ],
+      );
+    } catch (error) {
+      if (error?.code !== "ER_DUP_ENTRY") throw error;
+      if (storedMedia?.filePath) await fs.promises.unlink(storedMedia.filePath).catch(() => undefined);
+      storedMedia = null;
+      const racedDuplicate = await duplicateResult(idempotencyKey, user, res);
+      if (racedDuplicate) return racedDuplicate;
+      throw error;
+    }
 
     const [rows] = await pool.query("SELECT * FROM broadcasts WHERE id = ? LIMIT 1", [id]);
     return sendJson(res, 201, {
@@ -324,7 +375,7 @@ try {
   function install(app) {
     if (installed) return;
     installed = true;
-    originalGet.call(app, "/api/broadcasts/capabilities", async (_req, res) => sendJson(res, 200, {
+    originalGet.call(app, "/api/broadcasts/capabilities", (_req, res) => sendJson(res, 200, {
       success: true,
       routeVersion: "broadcast-media-v1",
       media: {
@@ -332,7 +383,7 @@ try {
         videos: { mimeTypes: Array.from(VIDEO_MIME_TYPES), maxBytes: MAX_VIDEO_BYTES, maxDurationSeconds: MAX_VIDEO_DURATION_SECONDS },
       },
     }));
-    originalPost.call(app, "/api/broadcasts", uploadMiddleware, createBroadcast);
+    originalPost.call(app, "/api/broadcasts", authorizeBroadcastUpload, uploadMiddleware, createBroadcast);
     console.log("[BroadcastMediaPatch] broadcast media and route diagnostics active");
   }
 
