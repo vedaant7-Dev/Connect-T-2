@@ -11,6 +11,7 @@ type ConfirmActionModalProps = {
   confirmLabel: string;
   cancelLabel?: string;
   icon?: keyof typeof Feather.glyphMap;
+  confirmIcon?: keyof typeof Feather.glyphMap;
   tone?: ConfirmActionTone;
   busy?: boolean;
   onCancel: () => void;
@@ -24,6 +25,7 @@ export default function ConfirmActionModal({
   confirmLabel,
   cancelLabel = "Cancel",
   icon = "alert-circle",
+  confirmIcon,
   tone = "primary",
   busy = false,
   onCancel,
@@ -31,6 +33,7 @@ export default function ConfirmActionModal({
 }: ConfirmActionModalProps) {
   const accent = tone === "danger" ? "#DC2626" : "#EA580C";
   const surface = tone === "danger" ? "#FEE2E2" : "#FFF7ED";
+  const actionIcon = confirmIcon || (tone === "danger" ? "alert-triangle" : "check");
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={busy ? undefined : onCancel}>
@@ -59,7 +62,7 @@ export default function ConfirmActionModal({
               accessibilityLabel={busy ? `${confirmLabel}. Processing.` : confirmLabel}
               accessibilityState={{ disabled: busy }}
             >
-              {busy ? <ActivityIndicator size="small" color="white" /> : <Feather name={tone === "danger" ? "log-out" : "check"} size={16} color="white" />}
+              {busy ? <ActivityIndicator size="small" color="white" /> : <Feather name={actionIcon} size={16} color="white" />}
               <Text style={styles.confirmText}>{confirmLabel}</Text>
             </TouchableOpacity>
           </View>
