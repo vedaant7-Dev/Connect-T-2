@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { officialNagarsevakEnglishName } from "@/data/nagarsevakEnglishNames";
+import { nagarsevakEnglishDisplayName } from "@/data/nagarsevakEnglishNames";
 import { apiGet, apiPatch, getUserErrorMessage } from "@/lib/api";
 
 export type NagarsevakAccessStatus = "active" | "inactive" | "revoked";
@@ -25,12 +25,12 @@ function normalize(item: any): NagarsevakAssignment {
   const designation = String(item.wardOrDesignation || item.ward_or_designation || "Not assigned");
   const sourceSerial = item.sourceSerial ?? item.source_serial ?? null;
   const originalName = String(item.name || item.displayName || item.display_name || "Unknown Officer");
-  const englishName = officialNagarsevakEnglishName(sourceSerial);
+  const englishName = nagarsevakEnglishDisplayName(originalName, sourceSerial);
   return {
     id: String(item.id || ""),
     userId: item.userId || item.user_id || null,
-    name: englishName || originalName,
-    originalName: englishName && englishName !== originalName ? originalName : null,
+    name: englishName,
+    originalName: englishName !== originalName ? originalName : null,
     mobile: String(item.mobile || item.normalized_phone || "").replace(/\D/g, "").slice(-10),
     wardOrDesignation: designation,
     wardCode: designation.match(/\d{1,2}/)?.[0] || null,
