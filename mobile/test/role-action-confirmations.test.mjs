@@ -20,6 +20,14 @@ test("Super Admin deactivate and remove actions use the shared cross-platform co
   assert.match(hook, /apiDelete<any>\(`\/api\/super-admin\/access-management\/\$\{id\}`/);
 });
 
+test("removed Super Admin assignments disappear from the authorised list while audit data remains server-side", () => {
+  const hook = read("hooks/useSuperAdminAccess.ts");
+
+  assert.match(hook, /filter\(\(item\) => item\.status !== "revoked"\)/);
+  assert.match(hook, /setAssignments\(\(current\) => current\.filter\(\(item\) => item\.id !== id\)\)/);
+  assert.match(hook, /await fetchAssignments\(\)/);
+});
+
 test("Nagarsevak deactivate and revoke actions require confirmation and refresh the roster", () => {
   const screen = read("app/super-admin/officers.tsx");
   const hook = read("hooks/useNagarsevakAssignments.ts");

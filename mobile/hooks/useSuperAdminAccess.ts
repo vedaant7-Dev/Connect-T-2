@@ -39,6 +39,12 @@ function normalizeAssignment(item: any): SuperAdminAssignment {
   };
 }
 
+function visibleAssignments(items: any[]): SuperAdminAssignment[] {
+  return items
+    .map(normalizeAssignment)
+    .filter((item) => item.status !== "revoked");
+}
+
 export function useSuperAdminAccess() {
   const [assignments, setAssignments] = useState<SuperAdminAssignment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,10 +56,9 @@ export function useSuperAdminAccess() {
     try {
       const suffix = search.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
       const data = await apiGet<any>(`/api/super-admin/access-management${suffix}`);
-      setAssignments((data.assignments || []).map(normalizeAssignment));
+      setAssignments(visibleAssignments(data.assignments || []));
     } catch (requestError) {
       setError(getUserErrorMessage(requestError, "Admin access records could not be loaded."));
-      setAssignments([]);
     } finally {
       setLoading(false);
     }
@@ -73,6 +78,7 @@ export function useSuperAdminAccess() {
 
   const removeAssignment = async (id: string) => {
     const data = await apiDelete<any>(`/api/super-admin/access-management/${id}`);
+    setAssignments((current) => current.filter((item) => item.id !== id));
     await fetchAssignments();
     return data;
   };
