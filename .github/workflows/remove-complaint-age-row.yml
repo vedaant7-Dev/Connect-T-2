@@ -1,0 +1,72 @@
+name: Remove Complaint Age Row
+
+on:
+  push:
+    branches:
+      - fix/remove-complaint-age-row
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/remove-complaint-age-row
+          fetch-depth: 0
+
+      - name: Remove duplicate Age rows
+        shell: python
+        run: |
+          from pathlib import Path
+
+          replacements = {
+              Path("mobile/app/super-admin/index.tsx"): (
+                  '          { label: "Age", value: c.userAge ? String(c.userAge) : "—", icon: "calendar" },\n',
+                  '',
+              ),
+              Path("mobile/app/complaint/[id].tsx"): (
+                  '              {complaint.userAge ? <InfoRow icon="calendar" label={t("age")} value={`${complaint.userAge} years`} color="#7C3AED" bg="#EDE9FE" /> : null}\n',
+                  '',
+              ),
+          }
+
+          for path, (old, new) in replacements.items():
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected exactly one Age row in {path}, found {count}")
+              path.write_text(text.replace(old, new), encoding="utf-8")
+
+          workflow = Path(".github/workflows/remove-complaint-age-row.yml")
+          workflow.unlink()
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+
+      - name: Validate mobile regression tests
+        working-directory: mobile
+        run: npm run test:api
+
+      - name: Validate mobile TypeScript
+        working-directory: mobile
+        run: npm run typecheck
+
+      - name: Commit UI fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile/app/super-admin/index.tsx 'mobile/app/complaint/[id].tsx' .github/workflows/remove-complaint-age-row.yml
+          git commit -m "Remove duplicate age from complaint details"
+          git push origin HEAD:fix/remove-complaint-age-row
