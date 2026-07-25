@@ -67,23 +67,23 @@ const OFFICIAL_NAGARSEVAK_ENGLISH_NAMES: Record<number, string> = {
 };
 
 const DEVANAGARI_CONSONANTS: Record<string, string> = {
-  क: "k", ख: "kh", ग: "g", घ: "gh", ङ: "ng",
-  च: "ch", छ: "chh", ज: "j", झ: "jh", ञ: "ny",
-  ट: "t", ठ: "th", ड: "d", ढ: "dh", ण: "n",
-  त: "t", थ: "th", द: "d", ध: "dh", न: "n",
-  प: "p", फ: "ph", ब: "b", भ: "bh", म: "m",
-  य: "y", र: "r", ल: "l", व: "v", श: "sh",
-  ष: "sh", स: "s", ह: "h", ळ: "l",
+  "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "ng",
+  "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "ny",
+  "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n",
+  "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n",
+  "प": "p", "फ": "ph", "ब": "b", "भ": "bh", "म": "m",
+  "य": "y", "र": "r", "ल": "l", "व": "v", "श": "sh",
+  "ष": "sh", "स": "s", "ह": "h", "ळ": "l",
 };
 
 const DEVANAGARI_VOWELS: Record<string, string> = {
-  अ: "a", आ: "aa", इ: "i", ई: "ee", उ: "u", ऊ: "oo",
-  ऋ: "ri", ए: "e", ऐ: "ai", ओ: "o", औ: "au",
+  "अ": "a", "आ": "aa", "इ": "i", "ई": "ee", "उ": "u", "ऊ": "oo",
+  "ऋ": "ri", "ए": "e", "ऐ": "ai", "ओ": "o", "औ": "au",
 };
 
 const DEVANAGARI_MATRAS: Record<string, string> = {
-  ा: "aa", ि: "i", ी: "ee", ु: "u", ू: "oo", ृ: "ri",
-  े: "e", ै: "ai", ो: "o", ौ: "au",
+  "ा": "aa", "ि": "i", "ी": "ee", "ु": "u", "ू": "oo", "ृ": "ri",
+  "े": "e", "ै": "ai", "ो": "o", "ौ": "au",
 };
 
 function transliterateWord(word: string) {
