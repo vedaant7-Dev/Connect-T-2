@@ -163,3 +163,20 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high
+
+  audit-inventory:
+    name: Route and API inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/audit-repository-inventory.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-route-api-inventory
+          path: artifacts/audit/*
+          if-no-files-found: error
+          retention-days: 7
