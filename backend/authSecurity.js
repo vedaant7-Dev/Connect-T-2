@@ -1,18 +1,33 @@
 const crypto = require("crypto");
 
 const DEFAULT_SECRET = "CHANGE_THIS_CONNECT_T_SECRET";
+const MIN_SECRET_LENGTH = 32;
 let generatedSecret = null;
 let warnedAboutSecret = false;
 
+function isProduction() {
+  return String(process.env.NODE_ENV || "").trim().toLowerCase() === "production";
+}
+
+function configuredSigningSecret() {
+  return String(process.env.JWT_SECRET || "").trim();
+}
+
 function getSigningSecret() {
-  const configured = String(process.env.JWT_SECRET || process.env.ADMIN_API_KEY || "").trim();
-  if (configured && configured !== DEFAULT_SECRET) return configured;
+  const configured = configuredSigningSecret();
+  if (configured && configured !== DEFAULT_SECRET && configured.length >= MIN_SECRET_LENGTH) return configured;
+
+  if (isProduction()) {
+    throw new Error(
+      "JWT_SECRET must be configured with at least 32 characters before the Connect-T backend can start in production.",
+    );
+  }
 
   if (!generatedSecret) generatedSecret = crypto.randomBytes(48).toString("hex");
   if (!warnedAboutSecret) {
     warnedAboutSecret = true;
     console.warn(
-      "[Connect-T] JWT_SECRET is not configured. Using an ephemeral secure secret; sessions will expire when the backend restarts.",
+      "[Connect-T] JWT_SECRET is not configured for this non-production runtime. Using an ephemeral secure secret; sessions will expire when the backend restarts.",
     );
   }
   return generatedSecret;
@@ -108,7 +123,11 @@ function verifyOtpProof(req, expectedMobile, allowedPurposes = ["login", "regist
   return payload;
 }
 
+// Fail at startup instead of issuing unstable or shared-secret production sessions.
+if (isProduction()) getSigningSecret();
+
 module.exports = {
+  MIN_SECRET_LENGTH,
   bearerToken,
   getSigningSecret,
   issueOtpProof,
