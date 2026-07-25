@@ -64,10 +64,10 @@ export default function AppDateTimePicker({
   const [visible, setVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState(startOfDay(initial));
   const [selectedHour, setSelectedHour] = useState(initial.getHours());
-  const [selectedMinute, setSelectedMinute] = useState(Math.ceil(initial.getMinutes() / 5) * 5 % 60);
+  const [selectedMinute, setSelectedMinute] = useState(Math.floor(initial.getMinutes() / 5) * 5);
 
   const minimum = useMemo(() => startOfDay(minimumDate || new Date()), [minimumDate?.getTime()]);
-  const days = useMemo(() => Array.from({ length: 90 }, (_, index) => {
+  const days = useMemo(() => Array.from({ length: 366 }, (_, index) => {
     const date = new Date(minimum);
     date.setDate(date.getDate() + index);
     return date;
@@ -193,7 +193,7 @@ export default function AppDateTimePicker({
 }
 
 const styles = StyleSheet.create({
-  webWrap: { position: "relative", minHeight: 50, justifyContent: "center" },
+  webWrap: { position: "relative", minHeight: 50, flexDirection: "row", alignItems: "center", gap: 8 },
   field: { minHeight: 50, borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "white", paddingLeft: 14, paddingRight: 8, flexDirection: "row", alignItems: "center", gap: 9 },
   fieldText: { flex: 1, color: "#0F172A", fontSize: 13.5, fontFamily: "Inter_400Regular" },
   placeholder: { color: "#94A3B8" },
