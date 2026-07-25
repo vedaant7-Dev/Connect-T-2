@@ -1,0 +1,50 @@
+name: Regenerate Frontend Locks
+
+on:
+  push:
+    branches:
+      - feat/render-expo-web-testing
+
+jobs:
+  mobile-lock:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm pkg set overrides.brace-expansion=5.0.8
+      - run: npm install --package-lock-only --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patched-mobile-lock
+          path: |
+            mobile/package.json
+            mobile/package-lock.json
+          retention-days: 3
+
+  client-lock:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm install --save-dev --save-exact postcss@8.5.23 --package-lock-only --ignore-scripts --no-audit --no-fund
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patched-client-lock
+          path: |
+            client/package.json
+            client/package-lock.json
+          retention-days: 3
