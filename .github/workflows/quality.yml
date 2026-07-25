@@ -180,3 +180,25 @@ jobs:
           path: artifacts/audit/*
           if-no-files-found: error
           retention-days: 7
+
+  secret-audit:
+    name: Current tree and Git history secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run sanitised secret scan
+        run: node scripts/audit-secrets.mjs
+      - name: Upload sanitised secret scan
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-secret-scan
+          path: artifacts/audit/secret-scan.json
+          if-no-files-found: error
+          retention-days: 7
