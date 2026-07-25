@@ -12,6 +12,7 @@
     "test:api": "node --import tsx --test test/*.test.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "export:android": "expo export --platform android",
+    "export:web": "expo export --platform web",
     "postinstall": "node scripts/ensure-hermesc.js"
   },
   "dependencies": {
