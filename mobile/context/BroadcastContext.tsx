@@ -63,6 +63,7 @@ type BroadcastContextValue = {
   broadcasts: AppBroadcast[];
   loading: boolean;
   error: string;
+  uploadProgress: number | null;
   refreshBroadcasts: () => Promise<void>;
   createBroadcast: (data: NewBroadcast) => Promise<AppBroadcast>;
   archiveBroadcast: (id: string) => Promise<void>;
@@ -168,6 +169,7 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
   const [broadcasts, setBroadcasts] = useState<AppBroadcast[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const refreshing = useRef<Promise<void> | null>(null);
   const pendingIdempotencyKeys = useRef(new Map<string, string>());
 
@@ -199,6 +201,7 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) {
       setBroadcasts([]);
+      setUploadProgress(null);
       pendingIdempotencyKeys.current.clear();
       return;
     }
@@ -217,10 +220,11 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
     const fingerprint = broadcastFingerprint(data);
     const idempotencyKey = pendingIdempotencyKeys.current.get(fingerprint) || data.idempotencyKey || makeIdempotencyKey();
     pendingIdempotencyKeys.current.set(fingerprint, idempotencyKey);
+    setUploadProgress(data.media ? 0 : null);
 
     try {
       const result = data.media
-        ? await uploadBroadcastForm<{ broadcast: any }>("/api/broadcasts", buildBroadcastForm(data, idempotencyKey))
+        ? await uploadBroadcastForm<{ broadcast: any }>("/api/broadcasts", buildBroadcastForm(data, idempotencyKey), setUploadProgress)
         : await apiPost<{ broadcast: any }>("/api/broadcasts", { ...data, idempotencyKey });
       pendingIdempotencyKeys.current.delete(fingerprint);
       const created = normalizeBroadcast(result.broadcast);
@@ -231,6 +235,8 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
         throw new Error(routeAwareMessage(requestError, "Broadcast service is unavailable."));
       }
       throw requestError;
+    } finally {
+      setUploadProgress(null);
     }
   }, []);
 
@@ -253,11 +259,12 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
     broadcasts,
     loading,
     error,
+    uploadProgress,
     refreshBroadcasts,
     createBroadcast,
     archiveBroadcast,
     markBroadcastRead,
-  }), [archiveBroadcast, broadcasts, createBroadcast, error, loading, markBroadcastRead, refreshBroadcasts]);
+  }), [archiveBroadcast, broadcasts, createBroadcast, error, loading, markBroadcastRead, refreshBroadcasts, uploadProgress]);
 
   return <BroadcastContext.Provider value={value}>{children}</BroadcastContext.Provider>;
 }
