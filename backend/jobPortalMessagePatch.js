@@ -6,11 +6,13 @@
  * read tracking, delete, and unsend support.
  */
 
+"use strict";
+
 let pool = null;
 let installed = false;
 
 const crypto = require("crypto");
-const { saveDataUri } = require("./mediaStorage");
+const { removeManagedMedia, saveDataUri } = require("./mediaStorage");
 const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function sendJson(res, status, payload) {
@@ -59,30 +61,40 @@ async function ensureMessagesTable(db) {
   await safeAlter(db, "ALTER TABLE job_portal_messages ADD COLUMN read_at DATETIME NULL");
 }
 
+function validImageDataUri(value) {
+  return /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(String(value || ""));
+}
+
 async function createMessage(req, res) {
+  let savedMediaUrl = null;
+  let inserted = false;
   try {
     const db = getPool();
     await ensureMessagesTable(db);
 
-    const id = req.body?.id || makeId();
+    // Identity and job-pair authorization are enforced by authorizeJobPortal
+    // before this route. Generate IDs and message type server-side so clients
+    // cannot spoof or collide with an existing message.
+    const id = makeId();
     const jobId = String(req.body?.jobId || req.body?.job_id || "").trim() || null;
     const applicationId = String(req.body?.applicationId || req.body?.application_id || "").trim() || null;
     const senderId = String(req.body?.senderId || req.body?.sender_id || "").trim();
     const receiverId = String(req.body?.receiverId || req.body?.receiver_id || "").trim();
     const message = String(req.body?.message || req.body?.text || "").trim();
-    const messageType = String(req.body?.messageType || req.body?.message_type || "text").trim() || "text";
-    const rawMediaUrl = String(req.body?.mediaUrl || req.body?.media_url || "").trim() || null;
-    const mediaUrl = await saveDataUri(rawMediaUrl, "job_message", req, {
-      allowedMimeTypes: IMAGE_MIME_TYPES,
-    });
+    const rawMedia = String(req.body?.mediaUrl || req.body?.media_url || "").trim();
+    const hasMedia = rawMedia.length > 0;
 
-    if (!senderId || !receiverId || (!message && !mediaUrl)) {
+    if (!senderId || !receiverId || (!message && !hasMedia)) {
       return sendJson(res, 400, { success: false, error: "senderId, receiverId and message/media are required" });
     }
-    if (message.length > 500 || !["text", "image"].includes(messageType)) {
-      return sendJson(res, 400, {
+    if (message.length > 500) {
+      return sendJson(res, 400, { success: false, error: "Message must be 500 characters or fewer." });
+    }
+    if (hasMedia && !validImageDataUri(rawMedia)) {
+      return sendJson(res, 415, {
         success: false,
-        error: "Message must be 500 characters or fewer and use a supported type.",
+        code: "UNSUPPORTED_MESSAGE_MEDIA",
+        error: "Choose a JPEG, PNG or WebP image from your device.",
       });
     }
 
@@ -121,16 +133,39 @@ async function createMessage(req, res) {
       }
     }
 
+    // Persist media only after every role, relationship and rate-limit check.
+    savedMediaUrl = hasMedia
+      ? await saveDataUri(rawMedia, "job_message", req, { allowedMimeTypes: IMAGE_MIME_TYPES })
+      : null;
+    const messageType = savedMediaUrl ? "image" : "text";
+
     await db.query(
       `INSERT INTO job_portal_messages
        (id, job_id, application_id, sender_id, receiver_id, message, message_type, media_url)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, jobId, applicationId, senderId, receiverId, message || "Photo", messageType, mediaUrl],
+      [id, jobId, applicationId, senderId, receiverId, message || "Photo", messageType, savedMediaUrl],
     );
+    inserted = true;
 
     const [rows] = await db.query("SELECT * FROM job_portal_messages WHERE id = ? LIMIT 1", [id]);
-    return sendJson(res, 201, { success: true, message: rows[0] });
+    return sendJson(res, 201, {
+      success: true,
+      message: rows[0] || {
+        id,
+        job_id: jobId,
+        application_id: applicationId,
+        sender_id: senderId,
+        receiver_id: receiverId,
+        message: message || "Photo",
+        message_type: messageType,
+        media_url: savedMediaUrl,
+      },
+    });
   } catch (err) {
+    if (savedMediaUrl && !inserted) {
+      await removeManagedMedia(savedMediaUrl, "job_message").catch(() => undefined);
+    }
+    console.warn("[JobPortalMessagePatch] message create failed", err?.code || err?.name || "message_error");
     return sendJson(res, 500, { success: false, error: "Message could not be sent right now." });
   }
 }
@@ -187,6 +222,7 @@ async function listMessages(req, res) {
     const [rows] = await db.query(`SELECT * FROM job_portal_messages WHERE ${where.join(" AND ")} ORDER BY created_at ASC`, params);
     return sendJson(res, 200, { success: true, messages: rows });
   } catch (err) {
+    console.warn("[JobPortalMessagePatch] message list failed", err?.code || err?.name || "message_error");
     return sendJson(res, 500, { success: false, error: "Messages could not be loaded right now." });
   }
 }
@@ -224,9 +260,13 @@ try {
     return originalPost.call(this, path, ...handlers);
   };
 
-  console.log("[JobPortalMessagePatch] image messages and read tracking active");
+  console.log("[JobPortalMessagePatch] authorized image messages and read tracking active");
 } catch (err) {
   console.warn("[JobPortalMessagePatch] express patch disabled:", err.message);
 }
 
-module.exports = {};
+module.exports = {
+  createMessage,
+  listMessages,
+  validImageDataUri,
+};
