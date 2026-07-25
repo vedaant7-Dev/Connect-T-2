@@ -21,11 +21,15 @@ test("Broadcast Center accepts one image or a five-minute video", () => {
 
 test("broadcast context uses multipart only when media exists and diagnoses stale backend routes", () => {
   const context = read("context/BroadcastContext.tsx");
-  assert.match(context, /apiPostForm/);
+  const upload = read("lib/broadcastUpload.ts");
+  assert.match(context, /uploadBroadcastForm/);
   assert.match(context, /data\.media/);
   assert.match(context, /ROUTE_NOT_FOUND/);
   assert.match(context, /Redeploy the connect-t-2 backend/);
   assert.match(context, /mediaDurationSeconds/);
+  assert.match(upload, /BROADCAST_UPLOAD_TIMEOUT_MS = 3 \* 60 \* 1000/);
+  assert.match(upload, /getStoredAuthToken/);
+  assert.match(upload, /AbortController/);
 });
 
 test("citizen official updates show broadcast image and video attachments", () => {
