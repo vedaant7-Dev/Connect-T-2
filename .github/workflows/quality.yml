@@ -11,6 +11,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  regenerate-lockfiles:
+    name: Regenerate patched frontend lockfiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Regenerate mobile lockfile
+        working-directory: mobile
+        run: npm install --package-lock-only --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Regenerate client lockfile
+        working-directory: client
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patched-frontend-lockfiles
+          path: |
+            mobile/package.json
+            mobile/package-lock.json
+            client/package.json
+            client/package-lock.json
+          retention-days: 3
+
   backend:
     name: Backend security and syntax
     runs-on: ubuntu-latest
