@@ -12,6 +12,7 @@ const PRODUCTION_PATCHES = [
   "./alertGovernancePatch.js",
   "./alertMutationPatch.js",
   "./alertDeliveryPatch.js",
+  "./broadcastMediaPatch.js",
   "./broadcastGovernancePatch.js",
   "./broadcastDeliveryPatch.js",
   "./complaintUploadPatch.js",
