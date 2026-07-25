@@ -66,9 +66,74 @@ const OFFICIAL_NAGARSEVAK_ENGLISH_NAMES: Record<number, string> = {
   65: "Rohit Raju Mahadik",
 };
 
+const DEVANAGARI_CONSONANTS: Record<string, string> = {
+  क: "k", ख: "kh", ग: "g", घ: "gh", ङ: "ng",
+  च: "ch", छ: "chh", ज: "j", झ: "jh", ञ: "ny",
+  ट: "t", ठ: "th", ड: "d", ढ: "dh", ण: "n",
+  त: "t", थ: "th", द: "d", ध: "dh", न: "n",
+  प: "p", फ: "ph", ब: "b", भ: "bh", म: "m",
+  य: "y", र: "r", ल: "l", व: "v", श: "sh",
+  ष: "sh", स: "s", ह: "h", ळ: "l",
+};
+
+const DEVANAGARI_VOWELS: Record<string, string> = {
+  अ: "a", आ: "aa", इ: "i", ई: "ee", उ: "u", ऊ: "oo",
+  ऋ: "ri", ए: "e", ऐ: "ai", ओ: "o", औ: "au",
+};
+
+const DEVANAGARI_MATRAS: Record<string, string> = {
+  ा: "aa", ि: "i", ी: "ee", ु: "u", ू: "oo", ृ: "ri",
+  े: "e", ै: "ai", ो: "o", ौ: "au",
+};
+
+function transliterateWord(word: string) {
+  const prepared = word.replace(/क्ष/g, "KSH").replace(/ज्ञ/g, "DNY").replace(/श्र/g, "SHR");
+  const chars = Array.from(prepared);
+  let result = "";
+
+  for (let index = 0; index < chars.length; index += 1) {
+    const character = chars[index];
+    if (/[A-Z]/.test(character)) {
+      result += character.toLowerCase();
+      continue;
+    }
+    if (DEVANAGARI_VOWELS[character]) {
+      result += DEVANAGARI_VOWELS[character];
+      continue;
+    }
+    const consonant = DEVANAGARI_CONSONANTS[character];
+    if (consonant) {
+      const next = chars[index + 1];
+      if (DEVANAGARI_MATRAS[next]) {
+        result += consonant + DEVANAGARI_MATRAS[next];
+        index += 1;
+      } else if (next === "्") {
+        result += consonant;
+        index += 1;
+      } else {
+        result += `${consonant}a`;
+      }
+      continue;
+    }
+    if (character === "ं" || character === "ँ") result += "n";
+    else if (character === "ः") result += "h";
+    else if (character !== "़") result += character;
+  }
+
+  const cleaned = result.replace(/aa+/g, "aa").replace(/a$/u, "");
+  return cleaned ? `${cleaned.charAt(0).toUpperCase()}${cleaned.slice(1)}` : word;
+}
+
 export function officialNagarsevakEnglishName(sourceSerial?: number | null): string | undefined {
   if (!sourceSerial) return undefined;
   return OFFICIAL_NAGARSEVAK_ENGLISH_NAMES[sourceSerial];
+}
+
+export function nagarsevakEnglishDisplayName(originalName: string, sourceSerial?: number | null): string {
+  const officialName = officialNagarsevakEnglishName(sourceSerial);
+  if (officialName) return officialName;
+  if (!/[\u0900-\u097F]/u.test(originalName)) return originalName;
+  return originalName.split(/\s+/).filter(Boolean).map(transliterateWord).join(" ");
 }
 
 export { OFFICIAL_NAGARSEVAK_ENGLISH_NAMES };
