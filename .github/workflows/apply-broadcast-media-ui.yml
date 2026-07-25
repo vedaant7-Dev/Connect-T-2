@@ -1,3 +1,4 @@
+# One-time workflow; it removes itself after applying the focused patch.
 name: Apply Broadcast Media UI
 
 on:
@@ -25,81 +26,33 @@ jobs:
 
           center = Path('mobile/screens/BroadcastCenterScreen.tsx')
           text = center.read_text()
-          text = text.replace(
-            '  ActivityIndicator,\n  Alert,',
-            '  ActivityIndicator,\n  Alert,\n  Image,\n  Linking,',
-            1,
-          )
-          text = text.replace(
-            'import AppDateTimePicker from "@/components/AppDateTimePicker";',
-            'import AppDateTimePicker from "@/components/AppDateTimePicker";\nimport BroadcastMediaPicker from "@/components/BroadcastMediaPicker";',
-            1,
-          )
-          text = text.replace(
-            '  BroadcastLanguage,\n  useBroadcasts,',
-            '  BroadcastLanguage,\n  BroadcastMediaUpload,\n  useBroadcasts,',
-            1,
-          )
-          text = text.replace(
-            '      <Text style={styles.cardBody} numberOfLines={4}>{item.body}</Text>',
-            '''      <Text style={styles.cardBody} numberOfLines={4}>{item.body}</Text>
-      {item.mediaUri ? item.mediaType === "image" ? <Image source={{ uri: item.mediaUri }} style={styles.cardMediaImage} resizeMode="cover" /> : <TouchableOpacity style={styles.cardVideo} onPress={() => void Linking.openURL(item.mediaUri!)} accessibilityLabel={`Play video for ${item.title}`}><Feather name="play-circle" size={24} color={ORANGE} /><View style={{ flex: 1 }}><Text style={styles.cardVideoTitle}>Attached video</Text><Text style={styles.cardVideoMeta}>{item.mediaDurationSeconds ? `${item.mediaDurationSeconds} sec` : "Up to 5 minutes"}</Text></View><Feather name="external-link" size={15} color="#64748B" /></TouchableOpacity> : null}''',
-            1,
-          )
-          text = text.replace(
-            '  const [scheduledAt, setScheduledAt] = useState("");\n  const [formError, setFormError] = useState("");',
-            '  const [scheduledAt, setScheduledAt] = useState("");\n  const [media, setMedia] = useState<BroadcastMediaUpload | null>(null);\n  const [formError, setFormError] = useState("");',
-            1,
-          )
-          text = text.replace(
-            '    setScheduledAt("");\n    setFormError("");',
-            '    setScheduledAt("");\n    setMedia(null);\n    setFormError("");',
-            1,
-          )
-          text = text.replace(
-            '        idempotencyKey: makeIdempotencyKey(),\n      });',
-            '        idempotencyKey: makeIdempotencyKey(),\n        media,\n      });',
-            1,
-          )
-          text = text.replace(
-            '              <Text style={styles.label}>CONTENT LANGUAGE</Text>',
-            '''              <Text style={styles.label}>ATTACHMENT (OPTIONAL)</Text>
+          text = text.replace('  ActivityIndicator,\n  Alert,', '  ActivityIndicator,\n  Alert,\n  Image,\n  Linking,', 1)
+          text = text.replace('import AppDateTimePicker from "@/components/AppDateTimePicker";', 'import AppDateTimePicker from "@/components/AppDateTimePicker";\nimport BroadcastMediaPicker from "@/components/BroadcastMediaPicker";', 1)
+          text = text.replace('  BroadcastLanguage,\n  useBroadcasts,', '  BroadcastLanguage,\n  BroadcastMediaUpload,\n  useBroadcasts,', 1)
+          text = text.replace('      <Text style={styles.cardBody} numberOfLines={4}>{item.body}</Text>', '''      <Text style={styles.cardBody} numberOfLines={4}>{item.body}</Text>
+      {item.mediaUri ? item.mediaType === "image" ? <Image source={{ uri: item.mediaUri }} style={styles.cardMediaImage} resizeMode="cover" /> : <TouchableOpacity style={styles.cardVideo} onPress={() => void Linking.openURL(item.mediaUri!)} accessibilityLabel={`Play video for ${item.title}`}><Feather name="play-circle" size={24} color={ORANGE} /><View style={{ flex: 1 }}><Text style={styles.cardVideoTitle}>Attached video</Text><Text style={styles.cardVideoMeta}>{item.mediaDurationSeconds ? `${item.mediaDurationSeconds} sec` : "Up to 5 minutes"}</Text></View><Feather name="external-link" size={15} color="#64748B" /></TouchableOpacity> : null}''', 1)
+          text = text.replace('  const [scheduledAt, setScheduledAt] = useState("");\n  const [formError, setFormError] = useState("");', '  const [scheduledAt, setScheduledAt] = useState("");\n  const [media, setMedia] = useState<BroadcastMediaUpload | null>(null);\n  const [formError, setFormError] = useState("");', 1)
+          text = text.replace('    setScheduledAt("");\n    setFormError("");', '    setScheduledAt("");\n    setMedia(null);\n    setFormError("");', 1)
+          text = text.replace('        idempotencyKey: makeIdempotencyKey(),\n      });', '        idempotencyKey: makeIdempotencyKey(),\n        media,\n      });', 1)
+          text = text.replace('              <Text style={styles.label}>CONTENT LANGUAGE</Text>', '''              <Text style={styles.label}>ATTACHMENT (OPTIONAL)</Text>
               <BroadcastMediaPicker value={media} onChange={setMedia} onError={setFormError} disabled={sending} />
 
-              <Text style={styles.label}>CONTENT LANGUAGE</Text>''',
-            1,
-          )
-          text = text.replace(
-            '  cardBody: { marginTop: 10, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" },',
-            '  cardBody: { marginTop: 10, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" },\n  cardMediaImage: { marginTop: 10, width: "100%", height: 170, borderRadius: 14, backgroundColor: "#F1F5F9" },\n  cardVideo: { marginTop: 10, minHeight: 62, borderRadius: 14, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 10 },\n  cardVideoTitle: { color: "#9A3412", fontSize: 11.5, fontFamily: "Inter_700Bold" },\n  cardVideoMeta: { marginTop: 2, color: "#C2410C", fontSize: 9.5, fontFamily: "Inter_400Regular" },',
-            1,
-          )
+              <Text style={styles.label}>CONTENT LANGUAGE</Text>''', 1)
+          text = text.replace('  cardBody: { marginTop: 10, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" },', '  cardBody: { marginTop: 10, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" },\n  cardMediaImage: { marginTop: 10, width: "100%", height: 170, borderRadius: 14, backgroundColor: "#F1F5F9" },\n  cardVideo: { marginTop: 10, minHeight: 62, borderRadius: 14, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 10 },\n  cardVideoTitle: { color: "#9A3412", fontSize: 11.5, fontFamily: "Inter_700Bold" },\n  cardVideoMeta: { marginTop: 2, color: "#C2410C", fontSize: 9.5, fontFamily: "Inter_400Regular" },', 1)
           center.write_text(text)
 
           updates = Path('mobile/screens/OfficialUpdatesScreen.tsx')
           text = updates.read_text()
-          text = text.replace(
-            '  Image,\n  Modal,',
-            '  Image,\n  Linking,\n  Modal,',
-            1,
-          )
+          text = text.replace('  Image,\n  Modal,', '  Image,\n  Linking,\n  Modal,', 1)
           old_card_icon = '<View style={[styles.iconBox, { backgroundColor: config.bg }]}><Feather name={config.icon} size={23} color={config.color} />{!item.isRead ? <View style={styles.unreadDot} /> : null}</View>'
           new_card_icon = '''{item.mediaType === "image" && item.mediaUri ? <View style={styles.mediaWrap}><Image source={{ uri: item.mediaUri }} style={styles.image} />{!item.isRead ? <View style={styles.unreadDot} /> : null}</View> : <View style={[styles.iconBox, { backgroundColor: config.bg }]}><Feather name={item.mediaType === "video" ? "play-circle" : config.icon} size={23} color={config.color} />{!item.isRead ? <View style={styles.unreadDot} /> : null}</View>}'''
           if old_card_icon not in text:
             raise SystemExit('Broadcast card icon anchor not found')
           text = text.replace(old_card_icon, new_card_icon, 1)
-          text = text.replace(
-            '            <Text style={styles.detailBody}>{selectedBroadcast?.body}</Text>',
-            '''            <Text style={styles.detailBody}>{selectedBroadcast?.body}</Text>
+          text = text.replace('            <Text style={styles.detailBody}>{selectedBroadcast?.body}</Text>', '''            <Text style={styles.detailBody}>{selectedBroadcast?.body}</Text>
             {selectedBroadcast?.mediaType === "image" && selectedBroadcast.mediaUri ? <Image source={{ uri: selectedBroadcast.mediaUri }} style={styles.detailMediaImage} resizeMode="contain" /> : null}
-            {selectedBroadcast?.mediaType === "video" && selectedBroadcast.mediaUri ? <TouchableOpacity style={styles.detailVideoButton} onPress={() => void Linking.openURL(selectedBroadcast.mediaUri!)}><Feather name="play-circle" size={20} color="white" /><Text style={styles.detailVideoText}>Play attached video</Text></TouchableOpacity> : null}''',
-            1,
-          )
-          text = text.replace(
-            '  detailBody: { marginTop: 10, color: "#475569", fontSize: 13, lineHeight: 20, textAlign: "center", fontFamily: "Inter_400Regular" },',
-            '  detailBody: { marginTop: 10, color: "#475569", fontSize: 13, lineHeight: 20, textAlign: "center", fontFamily: "Inter_400Regular" },\n  detailMediaImage: { marginTop: 13, width: "100%", height: 210, borderRadius: 15, backgroundColor: "#F8FAFC" },\n  detailVideoButton: { marginTop: 13, width: "100%", minHeight: 48, borderRadius: 14, backgroundColor: "#EA580C", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },\n  detailVideoText: { color: "white", fontSize: 12, fontFamily: "Inter_700Bold" },',
-            1,
-          )
+            {selectedBroadcast?.mediaType === "video" && selectedBroadcast.mediaUri ? <TouchableOpacity style={styles.detailVideoButton} onPress={() => void Linking.openURL(selectedBroadcast.mediaUri!)}><Feather name="play-circle" size={20} color="white" /><Text style={styles.detailVideoText}>Play attached video</Text></TouchableOpacity> : null}''', 1)
+          text = text.replace('  detailBody: { marginTop: 10, color: "#475569", fontSize: 13, lineHeight: 20, textAlign: "center", fontFamily: "Inter_400Regular" },', '  detailBody: { marginTop: 10, color: "#475569", fontSize: 13, lineHeight: 20, textAlign: "center", fontFamily: "Inter_400Regular" },\n  detailMediaImage: { marginTop: 13, width: "100%", height: 210, borderRadius: 15, backgroundColor: "#F8FAFC" },\n  detailVideoButton: { marginTop: 13, width: "100%", minHeight: 48, borderRadius: 14, backgroundColor: "#EA580C", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },\n  detailVideoText: { color: "white", fontSize: 12, fontFamily: "Inter_700Bold" },', 1)
           updates.write_text(text)
 
           test = Path('mobile/test/broadcast-media.test.mjs')
