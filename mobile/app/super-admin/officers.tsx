@@ -109,7 +109,7 @@ export default function NagarsevakManagementScreen() {
 
         <View style={styles.searchShell}>
           <Feather name="search" size={17} color="#94A3B8" />
-          <TextInput value={search} onChangeText={(value) => { setSearch(value); if (!value) void refetch(); }} onSubmitEditing={() => void refetch(search)} placeholder="Search Marathi name, mobile or designation" placeholderTextColor="#94A3B8" style={styles.searchInput} returnKeyType="search" />
+          <TextInput value={search} onChangeText={(value) => { setSearch(value); if (!value) void refetch(); }} onSubmitEditing={() => void refetch(search)} placeholder="Search English name, mobile or designation" placeholderTextColor="#94A3B8" style={styles.searchInput} returnKeyType="search" />
           {search ? <TouchableOpacity onPress={() => { setSearch(""); void refetch(); }}><Feather name="x-circle" size={17} color="#94A3B8" /></TouchableOpacity> : null}
         </View>
 
