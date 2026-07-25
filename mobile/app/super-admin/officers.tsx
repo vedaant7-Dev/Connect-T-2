@@ -37,6 +37,7 @@ export default function NagarsevakManagementScreen() {
   const [updating, setUpdating] = useState("");
   const [notice, setNotice] = useState("");
   const [pendingAction, setPendingAction] = useState<PendingOfficerAction>(null);
+  const [actionError, setActionError] = useState("");
 
   const records = useMemo(() => assignments.filter((item) => filter === "all" || item.status === filter), [assignments, filter]);
   const uniqueWards = useMemo(() => new Set(assignments.map((item) => item.wardCode).filter(Boolean)).size, [assignments]);
@@ -53,25 +54,38 @@ export default function NagarsevakManagementScreen() {
     };
   };
 
+  const openAction = (action: Exclude<PendingOfficerAction, null>) => {
+    setActionError("");
+    setPendingAction(action);
+  };
+
+  const closeAction = () => {
+    if (updating) return;
+    setActionError("");
+    setPendingAction(null);
+  };
+
   const runPendingAction = async () => {
     if (!pendingAction || updating) return;
-    setUpdating(pendingAction.item.id);
+    const action = pendingAction;
+    setUpdating(action.item.id);
     setNotice("");
+    setActionError("");
     try {
-      await updateStatus(pendingAction.item.id, pendingAction.status);
+      await updateStatus(action.item.id, action.status);
       await refetch(search);
       setNotice(
-        pendingAction.status === "active"
+        action.status === "active"
           ? "Nagarsevak access activated successfully."
-          : pendingAction.status === "inactive"
+          : action.status === "inactive"
             ? "Nagarsevak access deactivated successfully. The official record remains available."
             : "Nagarsevak access revoked successfully. The official roster and complaint history remain unchanged.",
       );
+      setPendingAction(null);
     } catch (requestError) {
-      setNotice(getUserErrorMessage(requestError, "Nagarsevak access could not be updated."));
+      setActionError(getUserErrorMessage(requestError, "Nagarsevak access could not be updated."));
     } finally {
       setUpdating("");
-      setPendingAction(null);
     }
   };
 
@@ -184,7 +198,7 @@ export default function NagarsevakManagementScreen() {
                     <TouchableOpacity
                       style={[styles.actionButton, actionsDisabled && styles.actionDisabled]}
                       disabled={actionsDisabled}
-                      onPress={() => setPendingAction({ item, status: item.status === "active" ? "inactive" : "active" })}
+                      onPress={() => openAction({ item, status: item.status === "active" ? "inactive" : "active" })}
                       accessibilityRole="button"
                       accessibilityState={{ disabled: actionsDisabled }}
                     >
@@ -194,7 +208,7 @@ export default function NagarsevakManagementScreen() {
                     {item.status !== "revoked" ? <TouchableOpacity
                       style={[styles.actionButton, actionsDisabled && styles.actionDisabled]}
                       disabled={actionsDisabled}
-                      onPress={() => setPendingAction({ item, status: "revoked" })}
+                      onPress={() => openAction({ item, status: "revoked" })}
                       accessibilityRole="button"
                       accessibilityState={{ disabled: actionsDisabled }}
                     ><Feather name="user-x" size={14} color="#DC2626" /><Text style={[styles.actionText, { color: "#DC2626" }]}>Revoke</Text></TouchableOpacity> : null}
@@ -216,7 +230,8 @@ export default function NagarsevakManagementScreen() {
         confirmIcon={confirmIcon}
         tone={pendingAction?.status === "active" ? "primary" : "danger"}
         busy={!!updating}
-        onCancel={() => { if (!updating) setPendingAction(null); }}
+        errorMessage={actionError}
+        onCancel={closeAction}
         onConfirm={runPendingAction}
       />
     </View>
