@@ -136,7 +136,6 @@ function ComplaintDetail({ c, onBack, officers }: { c: Complaint; onBack: () => 
           { label: "Ward", value: c.ward, icon: "map-pin" },
           { label: "Location", value: c.location, icon: "navigation" },
           { label: "Address", value: c.userAddress || "—", icon: "home" },
-          { label: "Age", value: c.userAge ? String(c.userAge) : "—", icon: "calendar" },
           { label: "Email", value: c.userEmail || "—", icon: "mail" },
           { label: "DOB", value: c.userDob || "—", icon: "gift" },
           { label: "GPS", value: c.latitude !== null && c.latitude !== undefined && c.longitude !== null && c.longitude !== undefined ? `${c.latitude.toFixed(6)}, ${c.longitude.toFixed(6)}` : "—", icon: "crosshair" },
