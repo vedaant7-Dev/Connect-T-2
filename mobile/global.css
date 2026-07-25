@@ -1,3 +1,27 @@
 /* Connect T global stylesheet.
    Required because app/_layout.tsx imports ../global.css.
    Keep this file tracked so CI/Codemagic TypeScript builds do not fail. */
+
+/* React Native Web renders TextInput as input/textarea elements. Browsers add
+   a thick black focus outline by default, which conflicts with the app's own
+   bordered input styling. Keep the app border and remove only the browser
+   outline so every form has a consistent focus appearance. */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+[contenteditable="true"]:focus,
+[contenteditable="true"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
