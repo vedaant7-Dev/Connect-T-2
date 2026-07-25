@@ -45,12 +45,15 @@ function readText(file) {
 }
 
 function normalizePath(value) {
-  return String(value || "")
-    .split("?")[0]
+  let normalized = String(value || "").trim();
+  normalized = normalized.replace(/\$\{(?:query|suffix)\}$/i, "");
+  normalized = normalized.split("?")[0];
+  normalized = normalized
     .replace(/\$\{[^}]+\}/g, ":param")
     .replace(/:[A-Za-z0-9_]+/g, ":param")
     .replace(/\/+/g, "/")
-    .replace(/\/$/, "") || "/";
+    .replace(/\/$/, "");
+  return normalized || "/";
 }
 
 const routeFiles = walk(path.join(root, "mobile", "app"), (file) => /\.(tsx?|jsx?)$/.test(file));
@@ -89,20 +92,32 @@ for (const file of mobileFiles) {
 
 const backendFiles = walk(path.join(root, "backend"), (file) => /\.js$/.test(file));
 const backendRoutes = [];
-const routePattern = /\b(?:app|router)\.(get|post|put|patch|delete)\s*\(\s*(["'`])([^"'`]+)\2/g;
+const directRoutePattern = /\b(?:app|router)\.(get|post|put|patch|delete)\s*\(\s*(["'`])([^"'`]+)\2/g;
+const patchedRoutePattern = /\boriginal(Get|Post|Put|Patch|Delete)\.call\(\s*(?:app|this)\s*,\s*(["'`])([^"'`]+)\2/g;
 for (const file of backendFiles) {
   const source = readText(file);
-  for (const match of source.matchAll(routePattern)) {
+  for (const match of source.matchAll(directRoutePattern)) {
     backendRoutes.push({
       method: match[1].toUpperCase(),
       path: match[3],
       normalizedPath: normalizePath(match[3]),
       file: relative(file),
+      registration: "direct",
+    });
+  }
+  for (const match of source.matchAll(patchedRoutePattern)) {
+    backendRoutes.push({
+      method: match[1].toUpperCase(),
+      path: match[3],
+      normalizedPath: normalizePath(match[3]),
+      file: relative(file),
+      registration: "production-patch",
     });
   }
 }
 
-const activeBackendPairs = new Set(backendRoutes.map((route) => `${route.method} ${route.normalizedPath}`));
+const uniqueBackendRoutes = [...new Map(backendRoutes.map((route) => [`${route.method} ${route.path} ${route.file}`, route])).values()];
+const activeBackendPairs = new Set(uniqueBackendRoutes.map((route) => `${route.method} ${route.normalizedPath}`));
 const unmatchedFrontendCalls = frontendCalls.filter((call) => !activeBackendPairs.has(`${call.method} ${call.normalizedPath}`));
 
 const packageFiles = walk(root, (file) => /(^|\/)package\.json$/.test(relative(file)) && !relative(file).includes("node_modules/"));
@@ -127,13 +142,14 @@ const inventory = {
   deploymentFiles,
   routes,
   frontendCalls,
-  backendRoutes,
+  backendRoutes: uniqueBackendRoutes,
   unmatchedFrontendCalls,
   counts: {
     routeFiles: routes.length,
     visibleInteractionHandlers: routes.reduce((sum, route) => sum + Object.values(route.interactiveControls).reduce((a, b) => a + b, 0), 0),
     frontendCalls: frontendCalls.length,
-    backendRoutes: backendRoutes.length,
+    backendRoutes: uniqueBackendRoutes.length,
+    dynamicallyInstalledBackendRoutes: uniqueBackendRoutes.filter((route) => route.registration === "production-patch").length,
     unmatchedFrontendCalls: unmatchedFrontendCalls.length,
   },
   limitations: [
@@ -157,6 +173,7 @@ const markdown = [
   `- Visible interaction handlers in route files: ${inventory.counts.visibleInteractionHandlers}`,
   `- Extracted frontend API calls: ${inventory.counts.frontendCalls}`,
   `- Extracted backend routes: ${inventory.counts.backendRoutes}`,
+  `- Dynamically installed production-patch routes: ${inventory.counts.dynamicallyInstalledBackendRoutes}`,
   `- Frontend calls without an exact extracted backend method/path: ${inventory.counts.unmatchedFrontendCalls}`,
   "",
   "## Route files",
