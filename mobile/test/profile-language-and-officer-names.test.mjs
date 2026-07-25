@@ -4,15 +4,19 @@ import test from "node:test";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("official Nagarsevak roster uses English-script display names without deleting source names", () => {
+test("official and legacy Nagarsevak records use English-script display names without deleting source names", () => {
   const names = read("data/nagarsevakEnglishNames.ts");
   const hook = read("hooks/useNagarsevakAssignments.ts");
+  const screen = read("app/super-admin/officers.tsx");
 
   assert.match(names, /7: "Rasal Archana Charan"/);
   assert.match(names, /65: "Rohit Raju Mahadik"/);
-  assert.match(hook, /officialNagarsevakEnglishName/);
+  assert.match(names, /nagarsevakEnglishDisplayName/);
+  assert.match(names, /[\u0900-\u097F]/);
+  assert.match(hook, /nagarsevakEnglishDisplayName/);
   assert.match(hook, /originalName/);
   assert.match(hook, /matchesSearch/);
+  assert.match(screen, /Search English name, mobile or designation/);
 });
 
 test("Citizen, Nagarsevak and Super Admin share the Civic profile language selector", () => {
