@@ -11,31 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  regenerate-lockfiles:
-    name: Regenerate patched frontend lockfiles
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Regenerate mobile lockfile
-        working-directory: mobile
-        run: npm install --package-lock-only --legacy-peer-deps --ignore-scripts --no-audit --no-fund
-      - name: Regenerate client lockfile
-        working-directory: client
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - uses: actions/upload-artifact@v4
-        with:
-          name: patched-frontend-lockfiles
-          path: |
-            mobile/package.json
-            mobile/package-lock.json
-            client/package.json
-            client/package-lock.json
-          retention-days: 3
-
   backend:
     name: Backend security and syntax
     runs-on: ubuntu-latest
@@ -134,16 +109,6 @@ jobs:
       - run: npm run export:web
         env:
           EXPO_PUBLIC_API_URL: https://newapp.e-bjp.in
-      - name: Capture mobile production audit
-        run: npm audit --omit=dev --audit-level=high --json > mobile-audit.json || true
-      - name: Upload mobile audit diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-audit-diagnostics
-          path: mobile/mobile-audit.json
-          if-no-files-found: ignore
-          retention-days: 3
       - run: npm audit --omit=dev --audit-level=high
 
   web:
@@ -163,14 +128,4 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run build
-      - name: Capture web production audit
-        run: npm audit --omit=dev --audit-level=high --json > web-audit.json || true
-      - name: Upload web audit diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-audit-diagnostics
-          path: client/web-audit.json
-          if-no-files-found: ignore
-          retention-days: 3
       - run: npm audit --omit=dev --audit-level=high
