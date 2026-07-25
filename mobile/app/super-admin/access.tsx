@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   StyleSheet,
   Text,
@@ -15,11 +14,17 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppScrollView } from "@/components/AppScrollView";
+import ConfirmActionModal from "@/components/ConfirmActionModal";
 import { useSuperAdminAccess, SuperAdminAssignment } from "@/hooks/useSuperAdminAccess";
 import { apiGet, getUserErrorMessage } from "@/lib/api";
 
 const GREEN = "#16A34A";
 const DARK = "#14532D";
+
+type PendingAccessAction =
+  | { kind: "status"; item: SuperAdminAssignment; nextStatus: "active" | "inactive" }
+  | { kind: "remove"; item: SuperAdminAssignment }
+  | null;
 
 function cleanMobile(value: string) {
   return String(value || "").replace(/\D/g, "").slice(-10);
@@ -56,6 +61,7 @@ export default function SuperAdminAccessManagementScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState("");
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [pendingAction, setPendingAction] = useState<PendingAccessAction>(null);
 
   const counts = useMemo(() => ({
     active: assignments.filter((item) => item.status === "active").length,
@@ -104,64 +110,67 @@ export default function SuperAdminAccessManagementScreen() {
     }
   };
 
-  const confirmStatus = (item: SuperAdminAssignment, nextStatus: "active" | "inactive") => {
-    const verb = nextStatus === "active" ? "activate" : "deactivate";
-    Alert.alert(
-      `${verb === "activate" ? "Activate" : "Deactivate"} access?`,
-      `${item.name} will ${nextStatus === "active" ? "be able" : "no longer be able"} to open the Super Admin dashboard.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: verb === "activate" ? "Activate" : "Deactivate",
-          style: verb === "activate" ? "default" : "destructive",
-          onPress: async () => {
-            setSubmitting(true);
-            try {
-              await setAssignmentStatus(item.id, nextStatus);
-              setNotice(`Access ${nextStatus === "active" ? "activated" : "deactivated"}.`);
-              await loadAudit();
-            } catch (requestError) {
-              setNotice(getUserErrorMessage(requestError, "Access could not be updated."));
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ],
-    );
+  const runPendingAction = async () => {
+    if (!pendingAction || submitting) return;
+    setSubmitting(true);
+    setNotice("");
+    try {
+      if (pendingAction.kind === "status") {
+        await setAssignmentStatus(pendingAction.item.id, pendingAction.nextStatus);
+        setNotice(`Access ${pendingAction.nextStatus === "active" ? "activated" : "deactivated"} successfully.`);
+      } else {
+        await removeAssignment(pendingAction.item.id);
+        setNotice("Super Admin access removed successfully. The audit history has been retained.");
+      }
+      await refreshAll();
+    } catch (requestError) {
+      setNotice(getUserErrorMessage(
+        requestError,
+        pendingAction.kind === "remove" ? "Access could not be removed." : "Access could not be updated.",
+      ));
+    } finally {
+      setSubmitting(false);
+      setPendingAction(null);
+    }
   };
 
-  const confirmRemove = (item: SuperAdminAssignment) => {
-    Alert.alert(
-      "Remove Super Admin access?",
-      `${item.name}'s access will be revoked. This action is retained in the audit log.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove access",
-          style: "destructive",
-          onPress: async () => {
-            setSubmitting(true);
-            try {
-              await removeAssignment(item.id);
-              setNotice("Super Admin access removed.");
-              await loadAudit();
-            } catch (requestError) {
-              setNotice(getUserErrorMessage(requestError, "Access could not be removed."));
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ],
-    );
-  };
+  const confirmTitle = !pendingAction
+    ? ""
+    : pendingAction.kind === "remove"
+      ? "Remove Super Admin access?"
+      : pendingAction.nextStatus === "active"
+        ? "Activate Super Admin access?"
+        : "Deactivate Super Admin access?";
+
+  const confirmMessage = !pendingAction
+    ? ""
+    : pendingAction.kind === "remove"
+      ? `${pendingAction.item.name} will lose Super Admin access immediately. Their user data will not be deleted, and this action will remain in the role audit log.`
+      : pendingAction.nextStatus === "active"
+        ? `${pendingAction.item.name} will be allowed to open the Super Admin dashboard again using the verified OTP login.`
+        : `${pendingAction.item.name} will no longer be able to open the Super Admin dashboard. Their account and audit history will remain safe.`;
+
+  const confirmLabel = !pendingAction
+    ? "Confirm"
+    : pendingAction.kind === "remove"
+      ? "Remove access"
+      : pendingAction.nextStatus === "active"
+        ? "Activate"
+        : "Deactivate";
+
+  const confirmIcon = !pendingAction
+    ? "check" as const
+    : pendingAction.kind === "remove"
+      ? "trash-2" as const
+      : pendingAction.nextStatus === "active"
+        ? "user-check" as const
+        : "pause-circle" as const;
 
   return (
     <View style={styles.root}>
       <LinearGradient colors={["#052E16", DARK, GREEN]} style={styles.header}>
         <View style={[styles.headerInner, { paddingTop: (Platform.OS === "web" ? 40 : insets.top) + 10 }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Go back">
             <Feather name="arrow-left" size={19} color="white" />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
@@ -194,10 +203,10 @@ export default function SuperAdminAccessManagementScreen() {
         </View>
 
         {notice ? (
-          <View style={styles.noticeBox}>
+          <View style={styles.noticeBox} accessibilityLiveRegion="polite">
             <Feather name="info" size={16} color="#166534" />
             <Text style={styles.noticeText}>{notice}</Text>
-            <TouchableOpacity onPress={() => setNotice("")}><Feather name="x" size={16} color="#64748B" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => setNotice("")} accessibilityRole="button" accessibilityLabel="Dismiss message"><Feather name="x" size={16} color="#64748B" /></TouchableOpacity>
           </View>
         ) : null}
 
@@ -213,19 +222,19 @@ export default function SuperAdminAccessManagementScreen() {
           <View style={styles.inputShell}><Feather name="user" size={16} color="#94A3B8" /><TextInput value={name} onChangeText={setName} placeholder="First name and surname" placeholderTextColor="#94A3B8" autoCapitalize="words" style={styles.input} /></View>
           <Text style={styles.label}>Mobile number</Text>
           <View style={styles.inputShell}><Text style={styles.prefix}>+91</Text><TextInput value={mobile} onChangeText={(value) => setMobile(cleanMobile(value))} placeholder="10 digit mobile number" placeholderTextColor="#94A3B8" keyboardType="number-pad" maxLength={10} style={styles.input} /></View>
-          <TouchableOpacity style={[styles.addButton, submitting && styles.disabled]} onPress={handleAdd} disabled={submitting} activeOpacity={0.86}>
-            {submitting ? <ActivityIndicator color="white" /> : <><Feather name="plus" size={17} color="white" /><Text style={styles.addButtonText}>Authorize mobile number</Text></>}
+          <TouchableOpacity style={[styles.addButton, submitting && styles.disabled]} onPress={handleAdd} disabled={submitting} activeOpacity={0.86} accessibilityRole="button" accessibilityState={{ disabled: submitting }}>
+            {submitting && !pendingAction ? <ActivityIndicator color="white" /> : <><Feather name="plus" size={17} color="white" /><Text style={styles.addButtonText}>Authorize mobile number</Text></>}
           </TouchableOpacity>
         </View>
 
         <View style={styles.sectionHeading}>
           <View><Text style={styles.sectionTitle}>Authorized Super Admins</Text><Text style={styles.sectionSub}>Search, activate, deactivate or remove access</Text></View>
-          <TouchableOpacity style={styles.refreshButton} onPress={() => void refreshAll()}><Feather name="refresh-cw" size={15} color={GREEN} /></TouchableOpacity>
+          <TouchableOpacity style={styles.refreshButton} onPress={() => void refreshAll()} accessibilityRole="button" accessibilityLabel="Refresh access records"><Feather name="refresh-cw" size={15} color={GREEN} /></TouchableOpacity>
         </View>
         <View style={styles.searchShell}>
           <Feather name="search" size={17} color="#94A3B8" />
           <TextInput value={search} onChangeText={(value) => { setSearch(value); if (!value) void refetch(); }} onSubmitEditing={handleSearch} placeholder="Search name or mobile" placeholderTextColor="#94A3B8" style={styles.searchInput} returnKeyType="search" />
-          {search ? <TouchableOpacity onPress={() => { setSearch(""); void refetch(); }}><Feather name="x-circle" size={17} color="#94A3B8" /></TouchableOpacity> : null}
+          {search ? <TouchableOpacity onPress={() => { setSearch(""); void refetch(); }} accessibilityRole="button" accessibilityLabel="Clear search"><Feather name="x-circle" size={17} color="#94A3B8" /></TouchableOpacity> : null}
         </View>
 
         {loading ? (
@@ -236,6 +245,7 @@ export default function SuperAdminAccessManagementScreen() {
           <View style={styles.emptyCard}><Feather name="users" size={30} color="#CBD5E1" /><Text style={styles.emptyTitle}>No matching administrators</Text><Text style={styles.emptyText}>Add a mobile number or change your search.</Text></View>
         ) : assignments.map((item) => {
           const tone = statusTone(item.status);
+          const actionDisabled = item.isPrimary || submitting;
           return (
             <View key={item.id} style={styles.assignmentCard}>
               <View style={styles.assignmentTop}>
@@ -253,11 +263,25 @@ export default function SuperAdminAccessManagementScreen() {
                 <View style={styles.metaItem}><Text style={styles.metaLabel}>Signed in before</Text><Text style={styles.metaValue}>{item.hasLoggedIn ? "Yes" : "No"}</Text></View>
               </View>
               <View style={styles.actionRow}>
-                <TouchableOpacity style={[styles.actionButton, item.isPrimary && styles.actionDisabled]} disabled={item.isPrimary || submitting} onPress={() => confirmStatus(item, item.status === "active" ? "inactive" : "active")} activeOpacity={0.8}>
+                <TouchableOpacity
+                  style={[styles.actionButton, item.isPrimary && styles.actionDisabled]}
+                  disabled={actionDisabled}
+                  onPress={() => setPendingAction({ kind: "status", item, nextStatus: item.status === "active" ? "inactive" : "active" })}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: actionDisabled }}
+                >
                   <Feather name={item.status === "active" ? "pause" : "play"} size={14} color={item.isPrimary ? "#94A3B8" : item.status === "active" ? "#D97706" : GREEN} />
                   <Text style={[styles.actionText, { color: item.isPrimary ? "#94A3B8" : item.status === "active" ? "#D97706" : GREEN }]}>{item.status === "active" ? "Deactivate" : "Activate"}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionButton, item.isPrimary && styles.actionDisabled]} disabled={item.isPrimary || submitting} onPress={() => confirmRemove(item)} activeOpacity={0.8}>
+                <TouchableOpacity
+                  style={[styles.actionButton, item.isPrimary && styles.actionDisabled]}
+                  disabled={actionDisabled}
+                  onPress={() => setPendingAction({ kind: "remove", item })}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: actionDisabled }}
+                >
                   <Feather name="trash-2" size={14} color={item.isPrimary ? "#94A3B8" : "#DC2626"} />
                   <Text style={[styles.actionText, { color: item.isPrimary ? "#94A3B8" : "#DC2626" }]}>Remove</Text>
                 </TouchableOpacity>
@@ -276,6 +300,20 @@ export default function SuperAdminAccessManagementScreen() {
           ))}
         </View>
       </AppScrollView>
+
+      <ConfirmActionModal
+        visible={!!pendingAction}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmLabel={confirmLabel}
+        cancelLabel="Cancel"
+        icon={confirmIcon}
+        confirmIcon={confirmIcon}
+        tone={pendingAction && (pendingAction.kind === "remove" || (pendingAction.kind === "status" && pendingAction.nextStatus === "inactive")) ? "danger" : "primary"}
+        busy={submitting}
+        onCancel={() => { if (!submitting) setPendingAction(null); }}
+        onConfirm={runPendingAction}
+      />
     </View>
   );
 }
