@@ -109,6 +109,16 @@ jobs:
       - run: npm run export:web
         env:
           EXPO_PUBLIC_API_URL: https://newapp.e-bjp.in
+      - name: Capture mobile production audit
+        run: npm audit --omit=dev --audit-level=high --json > mobile-audit.json || true
+      - name: Upload mobile audit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-audit-diagnostics
+          path: mobile/mobile-audit.json
+          if-no-files-found: ignore
+          retention-days: 3
       - run: npm audit --omit=dev --audit-level=high
 
   web:
@@ -128,4 +138,14 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run build
+      - name: Capture web production audit
+        run: npm audit --omit=dev --audit-level=high --json > web-audit.json || true
+      - name: Upload web audit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-audit-diagnostics
+          path: client/web-audit.json
+          if-no-files-found: ignore
+          retention-days: 3
       - run: npm audit --omit=dev --audit-level=high
