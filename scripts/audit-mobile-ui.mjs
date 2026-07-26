@@ -34,7 +34,7 @@ for (const file of files) {
   const touchables = count(source, /<(?:TouchableOpacity|Pressable)\b/g);
   if (!textInputs && !touchables) continue;
   const hasAppScroll = /AppScrollView/.test(source);
-  const hasScroll = /<(?:ScrollView|FlatList|SectionList)\b/.test(source);
+  const hasNativeScroll = /<(?:ScrollView|FlatList|SectionList)\b/.test(source);
   const hasKeyboardAvoiding = /KeyboardAvoidingView/.test(source);
   const hasKeyboardTapHandling = /keyboardShouldPersistTaps/.test(source);
   const accessibilityRoles = count(source, /accessibilityRole\s*=/g);
@@ -43,11 +43,11 @@ for (const file of files) {
   const absoluteStyles = count(source, /position:\s*["']absolute["']/g);
   const issues = [];
 
-  if (textInputs && !hasAppScroll && !hasScroll && !hasKeyboardAvoiding) {
+  if (textInputs && !hasAppScroll && !hasNativeScroll && !hasKeyboardAvoiding) {
     issues.push("Text inputs have no visible scrolling or keyboard-avoidance container");
   }
-  if (textInputs && (hasAppScroll || hasScroll) && !hasKeyboardTapHandling && !/automaticallyAdjustKeyboardInsets/.test(source)) {
-    issues.push("Input screen does not explicitly preserve taps or adjust keyboard insets");
+  if (textInputs && hasNativeScroll && !hasAppScroll && !hasKeyboardTapHandling && !/automaticallyAdjustKeyboardInsets/.test(source)) {
+    issues.push("Native input list/scroll does not preserve taps or adjust keyboard insets");
   }
   if (multilineInputs && !/textAlignVertical\s*=\s*["']top["']/.test(source)) {
     issues.push("Multiline input does not declare top text alignment");
@@ -70,7 +70,7 @@ for (const file of files) {
     accessibilityRoles,
     accessibilityLabels,
     hasAppScroll,
-    hasScroll,
+    hasNativeScroll,
     hasKeyboardAvoiding,
     hasKeyboardTapHandling,
     absoluteStyles,
@@ -84,6 +84,10 @@ const report = {
   scannedFiles: results.length,
   filesWithFindings: findings.length,
   findings,
+  sharedGuarantees: {
+    AppScrollView: "automaticallyAdjustKeyboardInsets, keyboardDismissMode and keyboardShouldPersistTaps are applied by the shared component",
+    androidWindow: "mobile/app.json uses softwareKeyboardLayoutMode=resize",
+  },
   note: "This static inventory identifies review targets; it is not device-level keyboard or accessibility verification.",
 };
 fs.writeFileSync(path.join(outputDir, "mobile-ui-audit.json"), `${JSON.stringify(report, null, 2)}\n`);
