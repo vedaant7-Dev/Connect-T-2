@@ -18,11 +18,16 @@ test("all profile portal actions bypass portal selection after initial choice", 
   assert.match(jobs, /requestCivicPortal/);
   assert.doesNotMatch(jobs, /portal-select/);
   assert.ok(hook.includes('resetNavigation("/jobs")'));
-  assert.ok(hook.includes('resetNavigation("/(tabs)")'));
+  assert.ok(hook.includes('resetNavigation("/\(tabs\)")'));
 });
 
-test("shared logout confirmation is used by civic jobs nagarsevak and super admin", () => {
-  for (const file of ["screens/CivicProfileScreen.tsx", "screens/LocalizedJobPortalProfileScreen.tsx", "app/(tabs)/admin.tsx", "app/super-admin/settings.tsx"]) {
+test("shared logout confirmation is used by civic, nagarsevak, jobs and super admin profiles", () => {
+  const civicProfile = read("screens/CivicProfileScreen.tsx");
+  const civicProfileRoute = read("app/(tabs)/profile.tsx");
+  assert.match(civicProfileRoute, /CivicProfileScreen/);
+  assert.match(civicProfile, /ConfirmActionModal/);
+  assert.match(civicProfile, /requestLogout/);
+  for (const file of ["screens/LocalizedJobPortalProfileScreen.tsx", "app/super-admin/settings.tsx"]) {
     assert.match(read(file), /ConfirmActionModal/, file);
     assert.match(read(file), /requestLogout/, file);
   }
