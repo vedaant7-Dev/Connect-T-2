@@ -19,11 +19,12 @@ const patterns = [
   { id: "google-api-key", expression: /\bAIza[0-9A-Za-z_-]{35}\b/ },
   { id: "stripe-live-key", expression: /\b(?:sk|rk)_live_[0-9A-Za-z]{20,}\b/ },
   { id: "slack-token", expression: /\bxox[baprs]-[0-9A-Za-z-]{20,}\b/ },
-  { id: "jwt-assignment", expression: /\bJWT_SECRET\s*=\s*["']?(?!CHANGE_|example|test|your-|<)[^\s"']{32,}/i },
+  { id: "jwt-assignment", expression: /\bJWT_SECRET\s*=\s*["']?(?!CHANGE_|example|test|your-|replace-|<)[^\s"']{32,}/i },
 ];
 
 const sensitiveFilePatterns = [
-  /(^|\/)\.env(?:\..+)?$/i,
+  /(^|\/)\.env$/i,
+  /(^|\/)\.env\.(?!example$|sample$|template$)[^/]+$/i,
   /(^|\/)(?:service-account|service_account).*\.json$/i,
   /(^|\/)google-services\.json$/i,
   /\.(?:jks|p12|pfx|pem|key)$/i,
@@ -31,6 +32,10 @@ const sensitiveFilePatterns = [
 
 function relative(file) {
   return path.relative(root, file).replaceAll(path.sep, "/");
+}
+
+function isIntentionalJwtFixture(rel) {
+  return /(^|\/)test(s)?\//i.test(rel) || /\.env\.(?:example|sample|template)$/i.test(rel);
 }
 
 function walk(directory) {
@@ -69,6 +74,7 @@ for (const file of walk(root)) {
   const content = textContent(file);
   if (content === null) continue;
   for (const pattern of patterns) {
+    if (pattern.id === "jwt-assignment" && isIntentionalJwtFixture(rel)) continue;
     if (pattern.expression.test(content)) {
       findings.push({ scope: "current-tree", category: pattern.id, file: rel });
     }
@@ -127,6 +133,7 @@ const report = {
   currentTreeFindings: findings,
   historyFindings,
   excludedKnownDevelopmentFiles: [...excludedFiles],
+  ignoredIntentionalFixtures: ["*.env.example/sample/template JWT placeholders", "backend test JWT fixtures"],
   note: "No secret values are written to this report. Matches require manual validation and rotation when genuine.",
 };
 
