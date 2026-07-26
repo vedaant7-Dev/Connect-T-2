@@ -51,8 +51,28 @@ async function removeManagedMedia(value, expectedPrefix) {
   return true;
 }
 
+function cleanupFailedResponse(req, filePath) {
+  const res = req?.res;
+  if (!res || typeof res.once !== "function") return;
+  let finished = false;
+  const remove = () => fs.promises.unlink(filePath).catch((error) => {
+    if (error?.code !== "ENOENT") console.warn("[MediaStorage] failed upload cleanup warning", error?.code || "cleanup_error");
+  });
+  res.once("finish", () => {
+    finished = true;
+    if (Number(res.statusCode || 500) >= 400) void remove();
+  });
+  res.once("close", () => {
+    if (!finished) void remove();
+  });
+}
+
 async function saveDataUri(value, prefix, req, options = {}) {
-  if (!value || typeof value !== "string" || !value.startsWith("data:")) return value || null;
+  if (!value || typeof value !== "string") return value || null;
+  if (!value.startsWith("data:")) {
+    if (options.requireDataUri) throw new Error("Uploaded media must come from the selected device file");
+    return value;
+  }
 
   const match = value.match(/^data:([^;]+);base64,([A-Za-z0-9+/=]+)$/);
   if (!match) throw new Error("Invalid uploaded media format");
@@ -82,13 +102,16 @@ async function saveDataUri(value, prefix, req, options = {}) {
 
   const normalizedPrefix = safePrefix(prefix);
   const fileName = `${normalizedPrefix}_${Date.now()}_${crypto.randomBytes(8).toString("hex")}.${ext}`;
+  const filePath = path.join(UPLOAD_DIR, fileName);
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-  await fs.promises.writeFile(path.join(UPLOAD_DIR, fileName), buffer, { flag: "wx" });
+  await fs.promises.writeFile(filePath, buffer, { flag: "wx" });
+  cleanupFailedResponse(req, filePath);
 
   return `${publicBaseUrl(req)}/uploads/${fileName}`;
 }
 
 module.exports = {
+  cleanupFailedResponse,
   hasExpectedSignature,
   managedMediaPath,
   MAX_UPLOAD_BYTES,
