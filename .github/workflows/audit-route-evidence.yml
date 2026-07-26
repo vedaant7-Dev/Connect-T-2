@@ -1,0 +1,29 @@
+name: Audit Route Evidence
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: audit-route-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/audit-repository-inventory.mjs
+      - run: node scripts/extract-backend-route-lines.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-backend-route-evidence
+          path: artifacts/audit/*
+          if-no-files-found: error
+          retention-days: 7
