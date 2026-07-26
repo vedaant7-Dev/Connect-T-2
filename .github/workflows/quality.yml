@@ -12,9 +12,9 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend security and syntax
+    name: Backend security, syntax and release package
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
@@ -29,6 +29,48 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm audit --omit=dev --audit-level=high
+      - name: Package production backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="../artifacts/connect-t-backend-package"
+          archive="../artifacts/Connect-T-backend-latest.zip"
+          rm -rf "$package_root" "$archive"
+          mkdir -p "$package_root/backend"
+          rsync -a ./ "$package_root/backend/" \
+            --exclude node_modules \
+            --exclude .env \
+            --exclude uploads \
+            --exclude '*.log' \
+            --exclude '.DS_Store'
+          cp ../render.yaml "$package_root/render.yaml"
+          cat > "$package_root/DEPLOYMENT_README.txt" <<EOF
+          CONNECT-T BACKEND RELEASE PACKAGE
+          Repository: vedaant7-Dev/Connect-T-2
+          Commit: ${GITHUB_SHA}
+
+          This archive contains the validated backend source, package lock,
+          database migrations, environment template and Render manifest.
+
+          Before deployment:
+          1. Preserve the live .env file and uploads directory.
+          2. Configure a production JWT_SECRET with at least 32 characters.
+          3. Install dependencies with npm ci --omit=dev.
+          4. Apply pending SQL migrations from backend/migrations.
+          5. Start with npm start and verify /api/healthz.
+          6. Verify /api/broadcasts/capabilities returns broadcast-media-v1.
+
+          Secret values, node_modules and uploaded media are intentionally excluded.
+          EOF
+          (cd "$package_root" && zip -qr "../Connect-T-backend-latest.zip" .)
+          test -s "$archive"
+      - name: Upload production backend package
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-backend-production
+          path: artifacts/Connect-T-backend-latest.zip
+          if-no-files-found: error
+          retention-days: 14
 
   mobile:
     name: Mobile quality and Android/Web export
@@ -143,7 +185,7 @@ jobs:
           name: connect-t-debug-apk
           path: mobile/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
 
   web:
     name: Web typecheck and build
