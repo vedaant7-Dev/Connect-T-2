@@ -40,6 +40,7 @@ for (const file of files) {
   const accessibilityRoles = count(source, /accessibilityRole\s*=/g);
   const accessibilityLabels = count(source, /accessibilityLabel\s*=/g);
   const multilineInputs = count(source, /<TextInput[\s\S]{0,400}?\bmultiline\b/g);
+  const hasTopAlignedMultiline = /textAlignVertical\s*(?:=|:)\s*["']top["']/.test(source);
   const absoluteStyles = count(source, /position:\s*["']absolute["']/g);
   const issues = [];
 
@@ -49,7 +50,7 @@ for (const file of files) {
   if (textInputs && hasNativeScroll && !hasAppScroll && !hasKeyboardTapHandling && !/automaticallyAdjustKeyboardInsets/.test(source)) {
     issues.push("Native input list/scroll does not preserve taps or adjust keyboard insets");
   }
-  if (multilineInputs && !/textAlignVertical\s*=\s*["']top["']/.test(source)) {
+  if (multilineInputs && !hasTopAlignedMultiline) {
     issues.push("Multiline input does not declare top text alignment");
   }
   if (touchables >= 4 && accessibilityRoles < Math.ceil(touchables * 0.35)) {
@@ -73,6 +74,7 @@ for (const file of files) {
     hasNativeScroll,
     hasKeyboardAvoiding,
     hasKeyboardTapHandling,
+    hasTopAlignedMultiline,
     absoluteStyles,
     issues,
   });
