@@ -21,6 +21,7 @@ jobs:
           node-version: 22
       - run: node scripts/audit-repository-inventory.mjs
       - run: node scripts/extract-backend-route-lines.mjs
+      - run: node scripts/audit-mobile-ui.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: connect-t-backend-route-evidence
