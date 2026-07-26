@@ -40,11 +40,11 @@ test("Nagarsevak deactivate and revoke actions require confirmation and refresh 
   assert.match(screen, /status: "revoked"/);
   assert.match(screen, /runPendingAction/);
   assert.match(screen, /await refetch\(search\)/);
-  assert.match(screen, /official roster record and complaint history will not be deleted/i);
+  assert.match(screen, /will lose Nagarsevak authorization/i);
   assert.match(screen, /errorMessage=\{actionError\}/);
   assert.match(screen, /setActionError\(getUserErrorMessage/);
   assert.doesNotMatch(screen, /Alert\.alert/);
-  assert.match(hook, /apiPatch\(`\/api\/super-admin\/nagarsevaks\/\$\{id\}`/);
+  assert.match(hook, /apiPatch\(`\/api\/super-admin\/nagarsevaks\/\$\{encodeURIComponent\(id\)\}`/);
 });
 
 test("shared confirmation modal supports action-specific icons, visible safe errors and duplicate-submit blocking", () => {

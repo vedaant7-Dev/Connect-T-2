@@ -32,7 +32,9 @@ test("Ward utility form uses exact start and end time pickers", () => {
 test("Nagarsevak utility posts rely on authenticated server ward assignment", () => {
   const screen = read("app/(tabs)/admin.tsx");
   const backend = read("../backend/utilityStatusPatch.js");
-  assert.match(screen, /Assigned ward is automatic/);
+  assert.doesNotMatch(screen, /Assigned ward is automatic/);
+  assert.doesNotMatch(screen, /Please ask the Super Admin to assign your ward/);
+  assert.match(screen, /Ward Not Assigned/);
   assert.doesNotMatch(screen, /ward: user\.ward/);
   assert.doesNotMatch(screen, /wardCode: user\.wardCode/);
   assert.match(backend, /const finalWard = isSuperAdmin \? normalizeWard\(req\.body\.ward \|\| user\.ward\) : normalizeWard\(user\.ward\)/);

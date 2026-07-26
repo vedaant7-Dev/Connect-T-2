@@ -21,6 +21,13 @@ export interface NagarsevakAssignment {
   createdAt?: string | null;
 }
 
+function normalizeWardCode(value: any) {
+  const match = String(value || "").match(/(?:Ward\s*)?(\d{1,2})/i);
+  if (!match) return null;
+  const ward = Number(match[1]);
+  return ward >= 1 && ward <= 29 ? String(ward) : null;
+}
+
 function normalize(item: any): NagarsevakAssignment {
   const designation = String(item.wardOrDesignation || item.ward_or_designation || "Not assigned");
   const sourceSerial = item.sourceSerial ?? item.source_serial ?? null;
@@ -33,7 +40,7 @@ function normalize(item: any): NagarsevakAssignment {
     originalName: englishName !== originalName ? originalName : null,
     mobile: String(item.mobile || item.normalized_phone || "").replace(/\D/g, "").slice(-10),
     wardOrDesignation: designation,
-    wardCode: designation.match(/\d{1,2}/)?.[0] || null,
+    wardCode: normalizeWardCode(item.wardCode || item.ward_code || designation),
     status: item.status === "inactive" || item.status === "revoked" ? item.status : "active",
     source: String(item.source || "admin"),
     sourceSerial,
@@ -46,7 +53,7 @@ function normalize(item: any): NagarsevakAssignment {
 function matchesSearch(item: NagarsevakAssignment, rawSearch: string) {
   const search = rawSearch.trim().toLocaleLowerCase("en-IN");
   if (!search) return true;
-  return [item.name, item.originalName, item.mobile, item.wardOrDesignation]
+  return [item.name, item.originalName, item.mobile, item.wardOrDesignation, item.wardCode ? `ward ${item.wardCode}` : ""]
     .filter(Boolean)
     .some((value) => String(value).toLocaleLowerCase("en-IN").includes(search));
 }
@@ -72,11 +79,16 @@ export function useNagarsevakAssignments() {
   }, []);
 
   const updateStatus = async (id: string, status: NagarsevakAccessStatus) => {
-    await apiPatch(`/api/super-admin/nagarsevaks/${id}`, { status });
+    await apiPatch(`/api/super-admin/nagarsevaks/${encodeURIComponent(id)}`, { status });
+    await refetch();
+  };
+
+  const assignWard = async (id: string, wardCode: string) => {
+    await apiPatch(`/api/super-admin/nagarsevaks/${encodeURIComponent(id)}/ward`, { wardCode });
     await refetch();
   };
 
   useEffect(() => { void refetch(); }, [refetch]);
 
-  return { assignments, loading, error, refetch, updateStatus };
+  return { assignments, loading, error, refetch, updateStatus, assignWard };
 }

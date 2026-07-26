@@ -1,6 +1,6 @@
 import { AppScrollView } from "@/components/AppScrollView";
 import AppTimePicker, { formatTimeLabel } from "@/components/AppTimePicker";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -12,7 +12,10 @@ import { useRouter } from "expo-router";
 import { useLanguage } from "@/context/LanguageContext";
 import { wardMatchesNagarsevak } from "@/data/wards";
 import { displayUtilityStatus, postUtilityStatus, UtilityType } from "@/lib/utilityStatusApi";
-import { getUserErrorMessage } from "@/lib/api";
+import { apiGet, getUserErrorMessage } from "@/lib/api";
+
+const GREEN = "#16A34A";
+const ORANGE = "#EA580C";
 
 const statusLabelKeys: Record<ComplaintStatus, string> = {
   submitted: "submitted",
@@ -41,18 +44,19 @@ const categoryConfig: Record<string, { icon: string; color: string }> = {
   other: { icon: "more-horizontal", color: "#475569" },
 };
 
-const nextStatusLabelKeys: Record<ComplaintStatus, string[]> = {
-  submitted: ["assignToTeam", "reject"],
-  assigned: ["markInProgress", "reject"],
-  in_progress: ["markResolved", "reject"],
-  resolved: [],
-  rejected: [],
-};
-
-const nextStatusOptions: Record<ComplaintStatus, { status: ComplaintStatus; color: string }[]> = {
-  submitted: [{ status: "assigned", color: "#EA580C" }, { status: "rejected", color: "#DC2626" }],
-  assigned: [{ status: "in_progress", color: "#7C3AED" }, { status: "rejected", color: "#DC2626" }],
-  in_progress: [{ status: "resolved", color: "#059669" }, { status: "rejected", color: "#DC2626" }],
+const nextStatusOptions: Record<ComplaintStatus, { status: ComplaintStatus; label: string; color: string }[]> = {
+  submitted: [
+    { status: "assigned", label: "Assign to Team", color: "#EA580C" },
+    { status: "rejected", label: "Reject", color: "#DC2626" },
+  ],
+  assigned: [
+    { status: "in_progress", label: "Mark In Progress", color: "#7C3AED" },
+    { status: "rejected", label: "Reject", color: "#DC2626" },
+  ],
+  in_progress: [
+    { status: "resolved", label: "Mark Resolved", color: "#059669" },
+    { status: "rejected", label: "Reject", color: "#DC2626" },
+  ],
   resolved: [],
   rejected: [],
 };
@@ -95,7 +99,6 @@ function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; o
   const [selectedStatus, setSelectedStatus] = useState<ComplaintStatus | null>(null);
   const { t } = useLanguage();
   const options = nextStatusOptions[complaint.status] || [];
-  const optionLabelKeys = nextStatusLabelKeys[complaint.status] || [];
 
   return (
     <View style={modalStyles.overlay}>
@@ -111,7 +114,7 @@ function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; o
 
         <Text style={modalStyles.label}>{t("selectAction")}</Text>
         <View style={modalStyles.optionRow}>
-          {options.map((option, index) => (
+          {options.map((option) => (
             <TouchableOpacity
               key={option.status}
               style={[
@@ -123,7 +126,7 @@ function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; o
               activeOpacity={0.8}
             >
               <Feather name={statusConfig[option.status].icon as any} size={14} color={selectedStatus === option.status ? "white" : option.color} />
-              <Text style={[modalStyles.optionText, { color: selectedStatus === option.status ? "white" : option.color }]}>{t(optionLabelKeys[index])}</Text>
+              <Text style={[modalStyles.optionText, { color: selectedStatus === option.status ? "white" : option.color }]}>{option.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -154,9 +157,7 @@ function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; o
             disabled={!selectedStatus}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={["#EA580C", "#FB923C"]} style={modalStyles.confirmGradient}>
-              <Text style={modalStyles.confirmText}>{t("updateStatus")}</Text>
-            </LinearGradient>
+            <Text style={modalStyles.confirmText}>{t("updateStatus")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -164,12 +165,12 @@ function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; o
   );
 }
 
-function DetailedComplaintCard({ complaint, onAction }: { complaint: Complaint; onAction: () => void }) {
+function ComplaintCard({ complaint, onAction }: { complaint: Complaint; onAction: () => void }) {
   const { t } = useLanguage();
+  const router = useRouter();
   const status = statusConfig[complaint.status];
   const category = categoryConfig[complaint.category] || categoryConfig.other;
   const hasActions = (nextStatusOptions[complaint.status] || []).length > 0;
-  const router = useRouter();
 
   return (
     <TouchableOpacity
@@ -181,52 +182,26 @@ function DetailedComplaintCard({ complaint, onAction }: { complaint: Complaint; 
         <View style={[styles.categoryIcon, { backgroundColor: `${category.color}18` }]}>
           <Feather name={category.icon as any} size={15} color={category.color} />
         </View>
-        <View style={styles.complaintHeaderText}>
+        <View style={{ flex: 1 }}>
           <Text style={styles.complaintTitle} numberOfLines={1}>{complaint.title}</Text>
           <Text style={styles.complaintMeta}>ID: {complaint.id} · {timeAgo(complaint.createdAt)}</Text>
         </View>
         <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
-          <Feather name={status.icon as any} size={10} color={status.color} />
           <Text style={[styles.statusPillText, { color: status.color }]}>{t(statusLabelKeys[complaint.status])}</Text>
         </View>
       </View>
 
-      <View style={styles.complaintBody}>
-        <View style={styles.metaRow}>
-          <Feather name="map-pin" size={11} color="#94A3B8" />
-          <Text style={styles.metaText} numberOfLines={1}>{complaint.location}</Text>
-        </View>
-        <View style={styles.metaRow}>
-          <Feather name="home" size={11} color="#94A3B8" />
-          <Text style={styles.metaText}>{complaint.ward}</Text>
-        </View>
-        <Text style={styles.descriptionText} numberOfLines={2}>{complaint.description}</Text>
-        <View style={styles.citizenRow}>
-          <View style={styles.citizenChip}>
-            <Feather name="user" size={10} color="#EA580C" />
-            <Text style={styles.citizenText}>{complaint.userName || t("citizen")}</Text>
-          </View>
-          <View style={styles.citizenChip}>
-            <Feather name="calendar" size={10} color="#64748B" />
-            <Text style={styles.citizenText}>{new Date(complaint.createdAt).toLocaleDateString()}</Text>
-          </View>
-        </View>
+      <View style={styles.metaRow}>
+        <Feather name="map-pin" size={11} color="#94A3B8" />
+        <Text style={styles.metaText} numberOfLines={1}>{complaint.location}</Text>
       </View>
+      <Text style={styles.descriptionText} numberOfLines={2}>{complaint.description}</Text>
 
       {hasActions ? (
         <TouchableOpacity style={styles.updateButton} onPress={(event) => { event.stopPropagation?.(); onAction(); }} activeOpacity={0.85}>
-          <LinearGradient colors={["#166534", "#16A34A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.updateGradient}>
-            <Feather name="edit-3" size={13} color="white" />
-            <Text style={styles.updateText}>{t("updateStatus")}</Text>
-          </LinearGradient>
+          <Feather name="edit-3" size={13} color="white" />
+          <Text style={styles.updateText}>{t("updateStatus")}</Text>
         </TouchableOpacity>
-      ) : null}
-
-      {complaint.status === "resolved" ? (
-        <View style={styles.resolvedBar}>
-          <Feather name="check-circle" size={12} color="#059669" />
-          <Text style={styles.resolvedText}>{complaint.resolvedNote || t("issueResolved")}</Text>
-        </View>
       ) : null}
     </TouchableOpacity>
   );
@@ -241,21 +216,40 @@ export default function AdminScreen() {
   const { t } = useLanguage();
   const [filter, setFilter] = useState<ComplaintStatus | "all">("all");
   const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
+  const [assignedWard, setAssignedWard] = useState(user?.ward || "");
+  const [assignedWardCode, setAssignedWardCode] = useState(String(user?.wardCode || ""));
   const [utilityType, setUtilityType] = useState<UtilityType>("water");
   const [utilityStatus, setUtilityStatus] = useState("normal");
   const [utilityStartTime, setUtilityStartTime] = useState("");
   const [utilityEndTime, setUtilityEndTime] = useState("");
   const [utilityDescription, setUtilityDescription] = useState("");
   const [utilitySaving, setUtilitySaving] = useState(false);
-  const [utilityMessage, setUtilityMessage] = useState("");
-  const [utilityMessageTone, setUtilityMessageTone] = useState<"success" | "error" | "">("");
+  const [utilityResult, setUtilityResult] = useState<"success" | "error" | "">("");
+
+  const refreshAssignedWard = useCallback(async () => {
+    try {
+      const session = await apiGet<any>("/api/auth/session");
+      const nextWard = String(session?.user?.ward || "");
+      const nextCode = String(session?.user?.wardCode || session?.user?.ward_code || "");
+      setAssignedWard(nextWard);
+      setAssignedWardCode(nextCode);
+    } catch {
+      setAssignedWard(user?.ward || "");
+      setAssignedWardCode(String(user?.wardCode || ""));
+    }
+  }, [user?.ward, user?.wardCode]);
+
+  useEffect(() => {
+    setAssignedWard(user?.ward || "");
+    setAssignedWardCode(String(user?.wardCode || ""));
+    void refreshAssignedWard();
+  }, [refreshAssignedWard, user?.ward, user?.wardCode]);
 
   if (!user || user.role !== "nagarsevak") {
     return (
       <View style={styles.lockedScreen}>
         <Feather name="lock" size={48} color="#CBD5E1" />
         <Text style={styles.lockedTitle}>{t("nagarsevakOnly")}</Text>
-        <Text style={styles.lockedDescription}>{t("nagarsevakOnlyDesc")}</Text>
         <TouchableOpacity onPress={() => router.replace("/login" as any)} style={styles.loginButton} activeOpacity={0.85}>
           <Text style={styles.loginText}>{t("loginBtn")}</Text>
         </TouchableOpacity>
@@ -263,8 +257,11 @@ export default function AdminScreen() {
     );
   }
 
-  const wardComplaints = user.ward
-    ? complaints.filter((complaint) => wardMatchesNagarsevak(complaint.ward, user.ward || ""))
+  const wardComplaints = assignedWard || assignedWardCode
+    ? complaints.filter((complaint) => {
+        if (assignedWardCode && String(complaint.wardCode || "") === assignedWardCode) return true;
+        return assignedWard ? wardMatchesNagarsevak(complaint.ward, assignedWard) : false;
+      })
     : [];
   const filteredComplaints = filter === "all"
     ? wardComplaints
@@ -278,15 +275,9 @@ export default function AdminScreen() {
   const rejectedCount = wardComplaints.filter((complaint) => complaint.status === "rejected").length;
   const scheduleText = utilityScheduleLabel(utilityStartTime, utilityEndTime);
   const hoursPerDay = utilityDurationHours(utilityStartTime, utilityEndTime);
+  const canPostUtility = !!assignedWard && !!utilityStartTime && !!utilityEndTime && !!utilityDescription.trim() && !utilitySaving;
 
-  const dashboardFilters: {
-    filter: ComplaintStatus;
-    label: string;
-    count: number;
-    icon: string;
-    color: string;
-    bg: string;
-  }[] = [
+  const dashboardFilters: { filter: ComplaintStatus; label: string; count: number; icon: string; color: string; bg: string }[] = [
     { filter: "submitted", label: t("complaints"), count: pendingCount, icon: "file-text", color: "#C2410C", bg: "#FFEDD5" },
     { filter: "in_progress", label: t("inProgress"), count: activeCount, icon: "tool", color: "#7C3AED", bg: "#EDE9FE" },
     { filter: "resolved", label: t("resolved"), count: resolvedCount, icon: "check-circle", color: "#059669", bg: "#D1FAE5" },
@@ -299,25 +290,10 @@ export default function AdminScreen() {
     router.push({ pathname: "/complaint/list" as any, params: { status: nextFilter } });
   };
 
-  const showUtilityError = (message: string) => {
-    setUtilityMessageTone("error");
-    setUtilityMessage(message);
-  };
-
   const saveUtilityStatus = async () => {
-    if (!utilityStartTime || !utilityEndTime) {
-      showUtilityError("Select both start time and end time.");
-      return;
-    }
-    if (!utilityDescription.trim()) {
-      showUtilityError("Add a short public update message.");
-      return;
-    }
-
+    if (!canPostUtility) return;
     setUtilitySaving(true);
-    setUtilityMessage("");
-    setUtilityMessageTone("");
-
+    setUtilityResult("");
     try {
       await postUtilityStatus({
         utilityType,
@@ -329,19 +305,13 @@ export default function AdminScreen() {
         helpline: utilityType === "water" ? "AMC Water Helpline: 0251-2604100" : "MSEDCL Helpline: 1912",
         source: utilityType === "water" ? "AMC Water Department" : "MSEDCL Ambernath Division",
       });
-
-      setUtilityMessageTone("success");
-      setUtilityMessage(`${utilityType === "water" ? "Water" : "Electricity"} update posted to your assigned ward.`);
+      setUtilityResult("success");
       setUtilityStartTime("");
       setUtilityEndTime("");
       setUtilityDescription("");
     } catch (error: any) {
-      const message = getUserErrorMessage(error, "Unable to post utility update.");
-      if (/valid ward|ward is required|ward assignment|ward.*missing/i.test(message)) {
-        showUtilityError("Your ward assignment is missing. Please ask the Super Admin to assign your ward.");
-      } else {
-        showUtilityError(message);
-      }
+      void getUserErrorMessage(error, "Unable to post utility update.");
+      setUtilityResult("error");
     } finally {
       setUtilitySaving(false);
     }
@@ -349,18 +319,10 @@ export default function AdminScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={["#166534", "#16A34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPadding + 12 }]}>
-        <View style={styles.headerTop}>
-          <View>
-            <View style={styles.roleBadge}>
-              <Feather name="briefcase" size={10} color="#6EE7B7" />
-              <Text style={styles.roleBadgeText}>NAGARSEVAK</Text>
-            </View>
-            <Text style={styles.headerTitle}>{user.name}</Text>
-            <Text style={styles.headerSubtitle}>{user.ward || "Ward assignment pending"}</Text>
-          </View>
-        </View>
-
+      <LinearGradient colors={["#166534", GREEN, "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPadding + 12 }]}>
+        <View style={styles.roleBadge}><Feather name="briefcase" size={10} color="#6EE7B7" /><Text style={styles.roleBadgeText}>NAGARSEVAK</Text></View>
+        <Text style={styles.headerTitle}>{user.name}</Text>
+        <Text style={styles.headerSubtitle}>{assignedWard || "Not assigned"}</Text>
         <View style={styles.statPills}>
           {[
             { label: t("pending"), count: pendingCount, color: "#FDE68A", icon: "clock" },
@@ -378,38 +340,17 @@ export default function AdminScreen() {
       </LinearGradient>
 
       <AppScrollView
-        onAppRefresh={() => refreshComplaints()}
+        onAppRefresh={() => Promise.all([refreshComplaints(), refreshAssignedWard()]).then(() => undefined)}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 8) + 96 }}
         showsVerticalScrollIndicator={false}
       >
-        {pendingCount > 0 ? (
-          <View style={styles.urgentBanner}>
-            <Feather name="alert-circle" size={14} color="#DC2626" />
-            <Text style={styles.urgentText}>{pendingCount} {t("complaints")} — {t("needsAttention")}</Text>
-          </View>
-        ) : null}
-
         <View style={styles.utilityPanel}>
-          <View style={styles.panelHeader}>
-            <View style={styles.panelTitleRow}>
-              <View style={styles.panelIcon}>
-                <Feather name="zap" size={15} color="#C2410C" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.panelTitle}>Ward Utility Status</Text>
-                <Text style={styles.panelSubtitle}>Post water or electricity timing for citizens.</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.autoWardInfo}>
-            <Feather name="shield" size={16} color="#15803D" />
+          <View style={styles.panelTitleRow}>
+            <View style={styles.panelIcon}><Feather name="zap" size={15} color="#C2410C" /></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.autoWardTitle}>Assigned ward is automatic</Text>
-              <Text style={styles.autoWardText}>
-                {user.ward ? `This update will be visible only to citizens in ${user.ward}.` : "Your secure server-side ward assignment will be used when you post."}
-              </Text>
+              <Text style={styles.panelTitle}>Ward Utility Status</Text>
+              <Text style={styles.panelSubtitle}>Water and electricity timing</Text>
             </View>
           </View>
 
@@ -437,36 +378,21 @@ export default function AdminScreen() {
           </View>
 
           <View style={styles.timeSectionHeader}>
-            <View>
-              <Text style={styles.formSectionLabel}>SUPPLY / MAINTENANCE TIME</Text>
-              <Text style={styles.formSectionHelp}>Choose exact start and end time.</Text>
-            </View>
+            <Text style={styles.formSectionLabel}>SUPPLY / MAINTENANCE TIME</Text>
             <TouchableOpacity style={styles.fullDayButton} onPress={() => { setUtilityStartTime("00:00"); setUtilityEndTime("00:00"); }} activeOpacity={0.8}>
-              <Feather name="sun" size={12} color="#15803D" />
-              <Text style={styles.fullDayText}>24 Hours</Text>
+              <Feather name="sun" size={12} color="#15803D" /><Text style={styles.fullDayText}>24 Hours</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.timePickerRow}>
-            <View style={styles.timePickerField}>
-              <Text style={styles.inputLabel}>START TIME</Text>
-              <AppTimePicker value={utilityStartTime} onChange={setUtilityStartTime} placeholder="Start time" accessibilityLabel="Utility start time" />
-            </View>
-            <View style={styles.timePickerField}>
-              <Text style={styles.inputLabel}>END TIME</Text>
-              <AppTimePicker value={utilityEndTime} onChange={setUtilityEndTime} placeholder="End time" accessibilityLabel="Utility end time" />
-            </View>
+            <View style={styles.timePickerField}><Text style={styles.inputLabel}>START TIME</Text><AppTimePicker value={utilityStartTime} onChange={setUtilityStartTime} placeholder="Start time" accessibilityLabel="Utility start time" /></View>
+            <View style={styles.timePickerField}><Text style={styles.inputLabel}>END TIME</Text><AppTimePicker value={utilityEndTime} onChange={setUtilityEndTime} placeholder="End time" accessibilityLabel="Utility end time" /></View>
           </View>
 
           {scheduleText ? (
             <View style={styles.timeSummary}>
-              <View style={styles.timeSummaryIcon}>
-                <Feather name="clock" size={14} color="#7C3AED" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.timeSummaryTitle}>{scheduleText}</Text>
-                <Text style={styles.timeSummaryText}>{hoursPerDay} hours total duration</Text>
-              </View>
+              <Feather name="clock" size={14} color="#7C3AED" />
+              <View style={{ flex: 1 }}><Text style={styles.timeSummaryTitle}>{scheduleText}</Text><Text style={styles.timeSummaryText}>{hoursPerDay} hours</Text></View>
             </View>
           ) : null}
 
@@ -480,54 +406,37 @@ export default function AdminScreen() {
             textAlignVertical="top"
           />
 
-          {utilityMessage ? (
-            <View style={[styles.utilityMessage, utilityMessageTone === "success" ? styles.utilityMessageSuccess : styles.utilityMessageError]}>
-              <Feather name={utilityMessageTone === "success" ? "check-circle" : "alert-circle"} size={14} color={utilityMessageTone === "success" ? "#047857" : "#DC2626"} />
-              <Text style={[styles.utilityMessageText, { color: utilityMessageTone === "success" ? "#047857" : "#DC2626" }]}>{utilityMessage}</Text>
-            </View>
+          {utilityResult ? (
+            <Text style={[styles.resultText, { color: utilityResult === "success" ? "#047857" : "#DC2626" }]}>
+              {utilityResult === "success" ? "Update posted." : "Unable to post update."}
+            </Text>
           ) : null}
 
-          <TouchableOpacity style={[styles.postUtilityButton, utilitySaving && { opacity: 0.65 }]} onPress={saveUtilityStatus} disabled={utilitySaving} activeOpacity={0.85}>
-            <Feather name="send" size={14} color="white" />
-            <Text style={styles.postUtilityText}>{utilitySaving ? "Posting..." : "Post Utility Update"}</Text>
+          <TouchableOpacity
+            style={[styles.postUtilityButton, !canPostUtility && styles.postUtilityButtonDisabled]}
+            onPress={saveUtilityStatus}
+            disabled={!canPostUtility}
+            activeOpacity={0.85}
+          >
+            <Feather name={assignedWard ? "send" : "map-pin"} size={14} color="white" />
+            <Text style={styles.postUtilityText}>{utilitySaving ? "Posting..." : assignedWard ? "Post Utility Update" : "Ward Not Assigned"}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.dashboardGrid}>
-          {dashboardFilters.map((item) => {
-            const selected = filter === item.filter;
-            return (
-              <TouchableOpacity
-                key={item.filter}
-                style={[
-                  styles.dashboardCard,
-                  { backgroundColor: selected ? item.bg : "white", borderColor: item.color, shadowColor: item.color },
-                  selected && styles.dashboardCardActive,
-                ]}
-                onPress={() => openComplaintList(item.filter)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.dashboardLabel}>{item.label}</Text>
-                <View style={[styles.dashboardIcon, { backgroundColor: `${item.color}15` }]}>
-                  <Feather name={item.icon as any} size={20} color={item.color} />
-                </View>
-                <Text style={[styles.dashboardCount, { color: item.color }]}>{item.count}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {dashboardFilters.map((item) => (
+            <TouchableOpacity key={item.filter} style={[styles.dashboardCard, { borderColor: item.color }]} onPress={() => openComplaintList(item.filter)} activeOpacity={0.85}>
+              <Text style={styles.dashboardLabel}>{item.label}</Text>
+              <View style={[styles.dashboardIcon, { backgroundColor: `${item.color}15` }]}><Feather name={item.icon as any} size={20} color={item.color} /></View>
+              <Text style={[styles.dashboardCount, { color: item.color }]}>{item.count}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        <View style={styles.complaintList}>
+        <View style={styles.listSection}>
           {filteredComplaints.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Feather name="check-circle" size={36} color="#CBD5E1" />
-              <Text style={styles.emptyText}>{user.ward ? t("noComplaintsInCategory") : "Your ward complaints will appear after the Super Admin assigns your ward."}</Text>
-            </View>
-          ) : (
-            filteredComplaints.map((complaint) => (
-              <DetailedComplaintCard key={complaint.id} complaint={complaint} onAction={() => setActiveComplaint(complaint)} />
-            ))
-          )}
+            <View style={styles.empty}><Feather name="check-circle" size={34} color="#CBD5E1" /><Text style={styles.emptyText}>{t("noComplaintsInCategory")}</Text></View>
+          ) : filteredComplaints.map((item) => <ComplaintCard key={item.id} complaint={item} onAction={() => setActiveComplaint(item)} />)}
         </View>
       </AppScrollView>
 
@@ -551,108 +460,86 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#EBEFFC" },
   lockedScreen: { flex: 1, backgroundColor: "#EBEFFC", alignItems: "center", justifyContent: "center", padding: 32 },
   lockedTitle: { fontSize: 18, color: "#475569", marginTop: 16, fontFamily: "Inter_700Bold" },
-  lockedDescription: { fontSize: 13, color: "#94A3B8", marginTop: 8, textAlign: "center", fontFamily: "Inter_400Regular" },
   loginButton: { backgroundColor: "#C2410C", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14, marginTop: 24 },
   loginText: { fontSize: 15, color: "white", fontFamily: "Inter_700Bold" },
-  header: { paddingHorizontal: 19, paddingBottom: 18, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-  headerTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  roleBadge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.12)", paddingHorizontal: 8, paddingVertical: 4 },
-  roleBadgeText: { color: "#6EE7B7", fontSize: 9, letterSpacing: 0.8, fontFamily: "Inter_700Bold" },
-  headerTitle: { marginTop: 8, color: "white", fontSize: 22, fontFamily: "Inter_700Bold" },
-  headerSubtitle: { marginTop: 3, color: "rgba(255,255,255,0.78)", fontSize: 12, fontFamily: "Inter_500Medium" },
-  statPills: { marginTop: 16, flexDirection: "row", borderRadius: 17, backgroundColor: "rgba(255,255,255,0.13)", overflow: "hidden" },
-  statPill: { flex: 1, minHeight: 72, alignItems: "center", justifyContent: "center", gap: 2 },
+  header: { paddingHorizontal: 20, paddingBottom: 26, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  roleBadge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.13)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  roleBadgeText: { color: "#A7F3D0", fontSize: 8.5, letterSpacing: 0.8, fontFamily: "Inter_700Bold" },
+  headerTitle: { color: "white", fontSize: 22, fontFamily: "Inter_700Bold", marginTop: 9 },
+  headerSubtitle: { color: "rgba(255,255,255,0.72)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  statPills: { flexDirection: "row", marginTop: 14, paddingVertical: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.13)" },
+  statPill: { flex: 1, alignItems: "center", gap: 2 },
   statNumber: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  statLabel: { color: "rgba(255,255,255,0.64)", fontSize: 9, fontFamily: "Inter_500Medium" },
-  urgentBanner: { marginHorizontal: 14, marginTop: 12, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA", flexDirection: "row", alignItems: "center", gap: 8 },
-  urgentText: { flex: 1, color: "#B91C1C", fontSize: 11, fontFamily: "Inter_700Bold" },
-  utilityPanel: { marginHorizontal: 14, marginTop: 12, padding: 15, borderRadius: 20, backgroundColor: "white", shadowColor: "#0F172A", shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
-  panelHeader: { marginBottom: 10 },
-  panelTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  panelIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7ED" },
-  panelTitle: { color: "#0F172A", fontSize: 15, fontFamily: "Inter_700Bold" },
-  panelSubtitle: { marginTop: 2, color: "#64748B", fontSize: 11, fontFamily: "Inter_400Regular" },
-  autoWardInfo: { marginBottom: 12, borderRadius: 14, padding: 11, backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0", flexDirection: "row", alignItems: "flex-start", gap: 9 },
-  autoWardTitle: { color: "#166534", fontSize: 11, fontFamily: "Inter_700Bold" },
-  autoWardText: { marginTop: 2, color: "#15803D", fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_400Regular" },
+  statLabel: { color: "rgba(255,255,255,0.68)", fontSize: 9, fontFamily: "Inter_500Medium" },
+  utilityPanel: { margin: 12, padding: 14, borderRadius: 20, backgroundColor: "white", borderWidth: 1, borderColor: "#E2E8F0" },
+  panelTitleRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 12 },
+  panelIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center" },
+  panelTitle: { color: "#0F172A", fontSize: 14, fontFamily: "Inter_700Bold" },
+  panelSubtitle: { color: "#64748B", fontSize: 10.5, fontFamily: "Inter_400Regular", marginTop: 1 },
   utilityTypeRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  utilityTypeButton: { flex: 1, minHeight: 42, borderRadius: 13, borderWidth: 1, borderColor: "#FED7AA", backgroundColor: "#FFF7ED", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  utilityTypeButtonActive: { borderColor: "#EA580C", backgroundColor: "#EA580C" },
-  utilityTypeText: { color: "#C2410C", fontSize: 12, fontFamily: "Inter_700Bold" },
+  utilityTypeButton: { flex: 1, minHeight: 42, borderRadius: 13, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  utilityTypeButtonActive: { backgroundColor: ORANGE, borderColor: ORANGE },
+  utilityTypeText: { color: "#C2410C", fontSize: 11.5, fontFamily: "Inter_700Bold" },
   utilityTypeTextActive: { color: "white" },
-  statusRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 15 },
-  statusChip: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#F1F5F9" },
-  statusChipActive: { backgroundColor: "#16A34A" },
+  statusRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 12 },
+  statusChip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999, backgroundColor: "#F1F5F9" },
+  statusChipActive: { backgroundColor: GREEN },
   statusChipText: { color: "#475569", fontSize: 10.5, fontFamily: "Inter_700Bold" },
   statusChipTextActive: { color: "white" },
-  timeSectionHeader: { marginBottom: 9, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  formSectionLabel: { color: "#475569", fontSize: 9.5, letterSpacing: 0.8, fontFamily: "Inter_700Bold" },
-  formSectionHelp: { marginTop: 2, color: "#94A3B8", fontSize: 10, fontFamily: "Inter_400Regular" },
-  fullDayButton: { minHeight: 34, borderRadius: 11, paddingHorizontal: 10, backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0", flexDirection: "row", alignItems: "center", gap: 5 },
+  timeSectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  formSectionLabel: { color: "#64748B", fontSize: 9, letterSpacing: 0.8, fontFamily: "Inter_700Bold" },
+  fullDayButton: { minHeight: 34, paddingHorizontal: 10, borderRadius: 12, backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0", flexDirection: "row", alignItems: "center", gap: 5 },
   fullDayText: { color: "#15803D", fontSize: 10, fontFamily: "Inter_700Bold" },
-  timePickerRow: { flexDirection: "row", gap: 9 },
-  timePickerField: { flex: 1, minWidth: 0 },
-  inputLabel: { marginBottom: 5, color: "#64748B", fontSize: 9, letterSpacing: 0.7, fontFamily: "Inter_700Bold" },
-  timeSummary: { marginTop: 10, borderRadius: 14, padding: 11, backgroundColor: "#F5F3FF", borderWidth: 1, borderColor: "#DDD6FE", flexDirection: "row", alignItems: "center", gap: 9 },
-  timeSummaryIcon: { width: 32, height: 32, borderRadius: 11, backgroundColor: "white", alignItems: "center", justifyContent: "center" },
-  timeSummaryTitle: { color: "#5B21B6", fontSize: 11.5, fontFamily: "Inter_700Bold" },
-  timeSummaryText: { marginTop: 2, color: "#7C3AED", fontSize: 10, fontFamily: "Inter_400Regular" },
-  publicMessageInput: { minHeight: 82, marginTop: 10, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", paddingHorizontal: 12, paddingVertical: 11, color: "#0F172A", fontSize: 12.5, fontFamily: "Inter_400Regular" },
-  utilityMessage: { marginTop: 9, borderRadius: 12, padding: 9, flexDirection: "row", alignItems: "center", gap: 7 },
-  utilityMessageSuccess: { backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0" },
-  utilityMessageError: { backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA" },
-  utilityMessageText: { flex: 1, fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_600SemiBold" },
-  postUtilityButton: { minHeight: 44, marginTop: 10, borderRadius: 13, backgroundColor: "#C2410C", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  postUtilityText: { color: "white", fontSize: 12.5, fontFamily: "Inter_700Bold" },
-  dashboardGrid: { paddingHorizontal: 14, paddingTop: 14, flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  dashboardCard: { width: "48%", minHeight: 105, borderRadius: 18, borderWidth: 1, padding: 13, backgroundColor: "white", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  dashboardCardActive: { borderWidth: 1.5 },
-  dashboardLabel: { color: "#475569", fontSize: 11, fontFamily: "Inter_600SemiBold" },
-  dashboardIcon: { position: "absolute", top: 12, right: 12, width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  dashboardCount: { marginTop: 18, fontSize: 28, fontFamily: "Inter_700Bold" },
-  complaintList: { paddingHorizontal: 14, paddingTop: 14 },
-  emptyState: { minHeight: 150, borderRadius: 18, backgroundColor: "white", alignItems: "center", justifyContent: "center", padding: 24 },
-  emptyText: { marginTop: 10, color: "#94A3B8", fontSize: 12, lineHeight: 18, textAlign: "center", fontFamily: "Inter_500Medium" },
-  complaintCard: { marginBottom: 11, borderRadius: 18, backgroundColor: "white", overflow: "hidden", shadowColor: "#0F172A", shadowOpacity: 0.05, shadowRadius: 9, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  complaintHeader: { padding: 13, flexDirection: "row", alignItems: "center", gap: 10 },
-  categoryIcon: { width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  complaintHeaderText: { flex: 1, minWidth: 0 },
-  complaintTitle: { color: "#0F172A", fontSize: 13.5, fontFamily: "Inter_700Bold" },
-  complaintMeta: { marginTop: 3, color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" },
-  statusPill: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 4 },
-  statusPillText: { fontSize: 9, fontFamily: "Inter_700Bold" },
-  complaintBody: { paddingHorizontal: 13, paddingBottom: 12 },
-  metaRow: { marginTop: 4, flexDirection: "row", alignItems: "center", gap: 6 },
+  timePickerRow: { flexDirection: "row", gap: 8 },
+  timePickerField: { flex: 1 },
+  inputLabel: { color: "#64748B", fontSize: 8.5, letterSpacing: 0.6, fontFamily: "Inter_700Bold", marginBottom: 5 },
+  timeSummary: { flexDirection: "row", alignItems: "center", gap: 9, padding: 11, marginTop: 9, borderRadius: 13, backgroundColor: "#F5F3FF", borderWidth: 1, borderColor: "#DDD6FE" },
+  timeSummaryTitle: { color: "#6D28D9", fontSize: 11, fontFamily: "Inter_700Bold" },
+  timeSummaryText: { color: "#8B5CF6", fontSize: 9.5, fontFamily: "Inter_500Medium", marginTop: 1 },
+  publicMessageInput: { minHeight: 82, marginTop: 10, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", padding: 12, color: "#0F172A", fontFamily: "Inter_400Regular" },
+  resultText: { fontSize: 10.5, fontFamily: "Inter_700Bold", marginTop: 8 },
+  postUtilityButton: { minHeight: 46, marginTop: 10, borderRadius: 14, backgroundColor: "#C2410C", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  postUtilityButtonDisabled: { backgroundColor: "#94A3B8", opacity: 0.72 },
+  postUtilityText: { color: "white", fontSize: 12, fontFamily: "Inter_700Bold" },
+  dashboardGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 12 },
+  dashboardCard: { width: "48%", minHeight: 105, borderRadius: 18, backgroundColor: "white", borderWidth: 1.5, padding: 13 },
+  dashboardLabel: { color: "#334155", fontSize: 11, fontFamily: "Inter_700Bold" },
+  dashboardIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 10 },
+  dashboardCount: { position: "absolute", right: 14, bottom: 10, fontSize: 25, fontFamily: "Inter_700Bold" },
+  listSection: { paddingHorizontal: 12, paddingTop: 12 },
+  complaintCard: { backgroundColor: "white", borderRadius: 18, padding: 13, marginBottom: 10, borderWidth: 1, borderColor: "#E2E8F0" },
+  complaintHeader: { flexDirection: "row", alignItems: "center", gap: 9 },
+  categoryIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  complaintTitle: { color: "#0F172A", fontSize: 13, fontFamily: "Inter_700Bold" },
+  complaintMeta: { color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular", marginTop: 2 },
+  statusPill: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
+  statusPillText: { fontSize: 8.5, fontFamily: "Inter_700Bold" },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 10 },
   metaText: { flex: 1, color: "#64748B", fontSize: 10.5, fontFamily: "Inter_400Regular" },
-  descriptionText: { marginTop: 9, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" },
-  citizenRow: { marginTop: 10, flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  citizenChip: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: "#F8FAFC", flexDirection: "row", alignItems: "center", gap: 5 },
-  citizenText: { color: "#64748B", fontSize: 9.5, fontFamily: "Inter_600SemiBold" },
-  updateButton: { borderTopWidth: 1, borderTopColor: "#E2E8F0" },
-  updateGradient: { minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  updateText: { color: "white", fontSize: 11, fontFamily: "Inter_700Bold" },
-  resolvedBar: { minHeight: 38, paddingHorizontal: 13, borderTopWidth: 1, borderTopColor: "#D1FAE5", backgroundColor: "#ECFDF5", flexDirection: "row", alignItems: "center", gap: 7 },
-  resolvedText: { flex: 1, color: "#047857", fontSize: 10.5, fontFamily: "Inter_600SemiBold" },
+  descriptionText: { color: "#475569", fontSize: 11, lineHeight: 16, fontFamily: "Inter_400Regular", marginTop: 7 },
+  updateButton: { minHeight: 40, marginTop: 10, borderRadius: 12, backgroundColor: GREEN, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  updateText: { color: "white", fontSize: 10.5, fontFamily: "Inter_700Bold" },
+  empty: { backgroundColor: "white", borderRadius: 18, padding: 28, alignItems: "center" },
+  emptyText: { color: "#64748B", fontSize: 11.5, fontFamily: "Inter_500Medium", marginTop: 8, textAlign: "center" },
 });
 
 const modalStyles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,23,42,0.55)" },
-  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: "white", padding: 20, paddingBottom: 28 },
-  handle: { alignSelf: "center", width: 42, height: 5, borderRadius: 999, backgroundColor: "#CBD5E1", marginBottom: 15 },
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,23,42,0.58)" },
+  sheet: { backgroundColor: "white", borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 18, paddingBottom: 28 },
+  handle: { width: 44, height: 5, borderRadius: 999, backgroundColor: "#CBD5E1", alignSelf: "center", marginBottom: 14 },
   title: { color: "#0F172A", fontSize: 19, fontFamily: "Inter_700Bold" },
-  complaintId: { marginTop: 5, color: "#EA580C", fontSize: 10, fontFamily: "Inter_700Bold" },
-  complaintName: { marginTop: 4, color: "#334155", fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  locationRow: { marginTop: 7, flexDirection: "row", alignItems: "center", gap: 5 },
-  locationText: { flex: 1, color: "#94A3B8", fontSize: 10.5, fontFamily: "Inter_400Regular" },
-  label: { marginTop: 17, marginBottom: 8, color: "#64748B", fontSize: 10, letterSpacing: 0.7, fontFamily: "Inter_700Bold" },
-  optionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  optionButton: { minHeight: 42, borderRadius: 13, borderWidth: 1, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  optionText: { fontSize: 11, fontFamily: "Inter_700Bold" },
-  noteInput: { minHeight: 90, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", paddingHorizontal: 12, paddingVertical: 11, color: "#0F172A", fontSize: 12, fontFamily: "Inter_400Regular" },
-  buttonRow: { marginTop: 17, flexDirection: "row", gap: 10 },
+  complaintId: { color: ORANGE, fontSize: 10.5, fontFamily: "Inter_700Bold", marginTop: 5 },
+  complaintName: { color: "#334155", fontSize: 14, fontFamily: "Inter_700Bold", marginTop: 3 },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 },
+  locationText: { color: "#94A3B8", fontSize: 10.5, fontFamily: "Inter_400Regular" },
+  label: { color: "#64748B", fontSize: 9.5, letterSpacing: 0.7, fontFamily: "Inter_700Bold", marginTop: 16, marginBottom: 7 },
+  optionRow: { flexDirection: "row", gap: 8 },
+  optionButton: { flex: 1, minHeight: 44, borderRadius: 13, borderWidth: 1.5, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  optionText: { fontSize: 10.5, fontFamily: "Inter_700Bold" },
+  noteInput: { minHeight: 76, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", padding: 11, color: "#0F172A", fontFamily: "Inter_400Regular" },
+  buttonRow: { flexDirection: "row", gap: 10, marginTop: 14 },
   cancelButton: { flex: 1, minHeight: 48, borderRadius: 14, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
   cancelText: { color: "#475569", fontSize: 12, fontFamily: "Inter_700Bold" },
-  confirmButton: { flex: 1, borderRadius: 14, overflow: "hidden" },
-  confirmGradient: { minHeight: 48, alignItems: "center", justifyContent: "center" },
+  confirmButton: { flex: 1, minHeight: 48, borderRadius: 14, backgroundColor: GREEN, alignItems: "center", justifyContent: "center" },
   confirmText: { color: "white", fontSize: 12, fontFamily: "Inter_700Bold" },
 });

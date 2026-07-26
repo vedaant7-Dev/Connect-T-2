@@ -16,7 +16,7 @@ test("official and legacy Nagarsevak records use English-script display names wi
   assert.match(hook, /nagarsevakEnglishDisplayName/);
   assert.match(hook, /originalName/);
   assert.match(hook, /matchesSearch/);
-  assert.match(screen, /Search English name, mobile or designation/);
+  assert.match(screen, /Search name, mobile or ward/);
 });
 
 test("Citizen, Nagarsevak and Super Admin share the Civic profile language selector", () => {
