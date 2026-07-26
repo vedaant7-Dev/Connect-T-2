@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 120
 
     environment:
-      java: 21
+      java: 17
       vars:
         EXPO_PUBLIC_API_URL: "https://newapp.e-bjp.in"
 
@@ -23,14 +23,6 @@ workflows:
           ls -la
           ls -la mobile
           ls -la mobile/android
-
-      - name: Verify latest UI source is present
-        script: |
-          cd "$CM_BUILD_DIR"
-          grep -R "Hiring Overview" -n "mobile/app/jobs/(tabs)/index.tsx" || true
-          grep -R "Find trusted local work" -n "mobile/app/jobs/(tabs)/index.tsx" || true
-          grep -R "Connect T Control Center" -n mobile/app/super-admin-login.tsx || true
-          grep -R "Open Super Admin Dashboard" -n mobile/app/super-admin-login.tsx || true
 
       - name: Clean old build outputs
         script: |
@@ -71,7 +63,6 @@ workflows:
           cd "$CM_BUILD_DIR/mobile/android"
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
           cat local.properties
-          ls -la
 
       - name: Verify Gradle ABI split config
         script: |
@@ -89,15 +80,26 @@ workflows:
           cd "$CM_BUILD_DIR/mobile"
           npm run typecheck
 
-      - name: Build release APK
+      - name: Build preview debug APK
         script: |
           cd "$CM_BUILD_DIR/mobile/android"
-          pwd
-          ls -la
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+          ./gradlew clean :app:assembleDebug --no-daemon --max-workers=2 --stacktrace
 
-      - name: Inspect APK ABI and size
+      - name: Build signed release APK and AAB when credentials exist
+        script: |
+          cd "$CM_BUILD_DIR/mobile/android"
+          if [ -n "$CONNECT_T_RELEASE_STORE_FILE" ] \
+            && [ -n "$CONNECT_T_RELEASE_STORE_PASSWORD" ] \
+            && [ -n "$CONNECT_T_RELEASE_KEY_ALIAS" ] \
+            && [ -n "$CONNECT_T_RELEASE_KEY_PASSWORD" ]; then
+            echo "Release signing configuration detected. Building signed release outputs."
+            ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon --max-workers=2 --stacktrace
+          else
+            echo "Release signing credentials are unavailable. Preview debug APK built; signed release APK/AAB intentionally skipped."
+          fi
+
+      - name: Inspect generated APK ABI and size
         script: |
           cd "$CM_BUILD_DIR/mobile"
           python3 - <<'PY'
@@ -123,11 +125,6 @@ workflows:
               if "x86" in abis or "x86_64" in abis or "armeabi-v7a" in abis:
                   raise SystemExit("ERROR: universal/wrong ABI APK detected")
           PY
-
-      - name: Build release AAB
-        script: |
-          cd "$CM_BUILD_DIR/mobile/android"
-          ./gradlew :app:bundleRelease --no-daemon --max-workers=2 --stacktrace
 
       - name: List final outputs
         script: |

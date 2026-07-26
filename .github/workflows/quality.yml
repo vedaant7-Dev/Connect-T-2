@@ -111,6 +111,40 @@ jobs:
           EXPO_PUBLIC_API_URL: https://newapp.e-bjp.in
       - run: npm audit --omit=dev --audit-level=high
 
+  android-native:
+    name: Native Android debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+      - name: Build clean native debug APK
+        shell: bash
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew clean assembleDebug --no-daemon --stacktrace
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
   web:
     name: Web typecheck and build
     runs-on: ubuntu-latest
@@ -129,3 +163,42 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high
+
+  audit-inventory:
+    name: Route and API inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/audit-repository-inventory.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-route-api-inventory
+          path: artifacts/audit/*
+          if-no-files-found: error
+          retention-days: 7
+
+  secret-audit:
+    name: Current tree and Git history secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run sanitised secret scan
+        run: node scripts/audit-secrets.mjs
+      - name: Upload sanitised secret scan
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-secret-scan
+          path: artifacts/audit/secret-scan.json
+          if-no-files-found: error
+          retention-days: 7

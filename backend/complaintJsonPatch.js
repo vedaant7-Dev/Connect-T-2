@@ -104,13 +104,22 @@ async function currentUser(req) {
 
 async function officerForWard(wardCode) {
   const [rows] = await pool.query(
-    `SELECT id FROM users
+    `SELECT id, mobile FROM users
      WHERE role = 'nagarsevak' AND approval_status = 'approved'
        AND (ward_code = ? OR ward = ?)
-     ORDER BY created_at ASC LIMIT 1`,
+     ORDER BY created_at ASC`,
     [wardCode, `Ward ${wardCode}`],
   );
-  return rows[0]?.id || null;
+
+  for (const row of rows) {
+    const active = await isPrivilegedRoleActive(pool, {
+      mobile: row.mobile,
+      role: "nagarsevak",
+      userId: row.id,
+    });
+    if (active) return row.id;
+  }
+  return null;
 }
 
 async function findExistingComplaint(requestId, userId, userMobile, executor = pool) {

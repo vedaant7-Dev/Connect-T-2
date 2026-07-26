@@ -62,6 +62,7 @@ export default function SuperAdminAccessManagementScreen() {
   const [notice, setNotice] = useState("");
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [pendingAction, setPendingAction] = useState<PendingAccessAction>(null);
+  const [actionError, setActionError] = useState("");
 
   const counts = useMemo(() => ({
     active: assignments.filter((item) => item.status === "active").length,
@@ -85,6 +86,17 @@ export default function SuperAdminAccessManagementScreen() {
   useEffect(() => { void loadAudit(); }, []);
 
   const handleSearch = () => void refetch(search);
+
+  const openAction = (action: Exclude<PendingAccessAction, null>) => {
+    setActionError("");
+    setPendingAction(action);
+  };
+
+  const closeAction = () => {
+    if (submitting) return;
+    setActionError("");
+    setPendingAction(null);
+  };
 
   const handleAdd = async () => {
     setNotice("");
@@ -112,25 +124,27 @@ export default function SuperAdminAccessManagementScreen() {
 
   const runPendingAction = async () => {
     if (!pendingAction || submitting) return;
+    const action = pendingAction;
     setSubmitting(true);
     setNotice("");
+    setActionError("");
     try {
-      if (pendingAction.kind === "status") {
-        await setAssignmentStatus(pendingAction.item.id, pendingAction.nextStatus);
-        setNotice(`Access ${pendingAction.nextStatus === "active" ? "activated" : "deactivated"} successfully.`);
+      if (action.kind === "status") {
+        await setAssignmentStatus(action.item.id, action.nextStatus);
+        setNotice(`Access ${action.nextStatus === "active" ? "activated" : "deactivated"} successfully.`);
       } else {
-        await removeAssignment(pendingAction.item.id);
+        await removeAssignment(action.item.id);
         setNotice("Super Admin access removed successfully. The audit history has been retained.");
       }
       await refreshAll();
+      setPendingAction(null);
     } catch (requestError) {
-      setNotice(getUserErrorMessage(
+      setActionError(getUserErrorMessage(
         requestError,
-        pendingAction.kind === "remove" ? "Access could not be removed." : "Access could not be updated.",
+        action.kind === "remove" ? "Access could not be removed." : "Access could not be updated.",
       ));
     } finally {
       setSubmitting(false);
-      setPendingAction(null);
     }
   };
 
@@ -266,7 +280,7 @@ export default function SuperAdminAccessManagementScreen() {
                 <TouchableOpacity
                   style={[styles.actionButton, item.isPrimary && styles.actionDisabled]}
                   disabled={actionDisabled}
-                  onPress={() => setPendingAction({ kind: "status", item, nextStatus: item.status === "active" ? "inactive" : "active" })}
+                  onPress={() => openAction({ kind: "status", item, nextStatus: item.status === "active" ? "inactive" : "active" })}
                   activeOpacity={0.8}
                   accessibilityRole="button"
                   accessibilityState={{ disabled: actionDisabled }}
@@ -277,7 +291,7 @@ export default function SuperAdminAccessManagementScreen() {
                 <TouchableOpacity
                   style={[styles.actionButton, item.isPrimary && styles.actionDisabled]}
                   disabled={actionDisabled}
-                  onPress={() => setPendingAction({ kind: "remove", item })}
+                  onPress={() => openAction({ kind: "remove", item })}
                   activeOpacity={0.8}
                   accessibilityRole="button"
                   accessibilityState={{ disabled: actionDisabled }}
@@ -311,7 +325,8 @@ export default function SuperAdminAccessManagementScreen() {
         confirmIcon={confirmIcon}
         tone={pendingAction && (pendingAction.kind === "remove" || (pendingAction.kind === "status" && pendingAction.nextStatus === "inactive")) ? "danger" : "primary"}
         busy={submitting}
-        onCancel={() => { if (!submitting) setPendingAction(null); }}
+        errorMessage={actionError}
+        onCancel={closeAction}
         onConfirm={runPendingAction}
       />
     </View>

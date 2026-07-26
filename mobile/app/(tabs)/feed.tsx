@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, Image, Share, TextInput, Linking } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+
 import { useFeed, FeedPost, PostType } from "@/context/FeedContext";
 import { AppAlert, useAlerts, wardKey } from "@/context/AlertContext";
 import { ambernathWards } from "@/data/mumbaiServices";
@@ -11,8 +13,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import DecorativeCircles from "@/components/DecorativeCircles";
 import TopShade from "@/components/TopShade";
-
-type FeedTab = "community";
 
 const postTypeConfig: Record<PostType, { color: string; bg: string; icon: string }> = {
   announcement: { color: "#DC2626", bg: "#FEE2E2", icon: "alert-circle" },
@@ -24,13 +24,13 @@ const postTypeConfig: Record<PostType, { color: string; bg: string; icon: string
 const roleBadgeColor: Record<string, { bg: string; text: string }> = {
   citizen: { bg: "#FFF7ED", text: "#EA580C" },
   nagarsevak: { bg: "#ECFDF5", text: "#059669" },
-  Nagarsevak: { bg: "#ECFDF5", text: "#059669" },
-  Citizen: { bg: "#FFF7ED", text: "#EA580C" },
+  super_admin: { bg: "#EDE9FE", text: "#6D28D9" },
 };
 
 function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
+  const timestamp = new Date(dateStr).getTime();
+  if (!Number.isFinite(timestamp)) return "now";
+  const mins = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
   const hours = Math.floor(mins / 60);
   const days = Math.floor(hours / 24);
   if (days > 0) return `${days}d`;
@@ -39,532 +39,231 @@ function timeAgo(dateStr: string): string {
   return "now";
 }
 
-function Avatar({ name, color, size = 40, photoUri }: { name: string; color: string; size?: number; photoUri?: string }) {
-  const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-  if (photoUri) {
-    return <Image source={{ uri: photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  }
+function Avatar({ name, color, size = 40 }: { name: string; color: string; size?: number }) {
+  const initials = name.split(" ").filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "U";
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.35, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" }}>{initials}</Text>
+      <Text style={{ fontSize: size * 0.35, color: "white", fontFamily: "Inter_700Bold" }}>{initials}</Text>
     </View>
   );
 }
 
 function InlineVideo({ uri }: { uri: string }) {
   return (
-    <TouchableOpacity
-      style={[
-        styles.postVideo,
-        {
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#FFF7ED",
-          borderWidth: 1,
-          borderColor: "#FED7AA",
-        },
-      ]}
-      activeOpacity={0.85}
-      onPress={() => Linking.openURL(uri).catch(() => {})}
-    >
-      <Feather name="play-circle" size={30} color="#EA580C" />
-      <Text style={{ marginTop: 6, fontSize: 11, color: "#EA580C", fontFamily: "Inter_700Bold" }}>
-        Video attached
-      </Text>
+    <TouchableOpacity style={styles.postVideo} activeOpacity={0.85} onPress={() => void Linking.openURL(uri)} accessibilityRole="button" accessibilityLabel="Play attached video">
+      <Feather name="play-circle" size={32} color="#EA580C" />
+      <Text style={styles.postVideoText}>Play attached video</Text>
     </TouchableOpacity>
   );
 }
 
+async function shareText(title: string, body: string) {
+  const message = `${title}\n\n${body}\n\n— Connect-T Ambernath`;
+  if (Platform.OS === "web" && typeof navigator !== "undefined" && (navigator as any).share) {
+    await (navigator as any).share({ title, text: message });
+  } else {
+    await Share.share({ title, message });
+  }
+}
+
 function PostCard({ post, userId }: { post: FeedPost; userId: string }) {
+  const router = useRouter();
   const { toggleLike } = useFeed();
   const liked = post.likes.includes(userId);
-  const tc = postTypeConfig[post.type];
-  const roleInfo = roleBadgeColor[post.authorRole] || roleBadgeColor.citizen;
+  const type = postTypeConfig[post.type] || postTypeConfig.general;
+  const role = roleBadgeColor[String(post.authorRole || "").toLowerCase()] || roleBadgeColor.citizen;
 
   return (
     <View style={[styles.card, post.pinned && styles.cardPinned]}>
-      {post.pinned && (
-        <View style={styles.pinnedBar}>
-          <Feather name="bookmark" size={10} color="#7C3AED" />
-          <Text style={styles.pinnedText}>Pinned</Text>
-        </View>
-      )}
+      {post.pinned ? <View style={styles.pinnedBar}><Feather name="bookmark" size={10} color="#7C3AED" /><Text style={styles.pinnedText}>Pinned official post</Text></View> : null}
       <View style={styles.cardMeta}>
-        <Avatar name={post.authorName} color={post.avatarColor} size={30} />
-        <Text style={styles.cardAuthor} numberOfLines={1}>{post.authorName}</Text>
-        <View style={[styles.roleBadge, { backgroundColor: roleInfo.bg }]}>
-          <Text style={[styles.roleBadgeText, { color: roleInfo.text }]}>{post.authorRole}</Text>
-        </View>
-        <Text style={styles.cardTime}>· {timeAgo(post.createdAt)}</Text>
+        <Avatar name={post.authorName} color={post.avatarColor} size={34} />
+        <View style={styles.authorCopy}><Text style={styles.cardAuthor} numberOfLines={1}>{post.authorName}</Text><Text style={styles.cardTime}>{timeAgo(post.createdAt)}</Text></View>
+        <View style={[styles.roleBadge, { backgroundColor: role.bg }]}><Text style={[styles.roleBadgeText, { color: role.text }]}>{post.authorRole}</Text></View>
       </View>
-      <View style={[styles.typePill, { backgroundColor: tc.bg, marginBottom: 8 }]}>
-        <Feather name={tc.icon as any} size={9} color={tc.color} />
-        <Text style={[styles.typePillText, { color: tc.color }]}>{post.type}</Text>
-      </View>
+      <View style={[styles.typePill, { backgroundColor: type.bg }]}><Feather name={type.icon as any} size={10} color={type.color} /><Text style={[styles.typePillText, { color: type.color }]}>{post.type}</Text></View>
       <Text style={styles.cardContent}>{post.content}</Text>
-      {post.imageUri ? (
-        <Image source={{ uri: post.imageUri }} style={styles.postImage} resizeMode="cover" />
-      ) : null}
+      {post.imageUri ? <Image source={{ uri: post.imageUri }} style={styles.postImage} resizeMode="contain" /> : null}
       <View style={styles.cardActions}>
-        <TouchableOpacity style={styles.action} onPress={() => {
-          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          toggleLike(post.id, userId);
-        }} activeOpacity={0.8}>
-          <Feather name="heart" size={15} color={liked ? "#DC2626" : "#94A3B8"} />
-          <Text style={[styles.actionText, liked && { color: "#DC2626" }]}>{post.likes.length > 0 ? post.likes.length : ""}</Text>
+        <TouchableOpacity
+          style={styles.action}
+          onPress={() => { if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); void toggleLike(post.id, userId); }}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={liked ? `Unlike post by ${post.authorName}` : `Like post by ${post.authorName}`}
+          accessibilityState={{ selected: liked }}
+        >
+          <Feather name="heart" size={17} color={liked ? "#DC2626" : "#64748B"} />
+          <Text style={[styles.actionText, liked && styles.likedText]}>{post.likes.length || "Like"}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.action} activeOpacity={0.8}>
-          <Feather name="message-circle" size={15} color="#94A3B8" />
-          <Text style={styles.actionText}>{post.commentsCount > 0 ? post.commentsCount : ""}</Text>
+        <TouchableOpacity
+          style={styles.action}
+          onPress={() => router.push({ pathname: "/feed/comments/[id]", params: { id: post.id, title: post.content.slice(0, 80) } } as any)}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${post.commentsCount} comments for this post`}
+        >
+          <Feather name="message-circle" size={17} color="#64748B" />
+          <Text style={styles.actionText}>{post.commentsCount || "Comment"}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.action} activeOpacity={0.8}>
-          <Feather name="share" size={15} color="#94A3B8" />
+        <TouchableOpacity style={styles.action} onPress={() => void shareText(`${post.authorName}'s post`, post.content)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Share this post">
+          <Feather name="share-2" size={17} color="#64748B" /><Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
-}
-
-async function shareNews(item: AppAlert) {
-  try {
-    if (Platform.OS !== "web") Haptics.selectionAsync();
-    const lines = [
-      `📰 ${item.title}`,
-      "",
-      item.body,
-      item.location ? `\n📍 ${item.location}` : "",
-      item.validUntil ? `🕒 Valid until ${item.validUntil}` : "",
-      `\n— Posted by ${item.postedBy || "Nagarsevak"} on JanSeva Ambernath`,
-    ].filter(Boolean).join("\n");
-    if (Platform.OS === "web" && (navigator as any)?.share) {
-      await (navigator as any).share({ title: item.title, text: lines });
-    } else {
-      await Share.share({ title: item.title, message: lines });
-    }
-  } catch {}
 }
 
 function NewsAlertCard({ item }: { item: AppAlert }) {
   const isAlert = item.type === "alert" || item.type === "emergency";
   const pillColor = isAlert ? "#DC2626" : "#EA580C";
   const pillBg = isAlert ? "#FEE2E2" : "#FFEDD5";
-  const pillIcon = isAlert ? "alert-triangle" : "radio";
-  const pillLabel = isAlert ? "alert" : "news";
-
   return (
     <View style={styles.card}>
       <View style={styles.cardMeta}>
-        <Avatar name={item.postedBy || "Nagarsevak"} color="#16A34A" size={30} />
-        <Text style={styles.cardAuthor} numberOfLines={1}>{item.postedBy || "Nagarsevak"}</Text>
-        <View style={[styles.roleBadge, { backgroundColor: "#ECFDF5" }]}>
-          <Text style={[styles.roleBadgeText, { color: "#059669" }]}>Nagarsevak</Text>
-        </View>
-        <Text style={styles.cardTime}>· {timeAgo(item.createdAt)}</Text>
+        <Avatar name={item.postedBy || "Nagarsevak"} color="#16A34A" size={34} />
+        <View style={styles.authorCopy}><Text style={styles.cardAuthor} numberOfLines={1}>{item.postedBy || "Nagarsevak"}</Text><Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text></View>
+        <View style={[styles.roleBadge, { backgroundColor: "#ECFDF5" }]}><Text style={[styles.roleBadgeText, { color: "#059669" }]}>Official</Text></View>
       </View>
-      <View style={[styles.typePill, { backgroundColor: pillBg, marginBottom: 8 }]}>
-        <Feather name={pillIcon as any} size={9} color={pillColor} />
-        <Text style={[styles.typePillText, { color: pillColor }]}>{pillLabel}</Text>
-      </View>
+      <View style={[styles.typePill, { backgroundColor: pillBg }]}><Feather name={isAlert ? "alert-triangle" : "radio"} size={10} color={pillColor} /><Text style={[styles.typePillText, { color: pillColor }]}>{isAlert ? "alert" : "news"}</Text></View>
       <Text style={styles.newsTitle}>{item.title}</Text>
       <Text style={styles.cardContent}>{item.body}</Text>
-      {item.media?.type === "image" ? (
-        <Image source={{ uri: item.media.uri }} style={styles.postImage} resizeMode="cover" />
-      ) : item.media?.type === "video" ? (
-        <InlineVideo uri={item.media.uri} />
-      ) : null}
+      {item.media?.type === "image" ? <Image source={{ uri: item.media.uri }} style={styles.postImage} resizeMode="contain" /> : item.media?.type === "video" ? <InlineVideo uri={item.media.uri} /> : null}
       <View style={styles.newsInfoRow}>
-        {!!item.location && (
-          <View style={styles.newsInfoChip}>
-            <Feather name="map-pin" size={11} color="#64748B" />
-            <Text style={styles.newsInfoText}>{item.location}</Text>
-          </View>
-        )}
-        {!!item.validUntil && (
-          <View style={styles.newsInfoChip}>
-            <Feather name="clock" size={11} color="#64748B" />
-            <Text style={styles.newsInfoText}>Valid until {item.validUntil}</Text>
-          </View>
-        )}
+        {item.location ? <View style={styles.newsInfoChip}><Feather name="map-pin" size={11} color="#64748B" /><Text style={styles.newsInfoText}>{item.location}</Text></View> : null}
+        {item.validUntil ? <View style={styles.newsInfoChip}><Feather name="clock" size={11} color="#64748B" /><Text style={styles.newsInfoText}>Valid until {item.validUntil}</Text></View> : null}
       </View>
-      <View style={styles.newsActions}>
-        <TouchableOpacity style={styles.newsShareBtn} onPress={() => shareNews(item)} activeOpacity={0.85}>
-          <Feather name="share-2" size={13} color="#059669" />
-          <Text style={styles.newsShareText}>Share</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.officialShare} onPress={() => void shareText(item.title, item.body)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={`Share ${item.title}`}>
+        <Feather name="share-2" size={14} color="#059669" /><Text style={styles.officialShareText}>Share official update</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
+type FeedItem = { kind: "news"; createdAt: string; item: AppAlert } | { kind: "post"; createdAt: string; item: FeedPost };
+
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const TAB_H = Platform.OS === "web" ? 72 : 56 + Math.max(insets.bottom, 8);
-  const { posts, toggleLike, refreshFeed } = useFeed();
+  const tabHeight = Platform.OS === "web" ? 72 : 56 + Math.max(insets.bottom, 8);
+  const { posts, refreshFeed } = useFeed();
   const { alerts: allAlerts, refreshAlerts } = useAlerts();
   const { user } = useAuth();
   const { handleScroll } = useTabBarVisibility();
-
   const userId = user?.id || "guest";
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWard, setSelectedWard] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
   const rawQuery = searchQuery.trim();
   const query = rawQuery.toLowerCase();
   const wardMatch = rawQuery.match(/^(?:ward\s*|w\.?\s*)?(\d{1,3})$/i);
-  const isNumericQuery = !!wardMatch;
-  const wardDigits = wardMatch ? wardMatch[1] : "";
-  const isTitleSearch = rawQuery.length > 0 && !isNumericQuery;
-  const isSearching = rawQuery.length > 0 || !!selectedWard;
+  const wardDigits = wardMatch?.[1] || "";
+  const wardSuggestions = wardDigits ? ambernathWards.filter((ward) => wardKey(ward).startsWith(wardDigits)).slice(0, 8) : [];
 
-  const wardScopedAlerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
-  const allNews = allAlerts.filter((item) => item.type === "news" || item.type === "alert" || item.type === "emergency");
-  const wardNews = wardScopedAlerts.filter((item) => item.type === "news" || item.type === "alert" || item.type === "emergency");
-
-  const wardSuggestions = isNumericQuery
-    ? ambernathWards.filter((w) => wardKey(w).startsWith(wardDigits))
-    : [];
-
-  const [activeTab] = useState<FeedTab>("community");
-  const [refreshing, setRefreshing] = useState(false);
-
-  let newsItems: Array<{ kind: "news"; createdAt: string; item: AppAlert } | { kind: "post"; createdAt: string; item: any }> = [];
-  if (selectedWard) {
-    const wKey = wardKey(selectedWard);
-    newsItems = allNews
-      .filter((n) => {
-        if (n.ward && wardKey(n.ward) === wKey) return true;
-        if (n.location) {
-          const locDigits = n.location.match(/\d+/);
-          if (locDigits && locDigits[0] === wKey) return true;
-        }
-        return false;
-      })
-      .map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item }))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  } else if (isTitleSearch) {
-    newsItems = allNews
-      .filter((n) => n.title.toLowerCase().includes(query))
-      .map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item }))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  } else if (!isNumericQuery) {
-    newsItems = [
-      ...wardNews.map((item) => ({ kind: "news" as const, createdAt: item.createdAt, item })),
-      ...posts.map((item) => ({ kind: "post" as const, createdAt: item.createdAt, item })),
+  const items = useMemo<FeedItem[]>(() => {
+    const visibleAlerts = allAlerts.filter((item) => !item.ward || (!!user?.ward && wardKey(item.ward) === wardKey(user.ward)));
+    let news = visibleAlerts;
+    let community = posts;
+    if (selectedWard) {
+      const key = wardKey(selectedWard);
+      news = allAlerts.filter((item) => wardKey(item.ward) === key || (!!item.location && wardKey(item.location) === key));
+      community = [];
+    } else if (query && !wardDigits) {
+      news = visibleAlerts.filter((item) => `${item.title} ${item.body}`.toLowerCase().includes(query));
+      community = posts.filter((item) => `${item.authorName} ${item.content} ${item.type}`.toLowerCase().includes(query));
+    } else if (wardDigits) {
+      news = [];
+      community = [];
+    }
+    return [
+      ...news.map((item) => ({ kind: "news" as const, createdAt: item.publishAt || item.createdAt, item })),
+      ...community.map((item) => ({ kind: "post" as const, createdAt: item.createdAt, item })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
+  }, [allAlerts, posts, query, selectedWard, user?.ward, wardDigits]);
 
-  const clearSearch = () => {
-    setSearchQuery("");
-    setSelectedWard(null);
+  const refresh = async () => {
+    setRefreshing(true);
+    try { await Promise.allSettled([refreshFeed(), refreshAlerts()]); } finally { setRefreshing(false); }
   };
 
-  const pickWard = (w: string) => {
-    setSelectedWard(w);
-    setSearchQuery("");
-  };
+  const clearSearch = () => { setSearchQuery(""); setSelectedWard(null); };
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12, overflow: "hidden" }]}>
-        <TopShade height={100} />
-        <DecorativeCircles />
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>News Feed</Text>
-            <Text style={styles.headerSub}>Ambernath · Community Ward Network</Text>
-          </View>
-        </View>
+      <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
+        <TopShade height={100} /><DecorativeCircles />
+        <Text style={styles.headerTitle}>News Feed</Text>
+        <Text style={styles.headerSub}>Ambernath · Official and community updates</Text>
         <View style={styles.searchBar}>
           <Feather name="search" size={16} color="#94A3B8" />
-          {selectedWard ? (
-            <View style={styles.activeWardChip}>
-              <Feather name="map-pin" size={12} color="#EA580C" />
-              <Text style={styles.activeWardChipText}>{selectedWard}</Text>
-              <TouchableOpacity onPress={clearSearch} hitSlop={10}>
-                <Feather name="x" size={13} color="#EA580C" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search title or type ward number..."
-              placeholderTextColor="#94A3B8"
-              style={styles.searchInput}
-              returnKeyType="search"
-            />
-          )}
-          {!selectedWard && rawQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} hitSlop={10}>
-              <Feather name="x-circle" size={16} color="#94A3B8" />
-            </TouchableOpacity>
-          )}
+          {selectedWard ? <View style={styles.activeWardChip}><Feather name="map-pin" size={12} color="#EA580C" /><Text style={styles.activeWardChipText}>{selectedWard}</Text></View> : <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Search updates or enter ward number" placeholderTextColor="#94A3B8" style={styles.searchInput} returnKeyType="search" accessibilityLabel="Search news and community posts" />}
+          {(selectedWard || rawQuery) ? <TouchableOpacity onPress={clearSearch} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear feed search"><Feather name="x-circle" size={17} color="#94A3B8" /></TouchableOpacity> : null}
         </View>
-        {isNumericQuery && (
-          <View style={styles.wardSuggestRow}>
-            {wardSuggestions.length === 0 ? (
-              <Text style={styles.searchHint}>No matching ward</Text>
-            ) : (
-              wardSuggestions.slice(0, 8).map((w) => (
-                <TouchableOpacity key={w} style={styles.wardSuggestChip} onPress={() => pickWard(w)} activeOpacity={0.85}>
-                  <Feather name="map-pin" size={11} color="#C2410C" />
-                  <Text style={styles.wardSuggestText}>{w}</Text>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
-        )}
-        {(isTitleSearch || selectedWard) && (
-          <Text style={styles.searchHint}>
-            {selectedWard
-              ? `News from ${selectedWard} · ${newsItems.length} ${newsItems.length === 1 ? "post" : "posts"}`
-              : `${newsItems.length} ${newsItems.length === 1 ? "match" : "matches"} for "${rawQuery}"`}
-          </Text>
-        )}
+        {wardDigits ? <View style={styles.wardSuggestRow}>{wardSuggestions.length ? wardSuggestions.map((ward) => <TouchableOpacity key={ward} style={styles.wardSuggestChip} onPress={() => { setSelectedWard(ward); setSearchQuery(""); }} accessibilityRole="button"><Feather name="map-pin" size={11} color="#C2410C" /><Text style={styles.wardSuggestText}>{ward}</Text></TouchableOpacity>) : <Text style={styles.searchHint}>No matching ward</Text>}</View> : null}
       </LinearGradient>
 
-      {activeTab === "community" && (
-        <FlatList
-          refreshing={refreshing}
-          onRefresh={async () => { setRefreshing(true); await Promise.all([refreshFeed(), refreshAlerts()]); setRefreshing(false); }}
-          data={newsItems}
-          keyExtractor={(p) => p.item.id}
-          renderItem={({ item }) => item.kind === "news" ? <NewsAlertCard item={item.item} /> : <PostCard post={item.item} userId={userId} />}
-          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 + TAB_H }]}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Feather name="inbox" size={40} color="#CBD5E1" />
-              <Text style={styles.emptyTitle}>No news yet</Text>
-            </View>
-          }
-        />
-      )}
-
-
+      <FlatList
+        refreshing={refreshing}
+        onRefresh={() => void refresh()}
+        data={items}
+        keyExtractor={(item) => `${item.kind}:${item.item.id}`}
+        renderItem={({ item }) => item.kind === "news" ? <NewsAlertCard item={item.item} /> : <PostCard post={item.item} userId={userId} />}
+        contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 + tabHeight }, !items.length && styles.emptyList]}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={<View style={styles.emptyState}><Feather name="inbox" size={40} color="#CBD5E1" /><Text style={styles.emptyTitle}>No matching updates</Text><Text style={styles.emptyText}>Pull down to refresh or change your search.</Text></View>}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F1F5F9" },
-  header: { paddingHorizontal: 16, paddingBottom: 6, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
-  headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "rgba(255,255,255,0.98)",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === "ios" ? 14 : 10,
-    minHeight: 48,
-    marginTop: 4,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  searchInput: { flex: 1, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", padding: 0, outlineWidth: 0 } as any,
-  searchHint: { fontSize: 11, color: "rgba(255,255,255,0.9)", fontFamily: "Inter_600SemiBold", marginBottom: 8, marginLeft: 2 },
-  wardSuggestRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 },
-  wardSuggestChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "white", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
-  wardSuggestText: { fontSize: 12, fontWeight: "700", color: "#C2410C", fontFamily: "Inter_700Bold" },
-  activeWardChip: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFEDD5", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  activeWardChipText: { flex: 1, fontSize: 13, fontWeight: "700", color: "#C2410C", fontFamily: "Inter_700Bold" },
-  newPostBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
-  newPostBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  backBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
-  backBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  blockedBanner: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(220,38,38,0.3)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10 },
-  blockedBannerText: { fontSize: 11, color: "#FDE68A", fontFamily: "Inter_400Regular", flex: 1 },
-  tabScroll: { flexGrow: 0 },
-  tabRow: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.15)",
-    paddingTop: 10,
-    paddingBottom: 6,
-    paddingHorizontal: 0,
-    gap: 4,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 7,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-  },
-  tabActive: {
-    backgroundColor: "white",
-    borderColor: "white",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  tabText: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.65)", fontFamily: "Inter_600SemiBold" },
-  tabTextActive: { color: "#C2410C", fontFamily: "Inter_700Bold" },
-  tabBadge: {
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 3,
-  },
-  tabBadgeActive: { backgroundColor: "#EA580C" },
-  tabBadgeText: { fontSize: 9, fontWeight: "700", color: "rgba(255,255,255,0.9)", fontFamily: "Inter_700Bold" },
-  tabBadgeTextActive: { color: "white" },
+  header: { paddingHorizontal: 16, paddingBottom: 12, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  headerTitle: { fontSize: 22, color: "white", fontFamily: "Inter_700Bold" },
+  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginTop: 2 },
+  searchBar: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "white", borderRadius: 14, paddingHorizontal: 13, minHeight: 48, marginTop: 12 },
+  searchInput: { flex: 1, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular", paddingVertical: 0 },
+  activeWardChip: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFEDD5", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9 },
+  activeWardChipText: { flex: 1, color: "#C2410C", fontSize: 12, fontFamily: "Inter_700Bold" },
+  wardSuggestRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  wardSuggestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "white", paddingHorizontal: 9, paddingVertical: 6, borderRadius: 18 },
+  wardSuggestText: { color: "#C2410C", fontSize: 10.5, fontFamily: "Inter_700Bold" },
+  searchHint: { color: "white", fontSize: 10.5, fontFamily: "Inter_600SemiBold" },
   list: { paddingTop: 8 },
-  separator: { height: 1, backgroundColor: "#E2E8F0" },
-
-  card: { backgroundColor: "white", paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4, width: "100%" },
-  cardPinned: { borderLeftWidth: 3, borderLeftColor: "#7C3AED" },
-  pinnedBar: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 6 },
-  pinnedText: { fontSize: 10, fontWeight: "700", color: "#7C3AED", fontFamily: "Inter_600SemiBold" },
-  cardBody: { flexDirection: "row", gap: 12 },
-  cardMeta: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  cardAuthor: { fontSize: 14, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold", flex: 1 },
-  cardTime: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular", flexShrink: 0 },
-  roleBadge: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 10 },
-  roleBadgeText: { fontSize: 9, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
-  typePill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20, alignSelf: "flex-start", marginBottom: 6 },
-  typePillText: { fontSize: 9, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
-  cardContent: { fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular", lineHeight: 21, marginBottom: 8 },
-  newsTitle: { fontSize: 16, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 6 },
-  postImage: { width: "100%", height: 180, borderRadius: 12, marginBottom: 10, resizeMode: "cover" },
-  postVideo: { width: "100%", height: 190, borderRadius: 12, marginBottom: 10, backgroundColor: "#0F172A" },
-  newsVideoBox: { height: 150, borderRadius: 12, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10 },
-  newsVideoText: { fontSize: 12, fontWeight: "800", color: "#EA580C", fontFamily: "Inter_700Bold" },
+  emptyList: { flexGrow: 1 },
+  separator: { height: 8 },
+  card: { backgroundColor: "white", padding: 14, marginHorizontal: 10, borderRadius: 18, borderWidth: 1, borderColor: "#E2E8F0" },
+  cardPinned: { borderColor: "#C4B5FD", borderLeftWidth: 4 },
+  pinnedBar: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 7 },
+  pinnedText: { color: "#7C3AED", fontSize: 9.5, fontFamily: "Inter_700Bold" },
+  cardMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 9 },
+  authorCopy: { flex: 1, minWidth: 0 },
+  cardAuthor: { color: "#0F172A", fontSize: 13, fontFamily: "Inter_700Bold" },
+  cardTime: { color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular", marginTop: 2 },
+  roleBadge: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 999 },
+  roleBadgeText: { fontSize: 8.5, textTransform: "capitalize", fontFamily: "Inter_700Bold" },
+  typePill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, alignSelf: "flex-start", marginBottom: 8 },
+  typePillText: { fontSize: 9, textTransform: "capitalize", fontFamily: "Inter_700Bold" },
+  newsTitle: { color: "#0F172A", fontSize: 16, lineHeight: 21, marginBottom: 5, fontFamily: "Inter_700Bold" },
+  cardContent: { color: "#334155", fontSize: 13, lineHeight: 20, marginBottom: 9, fontFamily: "Inter_400Regular" },
+  postImage: { width: "100%", height: 240, borderRadius: 14, marginBottom: 10, backgroundColor: "#F8FAFC" },
+  postVideo: { width: "100%", height: 150, borderRadius: 14, marginBottom: 10, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", alignItems: "center", justifyContent: "center" },
+  postVideoText: { marginTop: 7, color: "#EA580C", fontSize: 11, fontFamily: "Inter_700Bold" },
+  cardActions: { flexDirection: "row", justifyContent: "space-between", paddingTop: 9, borderTopWidth: 1, borderTopColor: "#F1F5F9" },
+  action: { minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 8, borderRadius: 10 },
+  actionText: { color: "#64748B", fontSize: 10.5, fontFamily: "Inter_600SemiBold" },
+  likedText: { color: "#DC2626" },
   newsInfoRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
   newsInfoChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F8FAFC", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5 },
-  newsInfoText: { fontSize: 11, color: "#64748B", fontFamily: "Inter_600SemiBold", fontWeight: "600" },
-  newsActions: { flexDirection: "row", justifyContent: "flex-end", marginTop: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F1F5F9" },
-  newsShareBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#ECFDF5", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
-  newsShareText: { fontSize: 12, fontWeight: "700", color: "#059669", fontFamily: "Inter_700Bold" },
-  cardActions: { flexDirection: "row", marginTop: 4, marginBottom: 10, justifyContent: "space-between" },
-  action: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 4, paddingHorizontal: 4 },
-  actionText: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-
-  cmpAvatar: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  cmpPhotoPlaceholder: { width: "100%", height: 100, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  resolvedNote: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#D1FAE5", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, marginBottom: 8 },
-  resolvedNoteText: { fontSize: 11, color: "#059669", fontFamily: "Inter_400Regular", flex: 1 },
-
-  chatList: { paddingTop: 16, paddingHorizontal: 12 },
-  bubble: { flexDirection: "row", gap: 8, marginBottom: 12, alignItems: "flex-end" },
-  bubbleMe: { flexDirection: "row-reverse" },
-  bubbleContent: { maxWidth: "78%", backgroundColor: "white", borderRadius: 18, borderBottomLeftRadius: 4, padding: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 },
-  bubbleContentMe: { backgroundColor: "#EA580C", borderBottomLeftRadius: 18, borderBottomRightRadius: 4 },
-  bubbleName: { fontSize: 12, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  bubbleText: { fontSize: 14, color: "#334155", fontFamily: "Inter_400Regular", lineHeight: 20 },
-  bubbleTextMe: { color: "white" },
-  bubbleTime: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 4 },
-  chatWarningBanner: { backgroundColor: "#FEF2F2", borderTopWidth: 1, borderTopColor: "#FECACA", paddingHorizontal: 14, paddingVertical: 8 },
-  chatWarningText: { fontSize: 12, color: "#DC2626", fontFamily: "Inter_400Regular", lineHeight: 18 },
-  chatInputBar: {
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-  },
-  chatInputRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  chatCameraWrap: { borderRadius: 22, overflow: "hidden", flexShrink: 0 },
-  chatCameraGrad: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  chatCameraBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFEDD5", alignItems: "center", justifyContent: "center" },
-  chatInputPill: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 24,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    minHeight: 44,
-    maxHeight: 110,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  chatInputCard: { flex: 1, flexDirection: "row", alignItems: "center", paddingLeft: 4, paddingRight: 6, paddingVertical: 6, minHeight: 42, maxHeight: 110 },
-  chatInput: { flex: 1, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", lineHeight: 20, padding: 0, margin: 0, outlineWidth: 0, caretColor: "#EA580C" } as any,
-  chatEmojiBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  chatSendBtn: { borderRadius: 22, overflow: "hidden", flexShrink: 0 },
-  chatSendGrad: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  chatMicBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
-  chatIdleIcons: { flexDirection: "row", alignItems: "center", gap: 2, flexShrink: 0 },
-  chatIconBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
-  chatIdleActions: { flexDirection: "row", alignItems: "center" },
-  chatIdleBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
-
-  blockedScreen: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
-  blockedScreenTitle: { fontSize: 20, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_700Bold", textAlign: "center" },
-  blockedScreenSub: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
-
-  actionOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  actionSheet: { backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 32 },
-  actionHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#E2E8F0", alignSelf: "center", marginBottom: 10 },
-  actionPreview: { marginHorizontal: 8, marginBottom: 6, padding: 12, backgroundColor: "#F8FAFC", borderRadius: 14 },
-  actionPreviewText: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular", lineHeight: 20 },
-  actionItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 16 },
-  actionItemText: { fontSize: 16, color: "#0F172A", fontFamily: "Inter_400Regular" },
-  actionDivider: { height: 1, backgroundColor: "#F1F5F9", marginHorizontal: 8 },
-
-  editModalTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold", paddingHorizontal: 20, marginBottom: 12 },
-  editModalInput: { marginHorizontal: 12, backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", minHeight: 80, marginBottom: 14, outlineWidth: 0 } as any,
-  editModalSave: { marginHorizontal: 12, borderRadius: 14, overflow: "hidden" },
-  editModalSaveGrad: { paddingVertical: 14, alignItems: "center", justifyContent: "center" },
-  editModalSaveText: { fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-
-  emptyState: { alignItems: "center", paddingTop: 60, gap: 8 },
-  emptyTitle: { fontSize: 15, fontWeight: "700", color: "#94A3B8", fontFamily: "Inter_700Bold" },
-
-  composeBar: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "white", borderTopWidth: 1, borderTopColor: "#E2E8F0", paddingHorizontal: 12, paddingTop: 10, shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 8 },
-  composeInner: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F8FAFC", borderRadius: 24, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: "#E2E8F0" },
-  composePlaceholder: { flex: 1, fontSize: 14, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  composeImgBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  composeSendWrap: { borderRadius: 16, overflow: "hidden" },
-  composeSendGrad: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-});
-
-const modalStyles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "white", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 32, gap: 10 },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#E2E8F0", alignSelf: "center", marginBottom: 4 },
-  title: { fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  label: { fontSize: 10, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.2, fontFamily: "Inter_600SemiBold" },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
-  typeBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  typeBtnText: { fontSize: 12, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
-  textInput: { backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular", minHeight: 100, outlineWidth: 0 } as any,
-  charCount: { fontSize: 10, color: "#CBD5E1", alignSelf: "flex-end", fontFamily: "Inter_400Regular" },
-  removeImg: { position: "absolute", top: 8, right: 8, width: 26, height: 26, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center" },
-  btnRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  imgBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" },
-  imgBtnText: { fontSize: 13, fontWeight: "700", color: "#EA580C", fontFamily: "Inter_600SemiBold" },
-  cancelBtn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, backgroundColor: "#F1F5F9" },
-  cancelBtnText: { fontSize: 13, fontWeight: "700", color: "#64748B", fontFamily: "Inter_700Bold" },
-  postBtnWrap: { borderRadius: 12, overflow: "hidden" },
-  postBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 12, paddingHorizontal: 18 },
-  postBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  newsInfoText: { color: "#64748B", fontSize: 10, fontFamily: "Inter_600SemiBold" },
+  officialShare: { minHeight: 42, borderRadius: 12, backgroundColor: "#ECFDF5", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  officialShareText: { color: "#059669", fontSize: 11, fontFamily: "Inter_700Bold" },
+  emptyState: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
+  emptyTitle: { marginTop: 10, color: "#334155", fontSize: 15, fontFamily: "Inter_700Bold" },
+  emptyText: { marginTop: 4, color: "#64748B", fontSize: 11, textAlign: "center", fontFamily: "Inter_400Regular" },
 });

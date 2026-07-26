@@ -12,8 +12,8 @@
       "bundleIdentifier": "com.connectt.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Connect T uses your location to attach accurate coordinates to civic complaints.",
-        "NSCameraUsageDescription": "Connect T uses your camera to capture evidence for civic complaints.",
-        "NSPhotoLibraryUsageDescription": "Connect T uses your photo library to attach evidence to civic complaints."
+        "NSCameraUsageDescription": "Connect T uses your camera to capture evidence for civic complaints and authorised official updates.",
+        "NSPhotoLibraryUsageDescription": "Connect T uses your photo library to attach complaint evidence and authorised images or videos to official updates."
       }
     },
     "android": {
@@ -27,6 +27,7 @@
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.VIBRATE"
@@ -52,8 +53,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Connect T uses your photo library to attach evidence to civic complaints.",
-          "cameraPermission": "Connect T uses your camera to capture evidence for civic complaints.",
+          "photosPermission": "Connect T uses your photo library to attach complaint evidence and authorised images or videos to official updates.",
+          "cameraPermission": "Connect T uses your camera to capture evidence for civic complaints and authorised official updates.",
           "microphonePermission": false
         }
       ],

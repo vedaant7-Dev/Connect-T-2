@@ -50,7 +50,7 @@ export default function BroadcastMediaPicker({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: false,
-      quality: 0.85,
+      quality: 1,
       videoMaxDuration: 300,
       selectionLimit: 1,
     });
@@ -102,7 +102,7 @@ export default function BroadcastMediaPicker({
           <View style={styles.addIcon}><Feather name="paperclip" size={18} color={ORANGE} /></View>
           <View style={styles.addCopy}>
             <Text style={styles.addTitle}>Add image or video</Text>
-            <Text style={styles.addSub}>Images up to 10MB · MP4/MOV video up to 5 minutes and 50MB</Text>
+            <Text style={styles.addSub}>Images up to 10MB · MP4/MOV video up to 5 minutes and 50MB · original quality retained</Text>
           </View>
           <Feather name="plus" size={18} color={ORANGE} />
         </TouchableOpacity>
@@ -118,7 +118,7 @@ export default function BroadcastMediaPicker({
             <Text style={styles.previewSub}>
               {value.type === "video"
                 ? `Video${value.durationMs ? ` · ${Math.ceil(value.durationMs / 1000)} sec` : " · duration verified on server"}`
-                : "Image"}
+                : "Image · maximum picker quality"}
               {value.sizeBytes ? ` · ${(value.sizeBytes / (1024 * 1024)).toFixed(1)}MB` : ""}
             </Text>
           </View>

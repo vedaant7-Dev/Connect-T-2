@@ -17,6 +17,7 @@ import { Feather } from "@expo/vector-icons";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplash, SplashPortal } from "@/components/AppSplash";
+import CivicBroadcastExperience from "@/components/CivicBroadcastExperience";
 import { ComplaintProvider } from "@/context/ComplaintContext";
 import { AlertProvider } from "@/context/AlertContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -199,7 +200,10 @@ export default function RootLayout() {
                         <TabBarVisibilityProvider>
                           <AppShell>
                             <AuthGate>
-                              <RootLayoutNav />
+                              <>
+                                <RootLayoutNav />
+                                <CivicBroadcastExperience />
+                              </>
                             </AuthGate>
                           </AppShell>
                         </TabBarVisibilityProvider>

@@ -158,10 +158,10 @@ function safeServerMessage(serverMessage: string) {
   return safeUserMessage(serverMessage, "");
 }
 
-function friendlyStatusMessage(status: number, serverMessage: string) {
+export function friendlyStatusMessage(status: number, serverMessage: string) {
   const safeMessage = safeServerMessage(serverMessage);
   if (status === 401) return "Your session could not be verified. Please log in again.";
-  if (status === 403) return "You do not have permission to perform this action.";
+  if (status === 403) return safeMessage || "You do not have permission to perform this action.";
   if (status === 404) return safeMessage || "The requested information was not found.";
   if (status === 408 || status === 429) return safeMessage || "Please wait a moment and try again.";
   if (status >= 500) return "Something went wrong. Please try again after some time.";
