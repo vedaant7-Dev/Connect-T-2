@@ -1,20 +1,18 @@
 import { AppScrollView } from "@/components/AppScrollView";
-import ConfirmActionModal from "@/components/ConfirmActionModal";
+import AppTimePicker, { formatTimeLabel } from "@/components/AppTimePicker";
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Modal, TextInput } from "react-native";
+import { Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useComplaints, Complaint, ComplaintStatus } from "@/context/ComplaintContext";
-import { useAlerts } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
 import { useLanguage } from "@/context/LanguageContext";
 import { wardMatchesNagarsevak } from "@/data/wards";
 import { displayUtilityStatus, postUtilityStatus, UtilityType } from "@/lib/utilityStatusApi";
 import { getUserErrorMessage } from "@/lib/api";
-import { useAccountActions } from "@/hooks/useAccountActions";
 
 const statusLabelKeys: Record<ComplaintStatus, string> = {
   submitted: "submitted",
@@ -68,7 +66,31 @@ function timeAgo(dateStr: string): string {
   return "just now";
 }
 
-function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; onClose: () => void; onUpdate: (s: ComplaintStatus, note: string) => void }) {
+function timeToMinutes(value: string) {
+  const match = String(value || "").match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
+function utilityDurationHours(start: string, end: string) {
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
+  if (startMinutes === null || endMinutes === null) return "";
+  let difference = endMinutes - startMinutes;
+  if (difference <= 0) difference += 24 * 60;
+  const hours = difference / 60;
+  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, "");
+}
+
+function utilityScheduleLabel(start: string, end: string) {
+  if (!start || !end) return "";
+  return `${formatTimeLabel(start)} to ${formatTimeLabel(end)}`;
+}
+
+function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; onClose: () => void; onUpdate: (status: ComplaintStatus, note: string) => void }) {
   const [note, setNote] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<ComplaintStatus | null>(null);
   const { t } = useLanguage();
@@ -80,43 +102,60 @@ function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; o
       <View style={modalStyles.sheet}>
         <View style={modalStyles.handle} />
         <Text style={modalStyles.title}>{t("updateComplaint")}</Text>
-        <Text style={modalStyles.cmpId}># {complaint.id}</Text>
-        <Text style={modalStyles.cmpName} numberOfLines={2}>{complaint.title}</Text>
-        <View style={modalStyles.cmpLocation}>
+        <Text style={modalStyles.complaintId}># {complaint.id}</Text>
+        <Text style={modalStyles.complaintName} numberOfLines={2}>{complaint.title}</Text>
+        <View style={modalStyles.locationRow}>
           <Feather name="map-pin" size={12} color="#94A3B8" />
-          <Text style={modalStyles.cmpLocationText}>{complaint.location}</Text>
+          <Text style={modalStyles.locationText}>{complaint.location}</Text>
         </View>
 
         <Text style={modalStyles.label}>{t("selectAction")}</Text>
         <View style={modalStyles.optionRow}>
-          {options.map((opt, idx) => (
+          {options.map((option, index) => (
             <TouchableOpacity
-              key={opt.status}
-              style={[modalStyles.optionBtn, { borderColor: opt.color + "40" }, selectedStatus === opt.status && { backgroundColor: opt.color, borderColor: opt.color }]}
-              onPress={() => setSelectedStatus(opt.status)}
+              key={option.status}
+              style={[
+                modalStyles.optionButton,
+                { borderColor: `${option.color}40` },
+                selectedStatus === option.status && { backgroundColor: option.color, borderColor: option.color },
+              ]}
+              onPress={() => setSelectedStatus(option.status)}
               activeOpacity={0.8}
             >
-              <Feather name={statusConfig[opt.status].icon as any} size={14} color={selectedStatus === opt.status ? "white" : opt.color} />
-              <Text style={[modalStyles.optionText, { color: selectedStatus === opt.status ? "white" : opt.color }]}>{t(optionLabelKeys[idx])}</Text>
+              <Feather name={statusConfig[option.status].icon as any} size={14} color={selectedStatus === option.status ? "white" : option.color} />
+              <Text style={[modalStyles.optionText, { color: selectedStatus === option.status ? "white" : option.color }]}>{t(optionLabelKeys[index])}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <Text style={modalStyles.label}>{t("noteResolution")}</Text>
-        <TextInput style={modalStyles.noteInput} value={note} onChangeText={setNote} placeholder={t("addNoteForCitizen")} placeholderTextColor="#CBD5E1" multiline numberOfLines={3} textAlignVertical="top" />
+        <TextInput
+          style={modalStyles.noteInput}
+          value={note}
+          onChangeText={setNote}
+          placeholder={t("addNoteForCitizen")}
+          placeholderTextColor="#CBD5E1"
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
 
-        <View style={modalStyles.btnRow}>
-          <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose} activeOpacity={0.8}>
-            <Text style={modalStyles.cancelBtnText}>{t("cancel")}</Text>
+        <View style={modalStyles.buttonRow}>
+          <TouchableOpacity style={modalStyles.cancelButton} onPress={onClose} activeOpacity={0.8}>
+            <Text style={modalStyles.cancelText}>{t("cancel")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[modalStyles.confirmBtn, !selectedStatus && { opacity: 0.5 }]}
-            onPress={() => { if (!selectedStatus) return; onUpdate(selectedStatus, note); onClose(); }}
+            style={[modalStyles.confirmButton, !selectedStatus && { opacity: 0.5 }]}
+            onPress={() => {
+              if (!selectedStatus) return;
+              onUpdate(selectedStatus, note);
+              onClose();
+            }}
             disabled={!selectedStatus}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={["#EA580C", "#FB923C"]} style={modalStyles.confirmBtnGrad}>
-              <Text style={modalStyles.confirmBtnText}>{t("updateStatus")}</Text>
+            <LinearGradient colors={["#EA580C", "#FB923C"]} style={modalStyles.confirmGradient}>
+              <Text style={modalStyles.confirmText}>{t("updateStatus")}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -127,32 +166,32 @@ function ActionModal({ complaint, onClose, onUpdate }: { complaint: Complaint; o
 
 function DetailedComplaintCard({ complaint, onAction }: { complaint: Complaint; onAction: () => void }) {
   const { t } = useLanguage();
-  const st = statusConfig[complaint.status];
-  const cat = categoryConfig[complaint.category] || categoryConfig.other;
+  const status = statusConfig[complaint.status];
+  const category = categoryConfig[complaint.category] || categoryConfig.other;
   const hasActions = (nextStatusOptions[complaint.status] || []).length > 0;
   const router = useRouter();
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={styles.complaintCard}
       onPress={() => router.push({ pathname: "/complaint/[id]", params: { id: complaint.id } })}
       activeOpacity={0.92}
     >
-      <View style={styles.cardHeader}>
-        <View style={[styles.catDot, { backgroundColor: cat.color + "20" }]}>
-          <Feather name={cat.icon as any} size={14} color={cat.color} />
+      <View style={styles.complaintHeader}>
+        <View style={[styles.categoryIcon, { backgroundColor: `${category.color}18` }]}>
+          <Feather name={category.icon as any} size={15} color={category.color} />
         </View>
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.cmpTitle} numberOfLines={1}>{complaint.title}</Text>
-          <Text style={styles.complaintIdText}>ID: {complaint.id}</Text>
-          <Text style={styles.cmpMeta}>{timeAgo(complaint.createdAt)}</Text>
+        <View style={styles.complaintHeaderText}>
+          <Text style={styles.complaintTitle} numberOfLines={1}>{complaint.title}</Text>
+          <Text style={styles.complaintMeta}>ID: {complaint.id} · {timeAgo(complaint.createdAt)}</Text>
         </View>
-        <View style={[styles.statusPill, { backgroundColor: st.bg }]}>
-          <Feather name={st.icon as any} size={9} color={st.color} />
-          <Text style={[styles.statusPillText, { color: st.color }]}>{t(statusLabelKeys[complaint.status])}</Text>
+        <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
+          <Feather name={status.icon as any} size={10} color={status.color} />
+          <Text style={[styles.statusPillText, { color: status.color }]}>{t(statusLabelKeys[complaint.status])}</Text>
         </View>
       </View>
-      <View style={styles.cardBody}>
+
+      <View style={styles.complaintBody}>
         <View style={styles.metaRow}>
           <Feather name="map-pin" size={11} color="#94A3B8" />
           <Text style={styles.metaText} numberOfLines={1}>{complaint.location}</Text>
@@ -161,88 +200,85 @@ function DetailedComplaintCard({ complaint, onAction }: { complaint: Complaint; 
           <Feather name="home" size={11} color="#94A3B8" />
           <Text style={styles.metaText}>{complaint.ward}</Text>
         </View>
-        <Text style={styles.descText} numberOfLines={2}>{complaint.description}</Text>
-
-        <View style={styles.citizenInfoRow}>
-          <View style={styles.citizenInfoChip}>
+        <Text style={styles.descriptionText} numberOfLines={2}>{complaint.description}</Text>
+        <View style={styles.citizenRow}>
+          <View style={styles.citizenChip}>
             <Feather name="user" size={10} color="#EA580C" />
-            <Text style={styles.citizenInfoText}>{complaint.userName || t("citizen")}</Text>
+            <Text style={styles.citizenText}>{complaint.userName || t("citizen")}</Text>
           </View>
-          <View style={styles.citizenInfoChip}>
+          <View style={styles.citizenChip}>
             <Feather name="calendar" size={10} color="#64748B" />
-            <Text style={styles.citizenInfoText}>{new Date(complaint.createdAt).toLocaleDateString()}</Text>
+            <Text style={styles.citizenText}>{new Date(complaint.createdAt).toLocaleDateString()}</Text>
           </View>
         </View>
       </View>
-      {hasActions && (
-        <TouchableOpacity style={styles.actionBtn} onPress={(e) => { e.stopPropagation?.(); onAction(); }} activeOpacity={0.85}>
-          <LinearGradient colors={["#166534", "#16A34A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtnGrad}>
+
+      {hasActions ? (
+        <TouchableOpacity style={styles.updateButton} onPress={(event) => { event.stopPropagation?.(); onAction(); }} activeOpacity={0.85}>
+          <LinearGradient colors={["#166534", "#16A34A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.updateGradient}>
             <Feather name="edit-3" size={13} color="white" />
-            <Text style={styles.actionBtnText}>{t("updateStatus")}</Text>
+            <Text style={styles.updateText}>{t("updateStatus")}</Text>
           </LinearGradient>
         </TouchableOpacity>
-      )}
-      {complaint.status === "resolved" && (
+      ) : null}
+
+      {complaint.status === "resolved" ? (
         <View style={styles.resolvedBar}>
           <Feather name="check-circle" size={12} color="#059669" />
-          <Text style={styles.resolvedBarText}>{complaint.resolvedNote || t("issueResolved")}</Text>
+          <Text style={styles.resolvedText}>{complaint.resolvedNote || t("issueResolved")}</Text>
         </View>
-      )}
+      ) : null}
     </TouchableOpacity>
   );
 }
 
 export default function AdminScreen() {
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { user, updateUser } = useAuth();
+  const topPadding = Platform.OS === "web" ? 67 : insets.top;
+  const { user } = useAuth();
   const { complaints, updateStatus, refreshComplaints } = useComplaints();
-  const { alerts: allAlerts, removeAlert, refreshAlerts } = useAlerts();
-  const alerts = allAlerts.filter((a) => a.postedById && user?.id ? a.postedById === user.id : a.postedBy === user?.name);
   const router = useRouter();
   const { t } = useLanguage();
   const [filter, setFilter] = useState<ComplaintStatus | "all">("all");
-  const [active, setActive] = useState<Complaint | null>(null);
-  const [showProfile, setShowProfile] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editWard, setEditWard] = useState("");
+  const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
   const [utilityType, setUtilityType] = useState<UtilityType>("water");
   const [utilityStatus, setUtilityStatus] = useState("normal");
-  const [utilityHours, setUtilityHours] = useState("");
-  const [utilitySchedule, setUtilitySchedule] = useState("");
+  const [utilityStartTime, setUtilityStartTime] = useState("");
+  const [utilityEndTime, setUtilityEndTime] = useState("");
   const [utilityDescription, setUtilityDescription] = useState("");
   const [utilitySaving, setUtilitySaving] = useState(false);
   const [utilityMessage, setUtilityMessage] = useState("");
-  const accountActions = useAccountActions();
+  const [utilityMessageTone, setUtilityMessageTone] = useState<"success" | "error" | "">("");
 
   if (!user || user.role !== "nagarsevak") {
     return (
-      <View style={{ flex: 1, backgroundColor: "#ebeffc", alignItems: "center", justifyContent: "center", padding: 32 }}>
+      <View style={styles.lockedScreen}>
         <Feather name="lock" size={48} color="#CBD5E1" />
-        <Text style={{ fontSize: 18, fontWeight: "700", color: "#475569", marginTop: 16, fontFamily: "Inter_700Bold" }}>{t("nagarsevakOnly")}</Text>
-        <Text style={{ fontSize: 13, color: "#94A3B8", marginTop: 8, textAlign: "center", fontFamily: "Inter_400Regular" }}>{t("nagarsevakOnlyDesc")}</Text>
-        <TouchableOpacity onPress={() => router.replace("/login" as any)} style={{ backgroundColor: "#C2410C", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14, marginTop: 24 }} activeOpacity={0.85}>
-          <Text style={{ fontSize: 15, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" }}>{t("loginBtn")}</Text>
+        <Text style={styles.lockedTitle}>{t("nagarsevakOnly")}</Text>
+        <Text style={styles.lockedDescription}>{t("nagarsevakOnlyDesc")}</Text>
+        <TouchableOpacity onPress={() => router.replace("/login" as any)} style={styles.loginButton} activeOpacity={0.85}>
+          <Text style={styles.loginText}>{t("loginBtn")}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const wardComplaints = user?.ward
-    ? complaints.filter((c) => wardMatchesNagarsevak(c.ward, user?.ward || ""))
-    : complaints;
-  const filtered = filter === "all"
+  const wardComplaints = user.ward
+    ? complaints.filter((complaint) => wardMatchesNagarsevak(complaint.ward, user.ward || ""))
+    : [];
+  const filteredComplaints = filter === "all"
     ? wardComplaints
-    : wardComplaints.filter((c) => {
-        if (filter === "in_progress") return c.status === "in_progress" || c.status === "assigned";
-        return c.status === filter;
+    : wardComplaints.filter((complaint) => {
+        if (filter === "in_progress") return complaint.status === "in_progress" || complaint.status === "assigned";
+        return complaint.status === filter;
       });
-  const pending = wardComplaints.filter((c) => c.status === "submitted").length;
-  const activeCount = wardComplaints.filter((c) => c.status === "in_progress" || c.status === "assigned").length;
-  const resolvedCount = wardComplaints.filter((c) => c.status === "resolved").length;
-  const rejectedCount = wardComplaints.filter((c) => c.status === "rejected").length;
-  const resolutionRate = wardComplaints.length > 0 ? Math.round((resolvedCount / wardComplaints.length) * 100) : 0;
+  const pendingCount = wardComplaints.filter((complaint) => complaint.status === "submitted").length;
+  const activeCount = wardComplaints.filter((complaint) => complaint.status === "in_progress" || complaint.status === "assigned").length;
+  const resolvedCount = wardComplaints.filter((complaint) => complaint.status === "resolved").length;
+  const rejectedCount = wardComplaints.filter((complaint) => complaint.status === "rejected").length;
+  const scheduleText = utilityScheduleLabel(utilityStartTime, utilityEndTime);
+  const hoursPerDay = utilityDurationHours(utilityStartTime, utilityEndTime);
+
   const dashboardFilters: {
     filter: ComplaintStatus;
     label: string;
@@ -251,263 +287,191 @@ export default function AdminScreen() {
     color: string;
     bg: string;
   }[] = [
-    { filter: "submitted", label: t("complaints"), count: pending, icon: "file-text", color: "#C2410C", bg: "#FFEDD5" },
+    { filter: "submitted", label: t("complaints"), count: pendingCount, icon: "file-text", color: "#C2410C", bg: "#FFEDD5" },
     { filter: "in_progress", label: t("inProgress"), count: activeCount, icon: "tool", color: "#7C3AED", bg: "#EDE9FE" },
     { filter: "resolved", label: t("resolved"), count: resolvedCount, icon: "check-circle", color: "#059669", bg: "#D1FAE5" },
     { filter: "rejected", label: t("rejected"), count: rejectedCount, icon: "x-circle", color: "#DC2626", bg: "#FEE2E2" },
   ];
-  const openComplaintTab = (nextFilter: ComplaintStatus) => {
+
+  const openComplaintList = (nextFilter: ComplaintStatus) => {
     if (Platform.OS !== "web") Haptics.selectionAsync();
     setFilter(nextFilter);
     router.push({ pathname: "/complaint/list" as any, params: { status: nextFilter } });
   };
 
-  const openEditProfile = () => {
-    setEditName(user?.name || "");
-    setEditWard(user?.ward || "");
-    setShowEditProfile(true);
-  };
-
-  const saveEditProfile = async () => {
-    if (editName.trim().split(/\s+/).length < 2) {
-      setUtilityMessage("Enter your full name, including surname.");
-      return;
-    }
-    await updateUser({ name: editName.trim(), ward: editWard || user?.ward });
-    setShowEditProfile(false);
+  const showUtilityError = (message: string) => {
+    setUtilityMessageTone("error");
+    setUtilityMessage(message);
   };
 
   const saveUtilityStatus = async () => {
-    if (!user?.ward) {
-      setUtilityMessage("Your ward is missing. Update your profile first.");
+    if (!utilityStartTime || !utilityEndTime) {
+      showUtilityError("Select both start time and end time.");
       return;
     }
-
     if (!utilityDescription.trim()) {
-      setUtilityMessage("Add a short public update message.");
+      showUtilityError("Add a short public update message.");
       return;
     }
 
     setUtilitySaving(true);
     setUtilityMessage("");
+    setUtilityMessageTone("");
 
     try {
       await postUtilityStatus({
         utilityType,
-        ward: user.ward,
-        wardCode: user.wardCode,
         title: utilityType === "water" ? "Water Supply" : "Electricity",
         status: utilityStatus,
-        hoursPerDay: utilityHours.trim() || undefined,
-        scheduleText: utilitySchedule.trim() || undefined,
+        hoursPerDay,
+        scheduleText,
         description: utilityDescription.trim(),
         helpline: utilityType === "water" ? "AMC Water Helpline: 0251-2604100" : "MSEDCL Helpline: 1912",
         source: utilityType === "water" ? "AMC Water Department" : "MSEDCL Ambernath Division",
       });
 
-      setUtilityMessage(`${utilityType === "water" ? "Water" : "Electricity"} update posted for ${user.ward}`);
-      setUtilityHours("");
-      setUtilitySchedule("");
+      setUtilityMessageTone("success");
+      setUtilityMessage(`${utilityType === "water" ? "Water" : "Electricity"} update posted to your assigned ward.`);
+      setUtilityStartTime("");
+      setUtilityEndTime("");
       setUtilityDescription("");
     } catch (error: any) {
-      setUtilityMessage(getUserErrorMessage(error, "Unable to post utility update."));
+      const message = getUserErrorMessage(error, "Unable to post utility update.");
+      if (/valid ward|ward is required|ward assignment|ward.*missing/i.test(message)) {
+        showUtilityError("Your ward assignment is missing. Please ask the Super Admin to assign your ward.");
+      } else {
+        showUtilityError(message);
+      }
     } finally {
       setUtilitySaving(false);
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#ebeffc" }}>
-      <LinearGradient colors={["#166534", "#16A34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
+    <View style={styles.root}>
+      <LinearGradient colors={["#166534", "#16A34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <View style={styles.headerTop}>
           <View>
-            <View style={styles.adminBadge}>
+            <View style={styles.roleBadge}>
               <Feather name="briefcase" size={10} color="#6EE7B7" />
-              <Text style={[styles.adminBadgeText, { color: "#6EE7B7" }]}>NAGARSEVAK</Text>
+              <Text style={styles.roleBadgeText}>NAGARSEVAK</Text>
             </View>
-            <Text style={styles.headerTitle}>{user?.name}</Text>
-            <Text style={styles.headerSub}>{user?.ward || "Ambernath"}</Text>
+            <Text style={styles.headerTitle}>{user.name}</Text>
+            <Text style={styles.headerSubtitle}>{user.ward || "Ward assignment pending"}</Text>
           </View>
-          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.statPills}>
           {[
-            { label: t("pending"), count: pending, color: "#FDE68A", icon: "clock" },
+            { label: t("pending"), count: pendingCount, color: "#FDE68A", icon: "clock" },
             { label: t("active"), count: activeCount, color: "#C4B5FD", icon: "tool" },
             { label: t("resolved"), count: resolvedCount, color: "#6EE7B7", icon: "check-circle" },
             { label: t("total"), count: wardComplaints.length, color: "#93C5FD", icon: "list" },
-          ].map((s) => (
-            <View key={s.label} style={styles.statPill}>
-              <Feather name={s.icon as any} size={14} color={s.color} />
-              <Text style={[styles.statPillNum, { color: s.color }]}>{s.count}</Text>
-              <Text style={styles.statPillLabel}>{s.label}</Text>
+          ].map((stat) => (
+            <View key={stat.label} style={styles.statPill}>
+              <Feather name={stat.icon as any} size={14} color={stat.color} />
+              <Text style={[styles.statNumber, { color: stat.color }]}>{stat.count}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
             </View>
           ))}
         </View>
-
       </LinearGradient>
 
       <AppScrollView
-        onAppRefresh={() => Promise.all([refreshComplaints(), refreshAlerts()]).then(() => undefined)}
+        onAppRefresh={() => refreshComplaints()}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 8) + 96 }}
         showsVerticalScrollIndicator={false}
       >
-        {pending > 0 && (
+        {pendingCount > 0 ? (
           <View style={styles.urgentBanner}>
             <Feather name="alert-circle" size={14} color="#DC2626" />
-            <Text style={styles.urgentText}>{pending} {t("complaints")} — {t("needsAttention")}</Text>
+            <Text style={styles.urgentText}>{pendingCount} {t("complaints")} — {t("needsAttention")}</Text>
           </View>
-        )}
+        ) : null}
 
-        {/* ALERTS PANEL */}
-        <TouchableOpacity style={styles.alertPanel} activeOpacity={0.9} onPress={() => router.push("/alert/list" as any)}>
-          <View style={styles.alertPanelHeader}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Feather name="bell" size={14} color="#C2410C" />
-              <Text style={styles.alertPanelTitle}>Alerts & News</Text>
-              {alerts.length > 0 && (
-                <View style={styles.alertCountBadge}>
-                  <Text style={styles.alertCountText}>{alerts.length}</Text>
-                </View>
-              )}
+        <View style={styles.utilityPanel}>
+          <View style={styles.panelHeader}>
+            <View style={styles.panelTitleRow}>
+              <View style={styles.panelIcon}>
+                <Feather name="zap" size={15} color="#C2410C" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.panelTitle}>Ward Utility Status</Text>
+                <Text style={styles.panelSubtitle}>Post water or electricity timing for citizens.</Text>
+              </View>
             </View>
-            <TouchableOpacity
-              style={styles.postAlertBtn}
-              onPress={(event) => {
-                event.stopPropagation?.();
-                router.push("/alert/new" as any);
-              }}
-              activeOpacity={0.85}
-            >
-              <Feather name="plus" size={13} color="white" />
-              <Text style={styles.postAlertBtnText}>Post Alert</Text>
+          </View>
+
+          <View style={styles.autoWardInfo}>
+            <Feather name="shield" size={16} color="#15803D" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.autoWardTitle}>Assigned ward is automatic</Text>
+              <Text style={styles.autoWardText}>
+                {user.ward ? `This update will be visible only to citizens in ${user.ward}.` : "Your secure server-side ward assignment will be used when you post."}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.utilityTypeRow}>
+            {(["water", "electricity"] as UtilityType[]).map((type) => {
+              const selected = utilityType === type;
+              return (
+                <TouchableOpacity key={type} style={[styles.utilityTypeButton, selected && styles.utilityTypeButtonActive]} onPress={() => setUtilityType(type)} activeOpacity={0.85}>
+                  <Feather name={type === "water" ? "droplet" : "zap"} size={14} color={selected ? "white" : "#C2410C"} />
+                  <Text style={[styles.utilityTypeText, selected && styles.utilityTypeTextActive]}>{type === "water" ? "Water" : "Electricity"}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.statusRow}>
+            {["normal", "reduced", "maintenance", "outage"].map((status) => {
+              const selected = utilityStatus === status;
+              return (
+                <TouchableOpacity key={status} style={[styles.statusChip, selected && styles.statusChipActive]} onPress={() => setUtilityStatus(status)} activeOpacity={0.85}>
+                  <Text style={[styles.statusChipText, selected && styles.statusChipTextActive]}>{displayUtilityStatus(status)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.timeSectionHeader}>
+            <View>
+              <Text style={styles.formSectionLabel}>SUPPLY / MAINTENANCE TIME</Text>
+              <Text style={styles.formSectionHelp}>Choose exact start and end time.</Text>
+            </View>
+            <TouchableOpacity style={styles.fullDayButton} onPress={() => { setUtilityStartTime("00:00"); setUtilityEndTime("00:00"); }} activeOpacity={0.8}>
+              <Feather name="sun" size={12} color="#15803D" />
+              <Text style={styles.fullDayText}>24 Hours</Text>
             </TouchableOpacity>
           </View>
 
-          {alerts.length === 0 ? (
-            <View style={styles.alertPanelEmpty}>
-              <Feather name="bell-off" size={22} color="#CBD5E1" />
-              <Text style={styles.alertPanelEmptyText}>No alerts posted yet</Text>
-              <Text style={styles.alertPanelEmptySub}>Tap "Post Alert" to broadcast to all citizens</Text>
+          <View style={styles.timePickerRow}>
+            <View style={styles.timePickerField}>
+              <Text style={styles.inputLabel}>START TIME</Text>
+              <AppTimePicker value={utilityStartTime} onChange={setUtilityStartTime} placeholder="Start time" accessibilityLabel="Utility start time" />
             </View>
-          ) : (
-            <AppScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingBottom: 4 }}>
-              {alerts.map((a) => {
-                const isAlert = a.type === "alert";
-                const cardColor = isAlert ? "#DC2626" : "#EA580C";
-                const cardBg = isAlert ? "#FEE2E2" : "#FFEDD5";
-                return (
-                  <View key={a.id} style={[styles.alertChip, { borderColor: cardBg }]}>
-                    <View style={[styles.alertChipPill, { backgroundColor: cardBg }]}>
-                      <Text style={[styles.alertChipPillText, { color: cardColor }]}>
-                        {isAlert ? "⚠ Alert" : "📢 News"}
-                      </Text>
-                    </View>
-                    <Text style={styles.alertChipTitle} numberOfLines={1}>{a.title}</Text>
-                    <Text style={styles.alertChipBody} numberOfLines={2}>{a.body}</Text>
-                    <TouchableOpacity
-                      style={styles.alertChipDelete}
-                      onPress={(event) => {
-                        event.stopPropagation?.();
-                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        removeAlert(a.id);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Feather name="trash-2" size={12} color="#DC2626" />
-                      <Text style={styles.alertChipDeleteText}>Remove</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </AppScrollView>
-          )}
-        </TouchableOpacity>
-
-        {/* WARD UTILITY STATUS PANEL */}
-        <View style={styles.alertPanel}>
-          <View style={styles.alertPanelHeader}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Feather name="zap" size={14} color="#C2410C" />
-              <Text style={styles.alertPanelTitle}>Ward Utility Status</Text>
-            </View>
-            <View style={styles.alertCountBadge}>
-              <Text style={styles.alertCountText}>{user?.ward || "Ward"}</Text>
+            <View style={styles.timePickerField}>
+              <Text style={styles.inputLabel}>END TIME</Text>
+              <AppTimePicker value={utilityEndTime} onChange={setUtilityEndTime} placeholder="End time" accessibilityLabel="Utility end time" />
             </View>
           </View>
 
-          <Text style={{ fontSize: 12, color: "#64748B", fontFamily: "Inter_500Medium", marginBottom: 10 }}>
-            Post water/electricity update for your ward only. Citizens registered in your ward will see it on their home screen.
-          </Text>
-
-          <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-            {(["water", "electricity"] as UtilityType[]).map((type) => {
-              const activeType = utilityType === type;
-              return (
-                <TouchableOpacity
-                  key={type}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    backgroundColor: activeType ? "#EA580C" : "#FFF7ED",
-                    borderWidth: 1,
-                    borderColor: activeType ? "#EA580C" : "#FED7AA",
-                  }}
-                  onPress={() => setUtilityType(type)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={{ color: activeType ? "white" : "#C2410C", fontFamily: "Inter_700Bold", fontSize: 12 }}>
-                    {type === "water" ? "Water" : "Electricity"}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-            {["normal", "reduced", "maintenance", "outage"].map((status) => {
-              const activeStatus = utilityStatus === status;
-              return (
-                <TouchableOpacity
-                  key={status}
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 7,
-                    borderRadius: 999,
-                    backgroundColor: activeStatus ? "#16A34A" : "#F1F5F9",
-                  }}
-                  onPress={() => setUtilityStatus(status)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={{ color: activeStatus ? "white" : "#475569", fontFamily: "Inter_700Bold", fontSize: 11 }}>
-                    {displayUtilityStatus(status)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {scheduleText ? (
+            <View style={styles.timeSummary}>
+              <View style={styles.timeSummaryIcon}>
+                <Feather name="clock" size={14} color="#7C3AED" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.timeSummaryTitle}>{scheduleText}</Text>
+                <Text style={styles.timeSummaryText}>{hoursPerDay} hours total duration</Text>
+              </View>
+            </View>
+          ) : null}
 
           <TextInput
-            style={{ backgroundColor: "#F8FAFC", borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12, paddingVertical: 10, color: "#0F172A", marginBottom: 8 }}
-            value={utilityHours}
-            onChangeText={setUtilityHours}
-            placeholder="Hours per day e.g. 14 or 24"
-            placeholderTextColor="#94A3B8"
-            keyboardType="number-pad"
-          />
-          <TextInput
-            style={{ backgroundColor: "#F8FAFC", borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12, paddingVertical: 10, color: "#0F172A", marginBottom: 8 }}
-            value={utilitySchedule}
-            onChangeText={setUtilitySchedule}
-            placeholder="Schedule e.g. 6 AM to 8 PM / maintenance timing"
-            placeholderTextColor="#94A3B8"
-          />
-          <TextInput
-            style={{ backgroundColor: "#F8FAFC", borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12, paddingVertical: 10, color: "#0F172A", minHeight: 74, marginBottom: 10 }}
+            style={styles.publicMessageInput}
             value={utilityDescription}
             onChangeText={setUtilityDescription}
             placeholder="Public message for citizens"
@@ -516,43 +480,35 @@ export default function AdminScreen() {
             textAlignVertical="top"
           />
 
-          {!!utilityMessage && (
-            <Text style={{ fontSize: 11, color: utilityMessage.includes("posted") ? "#059669" : "#DC2626", fontFamily: "Inter_700Bold", marginBottom: 8 }}>
-              {utilityMessage}
-            </Text>
-          )}
+          {utilityMessage ? (
+            <View style={[styles.utilityMessage, utilityMessageTone === "success" ? styles.utilityMessageSuccess : styles.utilityMessageError]}>
+              <Feather name={utilityMessageTone === "success" ? "check-circle" : "alert-circle"} size={14} color={utilityMessageTone === "success" ? "#047857" : "#DC2626"} />
+              <Text style={[styles.utilityMessageText, { color: utilityMessageTone === "success" ? "#047857" : "#DC2626" }]}>{utilityMessage}</Text>
+            </View>
+          ) : null}
 
-          <TouchableOpacity
-            style={styles.postAlertBtn}
-            onPress={saveUtilityStatus}
-            disabled={utilitySaving}
-            activeOpacity={0.85}
-          >
-            <Feather name="send" size={13} color="white" />
-            <Text style={styles.postAlertBtnText}>{utilitySaving ? "Posting..." : "Post Utility Update"}</Text>
+          <TouchableOpacity style={[styles.postUtilityButton, utilitySaving && { opacity: 0.65 }]} onPress={saveUtilityStatus} disabled={utilitySaving} activeOpacity={0.85}>
+            <Feather name="send" size={14} color="white" />
+            <Text style={styles.postUtilityText}>{utilitySaving ? "Posting..." : "Post Utility Update"}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.dashboardGrid}>
           {dashboardFilters.map((item) => {
-            const isActive = filter === item.filter;
+            const selected = filter === item.filter;
             return (
               <TouchableOpacity
                 key={item.filter}
                 style={[
                   styles.dashboardCard,
-                  {
-                    backgroundColor: isActive ? item.bg : "white",
-                    borderColor: item.color,
-                    shadowColor: item.color,
-                  },
-                  isActive && styles.dashboardCardActive,
+                  { backgroundColor: selected ? item.bg : "white", borderColor: item.color, shadowColor: item.color },
+                  selected && styles.dashboardCardActive,
                 ]}
-                onPress={() => openComplaintTab(item.filter)}
+                onPress={() => openComplaintList(item.filter)}
                 activeOpacity={0.85}
               >
                 <Text style={styles.dashboardLabel}>{item.label}</Text>
-                <View style={[styles.dashboardIcon, { backgroundColor: item.color + "15" }]}>
+                <View style={[styles.dashboardIcon, { backgroundColor: `${item.color}15` }]}>
                   <Feather name={item.icon as any} size={20} color={item.color} />
                 </View>
                 <Text style={[styles.dashboardCount, { color: item.color }]}>{item.count}</Text>
@@ -561,408 +517,142 @@ export default function AdminScreen() {
           })}
         </View>
 
-        <View style={{ paddingHorizontal: 14, paddingTop: 14 }}>
-          {filtered.length === 0 ? (
-            <View style={styles.empty}>
+        <View style={styles.complaintList}>
+          {filteredComplaints.length === 0 ? (
+            <View style={styles.emptyState}>
               <Feather name="check-circle" size={36} color="#CBD5E1" />
-              <Text style={styles.emptyText}>{t("noComplaintsInCategory")}</Text>
+              <Text style={styles.emptyText}>{user.ward ? t("noComplaintsInCategory") : "Your ward complaints will appear after the Super Admin assigns your ward."}</Text>
             </View>
           ) : (
-            filtered.map((item) => (
-              <DetailedComplaintCard
-                key={item.id}
-                complaint={item}
-                onAction={() => setActive(item)}
-              />
+            filteredComplaints.map((complaint) => (
+              <DetailedComplaintCard key={complaint.id} complaint={complaint} onAction={() => setActiveComplaint(complaint)} />
             ))
           )}
         </View>
       </AppScrollView>
 
-      {active && (
-        <Modal transparent animationType="slide" visible onRequestClose={() => setActive(null)}>
-          <ActionModal complaint={active} onClose={() => setActive(null)} onUpdate={(st, note) => {
-            if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            updateStatus(active.id, st, note, user?.name || "Nagarsevak");
-          }} />
+      {activeComplaint ? (
+        <Modal transparent animationType="slide" visible onRequestClose={() => setActiveComplaint(null)}>
+          <ActionModal
+            complaint={activeComplaint}
+            onClose={() => setActiveComplaint(null)}
+            onUpdate={(status, note) => {
+              if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              updateStatus(activeComplaint.id, status, note, user.name || "Nagarsevak");
+            }}
+          />
         </Modal>
-      )}
-
-      <Modal visible={showProfile} transparent animationType="slide" onRequestClose={() => setShowProfile(false)}>
-        <View style={pStyles.root}>
-          <LinearGradient colors={["#166534", "#16A34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[pStyles.header, { paddingTop: topPad + 12 }]}>
-            <View style={pStyles.profileHeaderRow}>
-              <TouchableOpacity onPress={() => setShowProfile(false)} style={pStyles.profileNavBtn} activeOpacity={0.8}>
-                <Feather name="chevron-left" size={20} color="white" />
-                <Text style={pStyles.profileNavBtnText}>Back</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={openEditProfile} style={pStyles.profileEditBtn} activeOpacity={0.8}>
-                <Feather name="edit-2" size={15} color="white" />
-                <Text style={pStyles.profileNavBtnText}>Edit</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={pStyles.headerContent}>
-              <View style={pStyles.avatarLarge}>
-                <Text style={pStyles.avatarText}>{user?.name?.charAt(0)?.toUpperCase() || "N"}</Text>
-              </View>
-              <View style={pStyles.headerText}>
-                <Text style={pStyles.userName}>{user?.name}</Text>
-                <View style={pStyles.rolePillRow}>
-                  <View style={pStyles.rolePill}>
-                    <Feather name="briefcase" size={11} color="rgba(255,255,255,0.9)" />
-                    <Text style={pStyles.rolePillText}>Nagarsevak</Text>
-                  </View>
-                  <Text style={pStyles.roleSub}>Ward Officer</Text>
-                </View>
-                <View style={pStyles.infoRow}>
-                  <View style={pStyles.infoChip}>
-                    <Feather name="map-pin" size={10} color="rgba(255,255,255,0.55)" />
-                    <Text style={pStyles.infoChipText}>{user?.ward || "Ambernath"}</Text>
-                  </View>
-                  <View style={pStyles.infoChip}>
-                    <Feather name="phone" size={10} color="rgba(255,255,255,0.55)" />
-                    <Text style={pStyles.infoChipText}>+91 {user?.mobile}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            <View style={pStyles.statsRow}>
-              <View style={pStyles.statItem}>
-                <Text style={pStyles.statNum}>{wardComplaints.length}</Text>
-                <Text style={pStyles.statLabel}>{t("total")}</Text>
-              </View>
-              <View style={pStyles.statDiv} />
-              <View style={pStyles.statItem}>
-                <Text style={[pStyles.statNum, { color: "#FDE68A" }]}>{pending}</Text>
-                <Text style={pStyles.statLabel}>{t("pending")}</Text>
-              </View>
-              <View style={pStyles.statDiv} />
-              <View style={pStyles.statItem}>
-                <Text style={[pStyles.statNum, { color: "#C4B5FD" }]}>{activeCount}</Text>
-                <Text style={pStyles.statLabel}>{t("active")}</Text>
-              </View>
-              <View style={pStyles.statDiv} />
-              <View style={pStyles.statItem}>
-                <Text style={[pStyles.statNum, { color: "#6EE7B7" }]}>{resolvedCount}</Text>
-                <Text style={pStyles.statLabel}>{t("resolved")}</Text>
-              </View>
-            </View>
-          </LinearGradient>
-
-          <AppScrollView style={pStyles.scroll} contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 8) + 30 }} showsVerticalScrollIndicator={false}>
-            <View style={pStyles.section}>
-              <Text style={pStyles.sectionLabel}>PARTY & DESIGNATION</Text>
-              <View style={pStyles.card}>
-                {[
-                  { icon: "award" as const, label: "Nagarsevak ID", value: user?.nagarsevakId || "—" },
-                  { icon: "briefcase" as const, label: "Designation", value: "Ward Officer / Nagarsevak" },
-                  { icon: "map-pin" as const, label: t("ward"), value: user?.ward || "Ambernath" },
-                ].map((item, idx, arr) => (
-                  <View key={item.label} style={[pStyles.detailRow, idx < arr.length - 1 && pStyles.rowBorder]}>
-                    <View style={[pStyles.detailIcon, { backgroundColor: "#DCFCE7" }]}>
-                      <Feather name={item.icon} size={14} color="#16A34A" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={pStyles.detailLabel}>{item.label}</Text>
-                      <Text style={pStyles.detailValue}>{item.value}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={pStyles.section}>
-              <Text style={pStyles.sectionLabel}>ACCOUNT DETAILS</Text>
-              <View style={pStyles.card}>
-                {[
-                  { icon: "user" as const, label: t("fullName") || "Full Name", value: user?.name || "—" },
-                  { icon: "phone" as const, label: t("phone"), value: "+91 " + (user?.mobile || "—") },
-                  ...(user?.email ? [{ icon: "mail" as const, label: t("email"), value: user.email }] : []),
-                  ...(user?.address ? [{ icon: "home" as const, label: t("address"), value: user.address }] : []),
-                  ...(user?.age ? [{ icon: "calendar" as const, label: t("age"), value: String(user.age) + " years" }] : []),
-                  { icon: "clock" as const, label: t("memberSince"), value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—" },
-                ].map((item, idx, arr) => (
-                  <View key={item.label} style={[pStyles.detailRow, idx < arr.length - 1 && pStyles.rowBorder]}>
-                    <View style={[pStyles.detailIcon, { backgroundColor: "#DCFCE7" }]}>
-                      <Feather name={item.icon} size={14} color="#16A34A" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={pStyles.detailLabel}>{item.label}</Text>
-                      <Text style={pStyles.detailValue}>{item.value}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={pStyles.section}>
-              <Text style={pStyles.sectionLabel}>WARD JURISDICTION</Text>
-              <View style={pStyles.card}>
-                {[
-                  { icon: "home" as const, label: "Corporation", value: "Ambernath Municipal Council (AMC)" },
-                  { icon: "map" as const, label: "City", value: "Ambernath, Maharashtra" },
-                  { icon: "compass" as const, label: "Area", value: user?.ward || "Ambernath" },
-                ].map((item, idx, arr) => (
-                  <View key={item.label} style={[pStyles.detailRow, idx < arr.length - 1 && pStyles.rowBorder]}>
-                    <View style={[pStyles.detailIcon, { backgroundColor: "#FFEDD5" }]}>
-                      <Feather name={item.icon} size={14} color="#EA580C" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={pStyles.detailLabel}>{item.label}</Text>
-                      <Text style={pStyles.detailValue}>{item.value}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={pStyles.appInfoCard}>
-              <Text style={pStyles.appInfoBrand}>Connect T</Text>
-              <Text style={pStyles.appInfoTagline}>Civic Services · सबका साथ, सबका विकास</Text>
-              <Text style={pStyles.appInfoVersion}>v1.0 · AMC Ambernath</Text>
-            </View>
-
-            <TouchableOpacity style={pStyles.logoutBtn} onPress={() => { setShowProfile(false); accountActions.requestLogout(); }} activeOpacity={0.85}>
-              <View style={pStyles.logoutInner}>
-                <Feather name="log-out" size={18} color="#DC2626" />
-                <Text style={pStyles.logoutText}>{t("logout")}</Text>
-              </View>
-            </TouchableOpacity>
-          </AppScrollView>
-
-          <Modal visible={showEditProfile} transparent animationType="slide" onRequestClose={() => setShowEditProfile(false)}>
-            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-              <View style={{ backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
-                <View style={{ width: 36, height: 4, backgroundColor: "#E2E8F0", borderRadius: 2, alignSelf: "center", marginBottom: 16 }} />
-                <Text style={{ fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 20 }}>Edit Profile</Text>
-                <Text style={{ fontSize: 10, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.2, fontFamily: "Inter_600SemiBold", marginBottom: 6 }}>FULL NAME</Text>
-                <TextInput
-                  style={{ backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", marginBottom: 16, outlineWidth: 0 } as any}
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Your name"
-                  placeholderTextColor="#CBD5E1"
-                />
-                <Text style={{ fontSize: 10, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.2, fontFamily: "Inter_600SemiBold", marginBottom: 6 }}>WARD</Text>
-                <TextInput
-                  style={{ backgroundColor: "#F8FAFC", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#0F172A", fontFamily: "Inter_400Regular", marginBottom: 24, outlineWidth: 0 } as any}
-                  value={editWard}
-                  onChangeText={setEditWard}
-                  placeholder="Your ward"
-                  placeholderTextColor="#CBD5E1"
-                />
-                <View style={{ flexDirection: "row", gap: 10 }}>
-                  <TouchableOpacity style={{ flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center", backgroundColor: "#F1F5F9" }} onPress={() => setShowEditProfile(false)} activeOpacity={0.8}>
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#64748B", fontFamily: "Inter_700Bold" }}>{t("cancel")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{ flex: 2, borderRadius: 14, overflow: "hidden" }} onPress={saveEditProfile} activeOpacity={0.85} disabled={!editName.trim()}>
-                    <LinearGradient colors={["#166534", "#16A34A"]} style={{ paddingVertical: 14, alignItems: "center" }}>
-                      <Text style={{ fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" }}>Save Changes</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-        </View>
-      </Modal>
-
-      <ConfirmActionModal
-        visible={accountActions.pendingAction === "logout"}
-        title="Logout from Connect-T?"
-        message="This will securely clear Civic and Job Portal sessions on this device. Complaints, alerts and account data will remain saved."
-        confirmLabel="Logout"
-        icon="log-out"
-        tone="danger"
-        busy={accountActions.busy}
-        onCancel={accountActions.cancelAction}
-        onConfirm={accountActions.runPendingAction}
-      />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 10,
-    alignSelf: "flex-start",
-    paddingVertical: 4,
-    paddingRight: 8,
-    paddingLeft: 2,
-  },
-  backBtnText: {
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: "Inter_600SemiBold",
-  },
-  header: { paddingHorizontal: 20, paddingBottom: 14, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
-  adminBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(110,231,183,0.15)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, alignSelf: "flex-start", marginBottom: 6 },
-  adminBadgeText: { fontSize: 9, fontWeight: "700", letterSpacing: 1, fontFamily: "Inter_600SemiBold" },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.6)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  profileAvatarBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" },
-  profileAvatarText: { fontSize: 16, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold" },
-  statPills: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 14, padding: 10, marginBottom: 12, alignItems: "center", gap: 0 },
-  statPill: { flex: 1, alignItems: "center", gap: 2 },
-  statPillNum: { fontSize: 20, fontWeight: "900", fontFamily: "Inter_700Bold" },
-  statPillLabel: { fontSize: 9, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular" },
-  urgentBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEE2E2", paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#FECACA" },
-  alertPanel: { backgroundColor: "white", marginHorizontal: 14, marginTop: 12, marginBottom: 4, borderRadius: 18, padding: 14, shadowColor: "#B45309", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
-  alertPanelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  alertPanelTitle: { fontSize: 13, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  alertCountBadge: { backgroundColor: "#FEE2E2", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
-  alertCountText: { fontSize: 10, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_700Bold" },
-  postAlertBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#C2410C", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
-  postAlertBtnText: { fontSize: 12, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  alertPanelEmpty: { height: 80, borderRadius: 12, borderWidth: 1.5, borderColor: "#E2E8F0", borderStyle: "dashed", alignItems: "center", justifyContent: "center", gap: 4 },
-  alertPanelEmptyText: { fontSize: 12, color: "#94A3B8", fontFamily: "Inter_600SemiBold", fontWeight: "600" },
-  alertPanelEmptySub: { fontSize: 10, color: "#CBD5E1", fontFamily: "Inter_400Regular" },
-  alertChip: { width: 200, backgroundColor: "#FAFAFA", borderRadius: 14, borderWidth: 1, padding: 12, gap: 4 },
-  alertChipPill: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  alertChipPillText: { fontSize: 9, fontWeight: "700", fontFamily: "Inter_700Bold" },
-  alertChipTitle: { fontSize: 12, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  alertChipBody: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", lineHeight: 15 },
-  alertChipDelete: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  alertChipDeleteText: { fontSize: 10, fontWeight: "600", color: "#DC2626", fontFamily: "Inter_600SemiBold" },
-  urgentText: { fontSize: 12, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_600SemiBold" },
-  dashboardGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    rowGap: 12,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-  },
-  dashboardCard: {
-    width: "48%",
-    aspectRatio: 1,
-    borderRadius: 18,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  dashboardCardActive: {
-    shadowOpacity: 0.22,
-    elevation: 6,
-  },
-  dashboardIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dashboardCount: { fontSize: 24, fontWeight: "900", fontFamily: "Inter_700Bold" },
-  dashboardLabel: { width: "100%", fontSize: 16, fontWeight: "900", color: "#334155", fontFamily: "Inter_700Bold", textAlign: "center", lineHeight: 20 },
-  card: { backgroundColor: "white", borderRadius: 16, marginBottom: 10, overflow: "hidden", shadowColor: "#166534", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, paddingBottom: 10 },
-  catDot: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  cardHeaderText: { flex: 1 },
-  cmpTitle: { fontSize: 13, fontWeight: "700", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  cmpMeta: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 1 },
-  complaintIdText: { fontSize: 10, color: "#16A34A", fontFamily: "Inter_700Bold", marginTop: 1 },
-  statusPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20, flexShrink: 0 },
-  statusPillText: { fontSize: 9, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
-  cardBody: { paddingHorizontal: 14, paddingBottom: 10, gap: 4 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  metaText: { fontSize: 11, color: "#64748B", fontFamily: "Inter_400Regular", flex: 1 },
-  descText: { fontSize: 12, color: "#475569", fontFamily: "Inter_400Regular", lineHeight: 17, marginTop: 4 },
-  citizenInfoRow: { flexDirection: "row", gap: 8, marginTop: 8 },
-  citizenInfoChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FFF7ED", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  citizenInfoText: { fontSize: 10, color: "#475569", fontFamily: "Inter_400Regular" },
-  actionBtn: { marginHorizontal: 14, marginBottom: 14, borderRadius: 12, overflow: "hidden" },
-  actionBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10 },
-  actionBtnText: { fontSize: 13, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
-  resolvedBar: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#D1FAE5", paddingHorizontal: 14, paddingVertical: 8 },
-  resolvedBarText: { fontSize: 11, color: "#166534", fontFamily: "Inter_400Regular", flex: 1 },
-  empty: { alignItems: "center", paddingTop: 60, gap: 10 },
-  emptyText: { fontSize: 14, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  logoutModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 32 },
-  logoutModalSheet: { backgroundColor: "white", borderRadius: 24, padding: 28, width: "100%", alignItems: "center", gap: 10 },
-  logoutModalIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  logoutModalTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold" },
-  logoutModalBody: { fontSize: 14, color: "#64748B", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
-  logoutModalBtnRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 8 },
-  logoutModalCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center", backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0" },
-  logoutModalCancelText: { fontSize: 14, fontWeight: "700", color: "#64748B", fontFamily: "Inter_700Bold" },
-  logoutModalConfirmBtn: { flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: "#DC2626" },
-  logoutModalConfirmText: { fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  root: { flex: 1, backgroundColor: "#EBEFFC" },
+  lockedScreen: { flex: 1, backgroundColor: "#EBEFFC", alignItems: "center", justifyContent: "center", padding: 32 },
+  lockedTitle: { fontSize: 18, color: "#475569", marginTop: 16, fontFamily: "Inter_700Bold" },
+  lockedDescription: { fontSize: 13, color: "#94A3B8", marginTop: 8, textAlign: "center", fontFamily: "Inter_400Regular" },
+  loginButton: { backgroundColor: "#C2410C", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14, marginTop: 24 },
+  loginText: { fontSize: 15, color: "white", fontFamily: "Inter_700Bold" },
+  header: { paddingHorizontal: 19, paddingBottom: 18, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  headerTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  roleBadge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.12)", paddingHorizontal: 8, paddingVertical: 4 },
+  roleBadgeText: { color: "#6EE7B7", fontSize: 9, letterSpacing: 0.8, fontFamily: "Inter_700Bold" },
+  headerTitle: { marginTop: 8, color: "white", fontSize: 22, fontFamily: "Inter_700Bold" },
+  headerSubtitle: { marginTop: 3, color: "rgba(255,255,255,0.78)", fontSize: 12, fontFamily: "Inter_500Medium" },
+  statPills: { marginTop: 16, flexDirection: "row", borderRadius: 17, backgroundColor: "rgba(255,255,255,0.13)", overflow: "hidden" },
+  statPill: { flex: 1, minHeight: 72, alignItems: "center", justifyContent: "center", gap: 2 },
+  statNumber: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  statLabel: { color: "rgba(255,255,255,0.64)", fontSize: 9, fontFamily: "Inter_500Medium" },
+  urgentBanner: { marginHorizontal: 14, marginTop: 12, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA", flexDirection: "row", alignItems: "center", gap: 8 },
+  urgentText: { flex: 1, color: "#B91C1C", fontSize: 11, fontFamily: "Inter_700Bold" },
+  utilityPanel: { marginHorizontal: 14, marginTop: 12, padding: 15, borderRadius: 20, backgroundColor: "white", shadowColor: "#0F172A", shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  panelHeader: { marginBottom: 10 },
+  panelTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  panelIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7ED" },
+  panelTitle: { color: "#0F172A", fontSize: 15, fontFamily: "Inter_700Bold" },
+  panelSubtitle: { marginTop: 2, color: "#64748B", fontSize: 11, fontFamily: "Inter_400Regular" },
+  autoWardInfo: { marginBottom: 12, borderRadius: 14, padding: 11, backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0", flexDirection: "row", alignItems: "flex-start", gap: 9 },
+  autoWardTitle: { color: "#166534", fontSize: 11, fontFamily: "Inter_700Bold" },
+  autoWardText: { marginTop: 2, color: "#15803D", fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_400Regular" },
+  utilityTypeRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  utilityTypeButton: { flex: 1, minHeight: 42, borderRadius: 13, borderWidth: 1, borderColor: "#FED7AA", backgroundColor: "#FFF7ED", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  utilityTypeButtonActive: { borderColor: "#EA580C", backgroundColor: "#EA580C" },
+  utilityTypeText: { color: "#C2410C", fontSize: 12, fontFamily: "Inter_700Bold" },
+  utilityTypeTextActive: { color: "white" },
+  statusRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 15 },
+  statusChip: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#F1F5F9" },
+  statusChipActive: { backgroundColor: "#16A34A" },
+  statusChipText: { color: "#475569", fontSize: 10.5, fontFamily: "Inter_700Bold" },
+  statusChipTextActive: { color: "white" },
+  timeSectionHeader: { marginBottom: 9, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  formSectionLabel: { color: "#475569", fontSize: 9.5, letterSpacing: 0.8, fontFamily: "Inter_700Bold" },
+  formSectionHelp: { marginTop: 2, color: "#94A3B8", fontSize: 10, fontFamily: "Inter_400Regular" },
+  fullDayButton: { minHeight: 34, borderRadius: 11, paddingHorizontal: 10, backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0", flexDirection: "row", alignItems: "center", gap: 5 },
+  fullDayText: { color: "#15803D", fontSize: 10, fontFamily: "Inter_700Bold" },
+  timePickerRow: { flexDirection: "row", gap: 9 },
+  timePickerField: { flex: 1, minWidth: 0 },
+  inputLabel: { marginBottom: 5, color: "#64748B", fontSize: 9, letterSpacing: 0.7, fontFamily: "Inter_700Bold" },
+  timeSummary: { marginTop: 10, borderRadius: 14, padding: 11, backgroundColor: "#F5F3FF", borderWidth: 1, borderColor: "#DDD6FE", flexDirection: "row", alignItems: "center", gap: 9 },
+  timeSummaryIcon: { width: 32, height: 32, borderRadius: 11, backgroundColor: "white", alignItems: "center", justifyContent: "center" },
+  timeSummaryTitle: { color: "#5B21B6", fontSize: 11.5, fontFamily: "Inter_700Bold" },
+  timeSummaryText: { marginTop: 2, color: "#7C3AED", fontSize: 10, fontFamily: "Inter_400Regular" },
+  publicMessageInput: { minHeight: 82, marginTop: 10, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", paddingHorizontal: 12, paddingVertical: 11, color: "#0F172A", fontSize: 12.5, fontFamily: "Inter_400Regular" },
+  utilityMessage: { marginTop: 9, borderRadius: 12, padding: 9, flexDirection: "row", alignItems: "center", gap: 7 },
+  utilityMessageSuccess: { backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0" },
+  utilityMessageError: { backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA" },
+  utilityMessageText: { flex: 1, fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_600SemiBold" },
+  postUtilityButton: { minHeight: 44, marginTop: 10, borderRadius: 13, backgroundColor: "#C2410C", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  postUtilityText: { color: "white", fontSize: 12.5, fontFamily: "Inter_700Bold" },
+  dashboardGrid: { paddingHorizontal: 14, paddingTop: 14, flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  dashboardCard: { width: "48%", minHeight: 105, borderRadius: 18, borderWidth: 1, padding: 13, backgroundColor: "white", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  dashboardCardActive: { borderWidth: 1.5 },
+  dashboardLabel: { color: "#475569", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  dashboardIcon: { position: "absolute", top: 12, right: 12, width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  dashboardCount: { marginTop: 18, fontSize: 28, fontFamily: "Inter_700Bold" },
+  complaintList: { paddingHorizontal: 14, paddingTop: 14 },
+  emptyState: { minHeight: 150, borderRadius: 18, backgroundColor: "white", alignItems: "center", justifyContent: "center", padding: 24 },
+  emptyText: { marginTop: 10, color: "#94A3B8", fontSize: 12, lineHeight: 18, textAlign: "center", fontFamily: "Inter_500Medium" },
+  complaintCard: { marginBottom: 11, borderRadius: 18, backgroundColor: "white", overflow: "hidden", shadowColor: "#0F172A", shadowOpacity: 0.05, shadowRadius: 9, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  complaintHeader: { padding: 13, flexDirection: "row", alignItems: "center", gap: 10 },
+  categoryIcon: { width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  complaintHeaderText: { flex: 1, minWidth: 0 },
+  complaintTitle: { color: "#0F172A", fontSize: 13.5, fontFamily: "Inter_700Bold" },
+  complaintMeta: { marginTop: 3, color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" },
+  statusPill: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 4 },
+  statusPillText: { fontSize: 9, fontFamily: "Inter_700Bold" },
+  complaintBody: { paddingHorizontal: 13, paddingBottom: 12 },
+  metaRow: { marginTop: 4, flexDirection: "row", alignItems: "center", gap: 6 },
+  metaText: { flex: 1, color: "#64748B", fontSize: 10.5, fontFamily: "Inter_400Regular" },
+  descriptionText: { marginTop: 9, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" },
+  citizenRow: { marginTop: 10, flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  citizenChip: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: "#F8FAFC", flexDirection: "row", alignItems: "center", gap: 5 },
+  citizenText: { color: "#64748B", fontSize: 9.5, fontFamily: "Inter_600SemiBold" },
+  updateButton: { borderTopWidth: 1, borderTopColor: "#E2E8F0" },
+  updateGradient: { minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  updateText: { color: "white", fontSize: 11, fontFamily: "Inter_700Bold" },
+  resolvedBar: { minHeight: 38, paddingHorizontal: 13, borderTopWidth: 1, borderTopColor: "#D1FAE5", backgroundColor: "#ECFDF5", flexDirection: "row", alignItems: "center", gap: 7 },
+  resolvedText: { flex: 1, color: "#047857", fontSize: 10.5, fontFamily: "Inter_600SemiBold" },
 });
 
 const modalStyles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
-  handle: { width: 40, height: 4, backgroundColor: "#E2E8F0", borderRadius: 2, alignSelf: "center", marginBottom: 16 },
-  title: { fontSize: 18, fontWeight: "800", color: "#0F172A", fontFamily: "Inter_700Bold", marginBottom: 4 },
-  cmpId: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular", marginBottom: 2 },
-  cmpName: { fontSize: 13, color: "#475569", fontFamily: "Inter_400Regular", marginBottom: 4, lineHeight: 18 },
-  cmpLocation: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 16 },
-  cmpLocationText: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular" },
-  label: { fontSize: 10, fontWeight: "700", color: "#94A3B8", letterSpacing: 1, fontFamily: "Inter_600SemiBold", marginBottom: 8 },
-  optionRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  optionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, backgroundColor: "white" },
-  optionText: { fontSize: 12, fontWeight: "700", fontFamily: "Inter_600SemiBold" },
-  noteInput: { borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: "#0F172A", fontFamily: "Inter_400Regular", height: 90, marginBottom: 16, outlineWidth: 0 } as any,
-  btnRow: { flexDirection: "row", gap: 10 },
-  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center", backgroundColor: "#F1F5F9" },
-  cancelBtnText: { fontSize: 14, fontWeight: "700", color: "#64748B", fontFamily: "Inter_700Bold" },
-  confirmBtn: { flex: 2, borderRadius: 14, overflow: "hidden" },
-  confirmBtnGrad: { paddingVertical: 14, alignItems: "center" },
-  confirmBtnText: { fontSize: 14, fontWeight: "700", color: "white", fontFamily: "Inter_700Bold" },
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,23,42,0.55)" },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: "white", padding: 20, paddingBottom: 28 },
+  handle: { alignSelf: "center", width: 42, height: 5, borderRadius: 999, backgroundColor: "#CBD5E1", marginBottom: 15 },
+  title: { color: "#0F172A", fontSize: 19, fontFamily: "Inter_700Bold" },
+  complaintId: { marginTop: 5, color: "#EA580C", fontSize: 10, fontFamily: "Inter_700Bold" },
+  complaintName: { marginTop: 4, color: "#334155", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  locationRow: { marginTop: 7, flexDirection: "row", alignItems: "center", gap: 5 },
+  locationText: { flex: 1, color: "#94A3B8", fontSize: 10.5, fontFamily: "Inter_400Regular" },
+  label: { marginTop: 17, marginBottom: 8, color: "#64748B", fontSize: 10, letterSpacing: 0.7, fontFamily: "Inter_700Bold" },
+  optionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  optionButton: { minHeight: 42, borderRadius: 13, borderWidth: 1, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  optionText: { fontSize: 11, fontFamily: "Inter_700Bold" },
+  noteInput: { minHeight: 90, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", paddingHorizontal: 12, paddingVertical: 11, color: "#0F172A", fontSize: 12, fontFamily: "Inter_400Regular" },
+  buttonRow: { marginTop: 17, flexDirection: "row", gap: 10 },
+  cancelButton: { flex: 1, minHeight: 48, borderRadius: 14, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
+  cancelText: { color: "#475569", fontSize: 12, fontFamily: "Inter_700Bold" },
+  confirmButton: { flex: 1, borderRadius: 14, overflow: "hidden" },
+  confirmGradient: { minHeight: 48, alignItems: "center", justifyContent: "center" },
+  confirmText: { color: "white", fontSize: 12, fontFamily: "Inter_700Bold" },
 });
-
-const pStyles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F0FDF4" },
-  header: { paddingHorizontal: 20, paddingBottom: 16, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-  profileHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  profileNavBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 6, paddingRight: 10, paddingLeft: 2 },
-  profileEditBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.18)", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
-  profileNavBtnText: { fontSize: 14, fontWeight: "600", color: "rgba(255,255,255,0.92)", fontFamily: "Inter_600SemiBold" },
-  headerContent: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 },
-  avatarLarge: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" },
-  avatarText: { fontSize: 22, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
-  headerText: { flex: 1 },
-  userName: { fontSize: 20, fontWeight: "800", color: "white", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  rolePillRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
-  rolePill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
-  rolePillText: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.9)", fontFamily: "Inter_600SemiBold" },
-  roleSub: { fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular" },
-  infoRow: { flexDirection: "row", gap: 10, marginTop: 6 },
-  infoChip: { flexDirection: "row", alignItems: "center", gap: 4 },
-  infoChipText: { fontSize: 10, color: "rgba(255,255,255,0.55)", fontFamily: "Inter_400Regular" },
-  statsRow: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 14, paddingVertical: 12, paddingHorizontal: 6 },
-  statItem: { flex: 1, alignItems: "center" },
-  statNum: { fontSize: 20, fontWeight: "900", color: "white", fontFamily: "Inter_700Bold" },
-  statLabel: { fontSize: 9, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  statDiv: { width: 1, backgroundColor: "rgba(255,255,255,0.15)", marginVertical: 4 },
-  scroll: { flex: 1 },
-  section: { marginBottom: 16 },
-  sectionLabel: { fontSize: 10, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.2, fontFamily: "Inter_600SemiBold", marginBottom: 8, paddingLeft: 2 },
-  card: { backgroundColor: "white", borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  detailRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
-  detailIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  detailLabel: { fontSize: 10, color: "#94A3B8", fontFamily: "Inter_400Regular", marginBottom: 2 },
-  detailValue: { fontSize: 14, fontWeight: "600", color: "#0F172A", fontFamily: "Inter_600SemiBold" },
-  appInfoCard: { alignItems: "center", paddingVertical: 20, marginBottom: 12 },
-  appInfoBrand: { fontSize: 18, fontWeight: "900", color: "#C2410C", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  appInfoTagline: { fontSize: 11, color: "#94A3B8", fontFamily: "Inter_400Regular", marginTop: 4 },
-  appInfoVersion: { fontSize: 10, color: "#CBD5E1", fontFamily: "Inter_400Regular", marginTop: 2 },
-  logoutBtn: { backgroundColor: "#FEE2E2", borderRadius: 16, borderWidth: 1.5, borderColor: "#FECACA", marginBottom: 8 },
-  logoutInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 16 },
-  logoutText: { fontSize: 15, fontWeight: "700", color: "#DC2626", fontFamily: "Inter_700Bold" },
-});
-
