@@ -18,6 +18,7 @@ const PRODUCTION_PATCHES = [
   "./complaintUploadPatch.js",
   "./complaintJsonPatch.js",
   "./communityPreflightPatch.js",
+  "./communityFeedPatch.js",
   "./jobPortalSessionRecoveryPatch.js",
   "./jobPortalRoleGovernancePatch.js",
   "./jobPortalLegacyAuthBlockPatch.js",
