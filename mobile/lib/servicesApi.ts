@@ -72,11 +72,30 @@ function normalizeServicePlace(raw: any): ServicePlace {
   };
 }
 
+function allServicesCategory(categories: ServiceCategory[]): ServiceCategory {
+  const seen = new Set<string>();
+  const data = categories.flatMap((category) => category.data).filter((place) => {
+    const key = `${place.type}:${place.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return {
+    id: "all",
+    label: "All Services",
+    icon: "grid",
+    color: "#EA580C",
+    bgColor: "#FFEDD5",
+    data,
+  };
+}
+
 export async function fetchServiceCatalog(): Promise<ServiceCategory[]> {
   const res = await apiGet<any>("/api/services/catalog");
   const categories = Array.isArray(res.categories) ? res.categories : [];
 
-  return categories.map((cat: any) => ({
+  const normalized = categories.map((cat: any) => ({
     id: String(cat.id || ""),
     label: String(cat.label || cat.id || "Services"),
     icon: String(cat.icon || "map-pin"),
@@ -84,6 +103,12 @@ export async function fetchServiceCatalog(): Promise<ServiceCategory[]> {
     bgColor: String(cat.bgColor || cat.bg_color || "#FFEDD5"),
     data: Array.isArray(cat.data) ? cat.data.map(normalizeServicePlace) : [],
   }));
+
+  if (!normalized.some((category) => category.id === "all")) {
+    normalized.push(allServicesCategory(normalized));
+  }
+
+  return normalized;
 }
 
 function emergencyIconDefaults(typeOrIcon?: string) {
