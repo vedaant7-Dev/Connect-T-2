@@ -1,6 +1,9 @@
 name: Standalone Preview APK
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - fix/standalone-preview-apk
