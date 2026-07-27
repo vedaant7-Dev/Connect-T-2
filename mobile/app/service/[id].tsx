@@ -2,7 +2,7 @@ import { AppScrollView } from "@/components/AppScrollView";
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -111,7 +111,7 @@ export default function ServiceDetailScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={[styles.headerIconCircle, { backgroundColor: "rgba(255,255,255,0.2)" }]}> 
-            <Feather name={category.icon as any} size={28} color="white" />
+            <MaterialCommunityIcons name={category.icon as any} size={24} color="white" />
           </View>
           <Text style={styles.headerName} numberOfLines={2}>{place.name}</Text>
           <View style={styles.headerMeta}>

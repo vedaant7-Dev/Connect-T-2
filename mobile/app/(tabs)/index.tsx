@@ -2,7 +2,7 @@ import { AppScrollView } from "@/components/AppScrollView";
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Platform, Modal, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -21,14 +21,14 @@ import { fetchEmergencyContacts, fetchServiceCatalog, EmergencyContact } from "@
 import { displayUtilityStatus, fetchUtilityStatuses, statusIsOk, UtilityStatus, utilityLastUpdated } from "@/lib/utilityStatusApi";
 
 const quickServices = [
-  { id: "hospital", label: "Hospitals", icon: "activity", color: "#DC2626", bg: "#FEE2E2" },
-  { id: "childHospital", label: "Child Care", icon: "heart", color: "#7C3AED", bg: "#EDE9FE" },
-  { id: "clinic", label: "Clinics", icon: "plus-circle", color: "#059669", bg: "#D1FAE5" },
-  { id: "police", label: "Police", icon: "shield", color: "#B45309", bg: "#FFEDD5" },
-  { id: "bank", label: "Banks", icon: "credit-card", color: "#D97706", bg: "#FEF3C7" },
-  { id: "postOffice", label: "Post Office", icon: "mail", color: "#0EA5E9", bg: "#BAE6FD" },
-  { id: "school", label: "Schools", icon: "book-open", color: "#7C3AED", bg: "#EDE9FE" },
-  { id: "shamshanbhumi", label: "Crematorium", icon: "wind", color: "#475569", bg: "#F1F5F9" },
+  { id: "hospital", label: "Hospitals", icon: "hospital-building", color: "#DC2626", bg: "#FEE2E2" },
+  { id: "childHospital", label: "Child Care", icon: "baby-face-outline", color: "#7C3AED", bg: "#EDE9FE" },
+  { id: "clinic", label: "Clinics", icon: "stethoscope", color: "#059669", bg: "#D1FAE5" },
+  { id: "police", label: "Police", icon: "shield-star-outline", color: "#B45309", bg: "#FFEDD5" },
+  { id: "bank", label: "Banks", icon: "bank-outline", color: "#D97706", bg: "#FEF3C7" },
+  { id: "postOffice", label: "Post Office", icon: "email-outline", color: "#0EA5E9", bg: "#BAE6FD" },
+  { id: "school", label: "Schools", icon: "school-outline", color: "#7C3AED", bg: "#EDE9FE" },
+  { id: "shamshanbhumi", label: "Crematorium", icon: "fire", color: "#475569", bg: "#F1F5F9" },
 ];
 
 
@@ -404,7 +404,7 @@ export default function HomeScreen() {
                     onPress={() => handleServiceTap(svc.id)}
                   >
                     <View style={[styles.serviceIcon, { backgroundColor: svc.bg }]}>
-                      <Feather name={svc.icon as any} size={24} color={svc.color} />
+                      <MaterialCommunityIcons name={svc.icon as any} size={21} color={svc.color} />
                     </View>
                     <Text style={styles.serviceLabel}>{svc.label}</Text>
                   </TouchableOpacity>
