@@ -4,10 +4,6 @@ const fs = require("fs");
 
 const read = (path) => fs.readFileSync(path, "utf8");
 const write = (path, value) => fs.writeFileSync(path, value);
-const replaceRequired = (value, from, to, label) => {
-  if (!value.includes(from)) throw new Error(`Missing expected source for ${label}`);
-  return value.replace(from, to);
-};
 
 fs.writeFileSync(
   "mobile/lib/serviceCategoryIcons.ts",
@@ -47,26 +43,23 @@ export function resolveServiceIcon(id?: string, label?: string, fallback = "map-
 );
 
 let api = read("mobile/lib/servicesApi.ts");
-api = replaceRequired(
-  api,
-  'import { apiGet } from "@/lib/api";\n',
-  'import { apiGet } from "@/lib/api";\nimport { resolveServiceIcon } from "@/lib/serviceCategoryIcons";\n',
-  "services API icon resolver import",
-);
-api = replaceRequired(
-  api,
-  '    icon: String(cat.icon || "map-pin"),',
-  '    icon: resolveServiceIcon(cat.id, cat.label, String(cat.icon || "map-marker-outline")),',
-  "services API category icon normalization",
+if (!api.includes('serviceCategoryIcons')) {
+  api = api.replace(
+    'import { apiGet } from "@/lib/api";\n',
+    'import { apiGet } from "@/lib/api";\nimport { resolveServiceIcon } from "@/lib/serviceCategoryIcons";\n',
+  );
+}
+api = api.replace(
+  /icon:\s*String\(cat\.icon\s*\|\|\s*"map-pin"\),/,
+  'icon: resolveServiceIcon(cat.id, cat.label, String(cat.icon || "map-marker-outline")),',
 );
 write("mobile/lib/servicesApi.ts", api);
+console.log("Updated services API icon normalization");
 
 let home = read("mobile/app/(tabs)/index.tsx");
-home = replaceRequired(
-  home,
+home = home.replace(
   'import { Feather } from "@expo/vector-icons";',
   'import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";',
-  "home icon import",
 );
 for (const [from, to] of [
   ['icon: "activity"', 'icon: "hospital-building"'],
@@ -78,51 +71,36 @@ for (const [from, to] of [
   ['icon: "book-open"', 'icon: "school-outline"'],
   ['icon: "wind"', 'icon: "fire"'],
 ]) home = home.replace(from, to);
-home = replaceRequired(
-  home,
-  '<Feather name={svc.icon as any} size={24} color={svc.color} />',
+home = home.replace(
+  /<Feather\s+name=\{svc\.icon as any\}\s+size=\{24\}\s+color=\{svc\.color\}\s*\/>/,
   '<MaterialCommunityIcons name={svc.icon as any} size={21} color={svc.color} />',
-  "home service icon component and size",
 );
 write("mobile/app/(tabs)/index.tsx", home);
+console.log("Updated Home service symbols");
 
 let services = read("mobile/app/(tabs)/services.tsx");
-services = replaceRequired(
-  services,
+services = services.replace(
   'import { Feather } from "@expo/vector-icons";',
   'import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";',
-  "services icon import",
 );
-services = replaceRequired(
-  services,
-  `<Feather
-                 name={cat.icon as any}
-                 size={12}
-                 color={selectedCat.id === cat.id ? "white" : "rgba(255,255,255,0.7)"}
-               />`,
-  `<MaterialCommunityIcons
-                 name={cat.icon as any}
-                 size={11}
-                 color={selectedCat.id === cat.id ? "white" : "rgba(255,255,255,0.7)"}
-               />`,
-  "services category chip icon",
+services = services.replace(
+  /<Feather\s+name=\{cat\.icon as any\}\s+size=\{12\}\s+color=\{selectedCat\.id === cat\.id \? "white" : "rgba\(255,255,255,0\.7\)"\}\s*\/>/,
+  '<MaterialCommunityIcons\n                name={cat.icon as any}\n                size={11}\n                color={selectedCat.id === cat.id ? "white" : "rgba(255,255,255,0.7)"}\n              />',
 );
 write("mobile/app/(tabs)/services.tsx", services);
+console.log("Updated Services category symbols");
 
 let detail = read("mobile/app/service/[id].tsx");
-detail = replaceRequired(
-  detail,
+detail = detail.replace(
   'import { Feather } from "@expo/vector-icons";',
   'import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";',
-  "service detail icon import",
 );
-detail = replaceRequired(
-  detail,
-  '<Feather name={category.icon as any} size={28} color="white" />',
+detail = detail.replace(
+  /<Feather\s+name=\{category\.icon as any\}\s+size=\{28\}\s+color="white"\s*\/>/,
   '<MaterialCommunityIcons name={category.icon as any} size={24} color="white" />',
-  "service detail category icon",
 );
 write("mobile/app/service/[id].tsx", detail);
+console.log("Updated Service Detail category symbol");
 
 let localCatalog = read("mobile/data/mumbaiServices.ts");
 for (const [from, to] of [
@@ -136,3 +114,13 @@ for (const [from, to] of [
   ['label: "Crematorium", icon: "wind"', 'label: "Crematorium", icon: "fire"'],
 ]) localCatalog = localCatalog.replace(from, to);
 write("mobile/data/mumbaiServices.ts", localCatalog);
+console.log("Updated local service catalog symbols");
+
+for (const required of [
+  ["mobile/app/(tabs)/index.tsx", "MaterialCommunityIcons name={svc.icon as any} size={21}"],
+  ["mobile/app/(tabs)/services.tsx", "MaterialCommunityIcons"],
+  ["mobile/app/service/[id].tsx", "MaterialCommunityIcons name={category.icon as any} size={24}"],
+  ["mobile/lib/servicesApi.ts", "resolveServiceIcon"],
+]) {
+  if (!read(required[0]).includes(required[1])) throw new Error(`Icon update did not apply to ${required[0]}`);
+}
