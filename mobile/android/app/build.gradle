@@ -92,6 +92,13 @@ android {
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
             crunchPngs enablePngCrunchInRelease.toBoolean()
         }
+        preview {
+            initWith release
+            signingConfig signingConfigs.debug
+            debuggable false
+            matchingFallbacks = ['release']
+            versionNameSuffix '-preview'
+        }
     }
 
     packagingOptions {
@@ -113,7 +120,7 @@ gradle.taskGraph.whenReady { graph ->
         return name.contains("release") && (name.startsWith("assemble") || name.startsWith("bundle") || name.startsWith("package"))
     }
     if (releaseRequested && !hasReleaseSigning) {
-        throw new GradleException("Connect-T release signing is not configured. Provide CONNECT_T_RELEASE_STORE_FILE, CONNECT_T_RELEASE_STORE_PASSWORD, CONNECT_T_RELEASE_KEY_ALIAS and CONNECT_T_RELEASE_KEY_PASSWORD. Use assembleDebug for a test APK.")
+        throw new GradleException("Connect-T release signing is not configured. Provide CONNECT_T_RELEASE_STORE_FILE, CONNECT_T_RELEASE_STORE_PASSWORD, CONNECT_T_RELEASE_KEY_ALIAS and CONNECT_T_RELEASE_KEY_PASSWORD. Use assemblePreview for a standalone testing APK.")
     }
 }
 
