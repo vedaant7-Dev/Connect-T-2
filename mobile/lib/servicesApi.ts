@@ -74,7 +74,7 @@ function normalizeServicePlace(raw: any): ServicePlace {
 
 function allServicesCategory(categories: ServiceCategory[]): ServiceCategory {
   const seen = new Set<string>();
-  const data = categories.flatMap((category) => category.data).filter((place) => {
+  const data = categories.flatMap((category: ServiceCategory) => category.data).filter((place) => {
     const key = `${place.type}:${place.id}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -95,7 +95,7 @@ export async function fetchServiceCatalog(): Promise<ServiceCategory[]> {
   const res = await apiGet<any>("/api/services/catalog");
   const categories = Array.isArray(res.categories) ? res.categories : [];
 
-  const normalized = categories.map((cat: any) => ({
+  const normalized: ServiceCategory[] = categories.map((cat: any): ServiceCategory => ({
     id: String(cat.id || ""),
     label: String(cat.label || cat.id || "Services"),
     icon: String(cat.icon || "map-pin"),
@@ -104,7 +104,7 @@ export async function fetchServiceCatalog(): Promise<ServiceCategory[]> {
     data: Array.isArray(cat.data) ? cat.data.map(normalizeServicePlace) : [],
   }));
 
-  if (!normalized.some((category) => category.id === "all")) {
+  if (!normalized.some((category: ServiceCategory) => category.id === "all")) {
     normalized.push(allServicesCategory(normalized));
   }
 
