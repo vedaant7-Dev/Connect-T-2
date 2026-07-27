@@ -14,7 +14,9 @@ fs.writeFileSync(
   `export type ServiceCategoryIconName = string;
 
 function serviceKey(id?: string, label?: string) {
-  return \`${"${String(id || \"\")} ${String(label || \"\")}"}\`
+  return [id, label]
+    .map((value) => String(value || ""))
+    .join(" ")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
