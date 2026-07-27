@@ -1024,14 +1024,14 @@ export type ServiceCategory = {
 };
 
 export const serviceCategories: ServiceCategory[] = [
-  { id: "hospital", label: "Hospitals", icon: "activity", color: "#DC2626", bgColor: "#FEE2E2", data: hospitals },
-  { id: "childHospital", label: "Child Care", icon: "heart", color: "#7C3AED", bgColor: "#EDE9FE", data: childHospitals },
-  { id: "clinic", label: "Clinics", icon: "plus-circle", color: "#059669", bgColor: "#D1FAE5", data: clinics },
-  { id: "police", label: "Police", icon: "shield", color: "#1E40AF", bgColor: "#DBEAFE", data: policeStations },
-  { id: "bank", label: "Banks", icon: "credit-card", color: "#D97706", bgColor: "#FEF3C7", data: banks },
-  { id: "postOffice", label: "Post Office", icon: "mail", color: "#0EA5E9", bgColor: "#BAE6FD", data: postOffices },
-  { id: "school", label: "Schools", icon: "book-open", color: "#7C3AED", bgColor: "#EDE9FE", data: schools },
-  { id: "shamshanbhumi", label: "Crematorium", icon: "wind", color: "#475569", bgColor: "#F1F5F9", data: shamshanbhumi },
+  { id: "hospital", label: "Hospitals", icon: "hospital-building", color: "#DC2626", bgColor: "#FEE2E2", data: hospitals },
+  { id: "childHospital", label: "Child Care", icon: "baby-face-outline", color: "#7C3AED", bgColor: "#EDE9FE", data: childHospitals },
+  { id: "clinic", label: "Clinics", icon: "stethoscope", color: "#059669", bgColor: "#D1FAE5", data: clinics },
+  { id: "police", label: "Police", icon: "shield-star-outline", color: "#1E40AF", bgColor: "#DBEAFE", data: policeStations },
+  { id: "bank", label: "Banks", icon: "bank-outline", color: "#D97706", bgColor: "#FEF3C7", data: banks },
+  { id: "postOffice", label: "Post Office", icon: "email-outline", color: "#0EA5E9", bgColor: "#BAE6FD", data: postOffices },
+  { id: "school", label: "Schools", icon: "school-outline", color: "#7C3AED", bgColor: "#EDE9FE", data: schools },
+  { id: "shamshanbhumi", label: "Crematorium", icon: "fire", color: "#475569", bgColor: "#F1F5F9", data: shamshanbhumi },
 ];
 
 // ─── EMERGENCY CONTACTS (ULHASNAGAR) ─────────────────────────────────────────

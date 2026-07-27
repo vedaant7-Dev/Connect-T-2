@@ -2,7 +2,7 @@ import { AppScrollView } from "@/components/AppScrollView";
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform, FlatList } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -206,9 +206,9 @@ export default function ServicesScreen() {
               onPress={() => setSelectedCat(cat)}
               activeOpacity={0.8}
             >
-              <Feather
+              <MaterialCommunityIcons
                 name={cat.icon as any}
-                size={12}
+                size={11}
                 color={selectedCat.id === cat.id ? "white" : "rgba(255,255,255,0.7)"}
               />
               <Text

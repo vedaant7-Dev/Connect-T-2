@@ -1,4 +1,5 @@
 import { apiGet } from "@/lib/api";
+import { resolveServiceIcon } from "@/lib/serviceCategoryIcons";
 
 export interface Contact {
   name: string;
@@ -79,7 +80,7 @@ export async function fetchServiceCatalog(): Promise<ServiceCategory[]> {
   return categories.map((cat: any) => ({
     id: String(cat.id || ""),
     label: String(cat.label || cat.id || "Services"),
-    icon: String(cat.icon || "map-pin"),
+    icon: resolveServiceIcon(cat.id, cat.label, String(cat.icon || "map-marker-outline")),
     color: String(cat.color || "#EA580C"),
     bgColor: String(cat.bgColor || cat.bg_color || "#FFEDD5"),
     data: Array.isArray(cat.data) ? cat.data.map(normalizeServicePlace) : [],
