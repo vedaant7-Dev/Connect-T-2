@@ -1,0 +1,58 @@
+name: Standalone Preview APK
+
+on:
+  push:
+    branches:
+      - fix/standalone-preview-apk
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build standalone Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_PUBLIC_API_URL: https://newapp.e-bjp.in
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+      - name: Build standalone preview APK with embedded JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x android/gradlew
+          cd android
+          ./gradlew clean assemblePreview --no-daemon --stacktrace
+      - name: Verify and prepare APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=$(find android/app/build/outputs/apk/preview -name '*.apk' -type f | head -n 1)
+          test -n "$apk"
+          unzip -l "$apk" | grep -E 'assets/(index\.android\.bundle|expo-root|node_modules)' >/dev/null
+          mkdir -p ../artifacts
+          cp "$apk" ../artifacts/Connect-T-standalone-preview.apk
+          test -s ../artifacts/Connect-T-standalone-preview.apk
+      - name: Upload standalone APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-standalone-preview-apk
+          path: artifacts/Connect-T-standalone-preview.apk
+          if-no-files-found: error
+          retention-days: 14
