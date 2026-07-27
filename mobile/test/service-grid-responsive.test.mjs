@@ -20,5 +20,5 @@ test("service catalog adds one useful All Services category for a complete four-
   assert.match(services, /label: "All Services"/);
   assert.match(services, /icon: "grid"/);
   assert.match(services, /normalized\.push\(allServicesCategory\(normalized\)\)/);
-  assert.match(services, /categories\.flatMap\(\(category\) => category\.data\)/);
+  assert.match(services, /categories\.flatMap\(\(category(?:: ServiceCategory)?\) => category\.data\)/);
 });
