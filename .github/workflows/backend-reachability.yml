@@ -1,6 +1,9 @@
 name: Backend Reachability Diagnostic
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - fix/native-otp-screen-and-backend-fallback
