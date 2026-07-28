@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState, Rea
 
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, apiGet, apiPatch, apiPost, apiPostForm, isApiError } from "@/lib/api";
+import { getNetworkState, probeNetwork } from "@/lib/networkStatus";
 
 export type ComplaintStatus = "submitted" | "assigned" | "in_progress" | "resolved" | "rejected";
 export type ComplaintCategory = "roads" | "water" | "electricity" | "garbage" | "drainage" | "streetlight" | "encroachment" | "other";
@@ -155,16 +156,29 @@ function validRequestId(value?: string) {
   return /^[A-Za-z0-9_-]{12,80}$/.test(String(value || ""));
 }
 
-async function submitMultipartWithNetworkRecovery(form: FormData) {
-  try {
-    return await apiPostForm<any>("/api/complaints", form);
-  } catch (error) {
-    // Only retry transport failures. HTTP validation/authorization errors must be
-    // shown immediately and must never be masked by a second request.
-    if (!isApiError(error) || error.status !== undefined) throw error;
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    return apiPostForm<any>("/api/complaints", form);
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function submitMultipartWithNetworkRecovery(createForm: () => FormData) {
+  let lastError: unknown;
+  const retryDelays = [1_500, 4_000];
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await apiPostForm<any>("/api/complaints", createForm());
+    } catch (error) {
+      lastError = error;
+      if (!isApiError(error) || error.status !== undefined) throw error;
+      if (attempt >= retryDelays.length) throw error;
+
+      const network = getNetworkState().quality === "offline" ? await probeNetwork(10_000) : getNetworkState();
+      if (network.quality === "offline") throw error;
+      await wait(retryDelays[attempt]);
+    }
   }
+
+  throw lastError;
 }
 
 export function ComplaintProvider({ children }: { children: ReactNode }) {
@@ -246,21 +260,25 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     let result: any;
     let submittedPhoto: string | undefined;
     if (data.photoAsset) {
-      const form = new FormData();
-      form.append("client_request_id", clientRequestId);
-      Object.entries(payload).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) form.append(key, String(value));
-      });
-      if (data.photoAsset.file) {
-        form.append("photo", data.photoAsset.file);
-      } else {
-        form.append("photo", {
-          uri: data.photoAsset.uri,
-          name: data.photoAsset.fileName || `complaint_${Date.now()}.jpg`,
-          type: data.photoAsset.mimeType || "image/jpeg",
-        } as any);
-      }
-      result = await submitMultipartWithNetworkRecovery(form);
+      const createForm = () => {
+        const form = new FormData();
+        form.append("client_request_id", clientRequestId);
+        Object.entries(payload).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) form.append(key, String(value));
+        });
+        if (data.photoAsset?.file) {
+          form.append("photo", data.photoAsset.file);
+        } else if (data.photoAsset) {
+          form.append("photo", {
+            uri: data.photoAsset.uri,
+            name: data.photoAsset.fileName || `complaint_${Date.now()}.jpg`,
+            type: data.photoAsset.mimeType || "image/jpeg",
+          } as any);
+        }
+        return form;
+      };
+
+      result = await submitMultipartWithNetworkRecovery(createForm);
       if (!result?.photo_url || !result?.complaintId) {
         throw new ApiError("The complaint image could not be confirmed after upload. Please try again.", {
           code: "COMPLAINT_UPLOAD_INCOMPLETE",
