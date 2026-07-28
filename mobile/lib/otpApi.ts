@@ -1,9 +1,10 @@
 import { apiUrl } from "../constants/api";
 import { storeOtpVerificationToken } from "./api";
 import { safeUserMessage } from "./errorSafety";
+import { connectivityErrorMessage, getNetworkState } from "./networkStatus";
 import { deleteSessionSecret, getSessionSecret, setSessionSecret } from "./secureSessionStorage";
 
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 const DEFAULT_RESEND_SECONDS = 45;
 const OTP_SESSION_PREFIX = "connect_t_otp_session_v2";
 const ACTIVE_OTP_SESSION_KEY = `${OTP_SESSION_PREFIX}:active`;
@@ -39,9 +40,9 @@ function sessionKey(mobile: string, purpose: string) {
   return `${OTP_SESSION_PREFIX}:${normalizedMobile(mobile)}:${normalizedPurpose(purpose)}`;
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit) {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } finally {
@@ -49,7 +50,25 @@ async function fetchWithTimeout(url: string, init: RequestInit) {
   }
 }
 
-function safeOtpError(status: number, value: unknown, fallback: string) {
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryAfterMessage(code: string, retryAfterSeconds?: number) {
+  if (!retryAfterSeconds) return null;
+  if (code === "OTP_RATE_LIMITED") {
+    const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+    return `Too many OTP requests. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+  }
+  if (code === "OTP_RESEND_TOO_SOON") {
+    return `Please wait ${Math.max(1, Math.ceil(retryAfterSeconds))} seconds before requesting another OTP.`;
+  }
+  return null;
+}
+
+function safeOtpError(status: number, value: unknown, fallback: string, code = "", retryAfterSeconds?: number) {
+  const timedMessage = retryAfterMessage(code, retryAfterSeconds);
+  if (timedMessage) return timedMessage;
   if (status >= 500) return "OTP service is temporarily unavailable. Please try again after some time.";
   if (status === 429) return safeUserMessage(value, "Too many attempts. Please wait and try again.");
   if (status === 401 || status === 403 || status === 404) return fallback;
@@ -138,6 +157,26 @@ async function saveOtpSession(mobile: string, purpose: string, data: any, draft?
   return state;
 }
 
+async function sendOtpRequest(mobile: string, purpose: string) {
+  const body = JSON.stringify({ mobile, purpose });
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await fetchWithTimeout(apiUrl("/api/auth/send-otp"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0 && getNetworkState().quality !== "offline") await wait(1_200);
+    }
+  }
+
+  throw lastError;
+}
+
 export async function sendRealOtp(mobile: string, purpose = "login", draft?: OtpSessionDraft): Promise<OtpResult> {
   try {
     const mobile10 = normalizedMobile(mobile);
@@ -147,19 +186,16 @@ export async function sendRealOtp(mobile: string, purpose = "login", draft?: Otp
       return { success: false, error: "Enter valid 10-digit mobile number", code: "INVALID_MOBILE" };
     }
 
-    const res = await fetchWithTimeout(apiUrl("/api/auth/send-otp"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mobile: mobile10, purpose: normalizedOtpPurpose }),
-    });
+    const res = await sendOtpRequest(mobile10, normalizedOtpPurpose);
     const data = await readResponse(res);
     const retryAfterSeconds = Number(data?.retryAfterSeconds || 0) || undefined;
+    const code = data?.code ? String(data.code) : "";
 
     if (!res.ok || !data.success) {
       return {
         success: false,
-        error: safeOtpError(res.status, data.error || data.message, "OTP could not be sent. Please try again."),
-        code: data?.code ? String(data.code) : undefined,
+        error: safeOtpError(res.status, data.error || data.message, "OTP could not be sent. Please try again.", code, retryAfterSeconds),
+        code: code || undefined,
         retryAfterSeconds,
       };
     }
@@ -180,11 +216,13 @@ export async function sendRealOtp(mobile: string, purpose = "login", draft?: Otp
     };
   } catch (error) {
     const timedOut = error instanceof Error && error.name === "AbortError";
+    const message = await connectivityErrorMessage(
+      error,
+      "Your internet connection is slow. Keep the app open and try sending the OTP again.",
+    );
     return {
       success: false,
-      error: timedOut
-        ? "OTP request timed out. Check your connection and try again."
-        : "Failed to send OTP. Please try again.",
+      error: message,
       code: timedOut ? "OTP_TIMEOUT" : "OTP_NETWORK_ERROR",
     };
   }
@@ -220,15 +258,16 @@ export async function verifyRealOtp(mobile: string, otp: string, purpose = "logi
     });
     const data = await readResponse(res);
     const retryAfterSeconds = Number(data?.retryAfterSeconds || 0) || undefined;
+    const responseCode = data?.code ? String(data.code) : "";
 
     if (!res.ok || !data.success) {
-      if (["OTP_MAX_ATTEMPTS", "OTP_SESSION_EXPIRED", "OTP_SESSION_MISMATCH", "OTP_SESSION_REQUIRED"].includes(String(data?.code || ""))) {
+      if (["OTP_MAX_ATTEMPTS", "OTP_SESSION_EXPIRED", "OTP_SESSION_MISMATCH", "OTP_SESSION_REQUIRED"].includes(responseCode)) {
         await clearOtpSession(mobile10, normalizedOtpPurpose);
       }
       return {
         success: false,
-        error: safeOtpError(res.status, data.error || data.message, "The OTP is invalid or expired. Please try again."),
-        code: data?.code ? String(data.code) : undefined,
+        error: safeOtpError(res.status, data.error || data.message, "The OTP is invalid or expired. Please try again.", responseCode, retryAfterSeconds),
+        code: responseCode || undefined,
         retryAfterSeconds,
       };
     }
@@ -238,11 +277,13 @@ export async function verifyRealOtp(mobile: string, otp: string, purpose = "logi
     return { success: true, data };
   } catch (error) {
     const timedOut = error instanceof Error && error.name === "AbortError";
+    const message = await connectivityErrorMessage(
+      error,
+      "Your internet connection is slow. Keep the app open and try verifying the OTP again.",
+    );
     return {
       success: false,
-      error: timedOut
-        ? "OTP verification timed out. Check your connection and try again."
-        : "OTP verification failed. Please try again.",
+      error: message,
       code: timedOut ? "OTP_TIMEOUT" : "OTP_NETWORK_ERROR",
     };
   }
