@@ -6,7 +6,7 @@ const source = readFileSync(new URL("../lib/secureSessionStorage.ts", import.met
 
 test("native SecureStore keys encode OTP session separators", () => {
   assert.match(source, /export function toNativeSecureStoreKey/);
-  assert.match(source, /replace\(\/\[\^A-Za-z0-9\._-\]\\/g/);
+  assert.ok(source.includes('replace(/[^A-Za-z0-9._-]/g'));
   assert.match(source, /SecureStore\.setItemAsync\(secureKey/);
   assert.match(source, /SecureStore\.getItemAsync\(secureKey\)/);
   assert.match(source, /SecureStore\.deleteItemAsync\(toNativeSecureStoreKey\(key\)\)/);
