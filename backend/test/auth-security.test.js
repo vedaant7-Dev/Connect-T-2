@@ -112,14 +112,16 @@ test("incorrect OTP attempts remain retryable until the maximum is reached", asy
   );
 });
 
-test("OTP resend throttling is enforced", async () => {
-  const sendSms = async () => {};
-  await sendOtp({ mobile: "9123456789", purpose: "login", sendSms });
+test("a repeated OTP request reuses the active session after a lost network response", async () => {
+  let sends = 0;
+  const sendSms = async () => { sends += 1; };
+  const first = await sendOtp({ mobile: "9123456789", purpose: "login", sendSms });
+  const recovered = await sendOtp({ mobile: "9123456789", purpose: "login", sendSms });
 
-  await assert.rejects(
-    sendOtp({ mobile: "9123456789", purpose: "login", sendSms }),
-    (error) => error?.status === 429 && error?.code === "OTP_RESEND_TOO_SOON",
-  );
+  assert.equal(sends, 1);
+  assert.equal(recovered.sessionToken, first.sessionToken);
+  assert.equal(recovered.reused, true);
+  assert.ok(recovered.resendAfterSeconds > 0);
 });
 
 test("replacement OTP supersedes the previous session", async () => {

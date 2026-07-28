@@ -61,6 +61,27 @@ function nextRateState(mobile, now) {
   return previous;
 }
 
+function reusableActiveSession(mobile, purpose, now) {
+  const token = activeSessions.get(activeKey(mobile, purpose));
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session || session.expiresAt <= now) {
+    removeSession(token);
+    return null;
+  }
+  return { token, session };
+}
+
+function sessionPayload(token, session, resendAfterMs, reused = false) {
+  return {
+    sessionToken: token,
+    otpLength: 6,
+    expiresInSeconds: Math.max(1, Math.ceil((session.expiresAt - Date.now()) / 1000)),
+    resendAfterSeconds: Math.max(1, Math.ceil(resendAfterMs / 1000)),
+    reused,
+  };
+}
+
 async function sendOtp({ mobile: rawMobile, purpose = "login", sendSms }) {
   const mobile = normalizeMobile(rawMobile);
   const normalizedPurpose = cleanPurpose(purpose);
@@ -77,6 +98,13 @@ async function sendOtp({ mobile: rawMobile, purpose = "login", sendSms }) {
   const resendWait = rate.lastSentAt + RESEND_DELAY_MS - now;
 
   if (resendWait > 0) {
+    // A slow mobile connection can deliver the SMS but lose the HTTP response.
+    // Return the same still-valid session instead of sending another SMS or
+    // consuming another rate-limit slot. The user can then open the OTP screen
+    // and enter the code already received.
+    const reusable = reusableActiveSession(mobile, normalizedPurpose, now);
+    if (reusable) return sessionPayload(reusable.token, reusable.session, resendWait, true);
+
     throw new OtpError(
       "Please wait before requesting another OTP",
       429,
@@ -102,29 +130,22 @@ async function sendOtp({ mobile: rawMobile, purpose = "login", sendSms }) {
     throw new OtpError("OTP service is temporarily unavailable", 503, "SMS_UNAVAILABLE");
   }
 
-  // A successfully issued replacement OTP always supersedes the previous code
-  // for the same mobile and purpose. This guarantees one active verification
-  // transaction and prevents an older SMS from authenticating after resend.
   const key = activeKey(mobile, normalizedPurpose);
   const previousToken = activeSessions.get(key);
   if (previousToken) removeSession(previousToken);
 
-  sessions.set(sessionToken, {
+  const session = {
     mobile,
     purpose: normalizedPurpose,
     codeDigest: otpDigest(sessionToken, code),
     attempts: 0,
     expiresAt: now + OTP_TTL_MS,
-  });
+  };
+  sessions.set(sessionToken, session);
   activeSessions.set(key, sessionToken);
   rateLimits.set(mobile, { ...rate, count: rate.count + 1, lastSentAt: now });
 
-  return {
-    sessionToken,
-    otpLength: 6,
-    expiresInSeconds: OTP_TTL_MS / 1000,
-    resendAfterSeconds: RESEND_DELAY_MS / 1000,
-  };
+  return sessionPayload(sessionToken, session, RESEND_DELAY_MS, false);
 }
 
 function verifyOtp({ mobile: rawMobile, code: rawCode, purpose = "login", sessionToken }) {

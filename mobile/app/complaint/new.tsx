@@ -11,6 +11,7 @@ import { useComplaints, ComplaintCategory, ComplaintPhotoAsset } from "@/context
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getUserErrorMessage } from "@/lib/api";
+import { getNetworkState, probeNetwork } from "@/lib/networkStatus";
 
 const ORANGE = "#EA580C";
 const GREEN = "#059669";
@@ -139,13 +140,13 @@ export default function NewComplaintScreen() {
   const handleCamera = async () => {
     try {
       if (Platform.OS === "web") {
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.75, allowsMultipleSelection: false });
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.55, allowsMultipleSelection: false });
         if (!result.canceled && result.assets[0]) acceptPhoto(result.assets[0]);
         return;
       }
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") return showNotice(t("permissionNeeded"), t("cameraPermission"));
-      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.75 });
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.55 });
       if (!result.canceled && result.assets[0]) acceptPhoto(result.assets[0]);
     } catch {
       showNotice("Camera unavailable", "The camera could not be opened. Try the gallery or submit without an image.", "danger");
@@ -158,7 +159,7 @@ export default function NewComplaintScreen() {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) return showNotice("Photo permission needed", "Allow photo access to attach an image. You can still submit without one.");
       }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7, allowsMultipleSelection: false, selectionLimit: 1 });
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.5, allowsMultipleSelection: false, selectionLimit: 1 });
       if (!result.canceled && result.assets[0]) acceptPhoto(result.assets[0]);
     } catch {
       showNotice("Gallery unavailable", "The photo library could not be opened. Try again or submit without an image.", "danger");
@@ -174,6 +175,13 @@ export default function NewComplaintScreen() {
     if (!description.trim()) return showNotice(t("addDescAlert"), t("addDescMsg"));
     if (verifiedMobile.length !== 10) return showNotice("Verified mobile unavailable", "Log in again before submitting the complaint.", "danger");
     if (!location.trim()) return showNotice("Location Required", "Please enter the complaint location or nearby landmark manually.");
+
+    if (getNetworkState().quality === "offline") {
+      const network = await probeNetwork(6_000);
+      if (network.quality === "offline") {
+        return showNotice("Internet connection lost", "Reconnect to the internet and then submit your complaint. Your entered details are still saved on this screen.", "danger");
+      }
+    }
 
     setSubmitting(true);
     try {
@@ -199,7 +207,7 @@ export default function NewComplaintScreen() {
   const SubmitButton = ({ inline = false }: { inline?: boolean }) => (
     <TouchableOpacity style={[styles.submitBtn, inline && styles.inlineSubmit, submitting && { opacity: 0.7 }]} onPress={handleSubmit} disabled={submitting} activeOpacity={0.85} accessibilityRole="button" accessibilityState={{ disabled: submitting }}>
       <LinearGradient colors={[GREEN, "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.submitBtnGrad}>
-        {submitting ? <><ActivityIndicator color="white" /><Text style={styles.submitBtnText}>{photoAsset ? "Uploading image..." : "Submitting..."}</Text></> : <><Feather name="send" size={18} color="white" /><Text style={styles.submitBtnText}>{t("submitComplaint")}</Text></>}
+        {submitting ? <><ActivityIndicator color="white" /><Text style={styles.submitBtnText}>{photoAsset ? "Uploading image on your connection..." : "Submitting..."}</Text></> : <><Feather name="send" size={18} color="white" /><Text style={styles.submitBtnText}>{t("submitComplaint")}</Text></>}
       </LinearGradient>
     </TouchableOpacity>
   );

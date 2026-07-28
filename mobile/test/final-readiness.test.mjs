@@ -7,16 +7,19 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 
-test("API requests have bounded timeouts, safe errors, GET dedupe and mutation invalidation", () => {
+test("API requests have bounded low-network timeouts, safe errors, GET dedupe and mutation invalidation", () => {
   const api = read("lib/api.ts");
-  assert.match(api, /const REQUEST_TIMEOUT_MS = 15_000/);
-  assert.match(api, /const UPLOAD_TIMEOUT_MS = 60_000/);
+  const network = read("lib/networkStatus.ts");
+  assert.match(api, /const REQUEST_TIMEOUT_MS = 30_000/);
+  assert.match(api, /const UPLOAD_TIMEOUT_MS = 180_000/);
   assert.match(api, /new AbortController\(\)/);
   assert.match(api, /inFlightGets = new Map/);
   assert.match(api, /if \(pending\) return pending/);
   assert.match(api, /clearGetCache\(\)/);
   assert.match(api, /friendlyStatusMessage/);
-  assert.match(api, /React Native and browsers must generate the multipart boundary themselves/);
+  assert.match(api, /connectivityErrorMessage/);
+  assert.match(network, /Internet connection lost/);
+  assert.match(network, /quality: latencyMs >= 3_500 \? "slow" : "online"/);
   assert.doesNotMatch(api, /headers\["Content-Type"\] = "multipart\/form-data"/);
 });
 

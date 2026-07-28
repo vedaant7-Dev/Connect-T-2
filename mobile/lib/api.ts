@@ -1,9 +1,10 @@
 import { apiUrl } from "@/constants/api";
 import { safeUserMessage } from "@/lib/errorSafety";
+import { connectivityErrorMessage } from "@/lib/networkStatus";
 import { deleteSessionSecret, getSessionSecret, setSessionSecret } from "@/lib/secureSessionStorage";
 
-const REQUEST_TIMEOUT_MS = 15_000;
-const UPLOAD_TIMEOUT_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 180_000;
 const AUTH_TOKEN_KEY = "connect_t_auth_token_v1";
 const JOB_AUTH_TOKEN_KEY = "connect_t_job_auth_token_v1";
 const OTP_VERIFICATION_KEY = "connect_t_otp_verification_v1";
@@ -122,7 +123,6 @@ async function getAuthHeaders(path: string, body?: unknown, multipart = false) {
     : civicToken;
   const headers: Record<string, string> = {};
 
-  // React Native and browsers must generate the multipart boundary themselves.
   if (body !== undefined && !multipart) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
   if (otpVerification) headers["X-OTP-Verification"] = otpVerification;
@@ -181,6 +181,10 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = REQU
   }
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function parseSuccess<T>(res: Response, method: string, path: string): Promise<T> {
   if (res.status === 204) return {} as T;
   const text = await res.text().catch(() => "");
@@ -222,17 +226,33 @@ async function request<T = any>(
   }
 
   const promise = (async () => {
-    let res: Response;
-    try {
-      res = await fetchWithTimeout(url, {
-        method,
-        headers: await getAuthHeaders(path, body),
-        body: body === undefined ? undefined : JSON.stringify(body),
-      });
-    } catch (error) {
-      const internalMessage = error instanceof Error ? error.message : String(error || "Network request failed");
-      throw new ApiError("Unable to connect right now. Check your internet and try again.", { internalMessage });
+    let res: Response | undefined;
+    let lastTransportError: unknown;
+    const attempts = method === "GET" ? 2 : 1;
+
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        res = await fetchWithTimeout(url, {
+          method,
+          headers: await getAuthHeaders(path, body),
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        break;
+      } catch (error) {
+        lastTransportError = error;
+        if (attempt + 1 < attempts) await wait(900);
+      }
     }
+
+    if (!res) {
+      const internalMessage = lastTransportError instanceof Error ? lastTransportError.message : String(lastTransportError || "Network request failed");
+      const message = await connectivityErrorMessage(
+        lastTransportError,
+        "Your internet connection is slow. Keep the app open and try again.",
+      );
+      throw new ApiError(message, { code: "NETWORK_UNAVAILABLE", internalMessage });
+    }
+
     await assertResponse(res, method, path);
     return parseSuccess<T>(res, method, path);
   })();
@@ -258,7 +278,11 @@ export async function apiPostForm<T = any>(path: string, form: FormData): Promis
     }, UPLOAD_TIMEOUT_MS);
   } catch (error) {
     const internalMessage = error instanceof Error ? error.message : String(error || "Upload failed");
-    throw new ApiError("The upload could not be completed. Check your connection and try again.", { internalMessage });
+    const message = await connectivityErrorMessage(
+      error,
+      "Your internet connection is slow. Keep the app open while the image uploads and try again.",
+    );
+    throw new ApiError(message, { code: "UPLOAD_NETWORK_UNAVAILABLE", internalMessage });
   }
   await assertResponse(res, "POST", path);
   return parseSuccess<T>(res, "POST", path);
