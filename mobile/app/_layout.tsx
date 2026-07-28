@@ -18,6 +18,7 @@ import { Feather } from "@expo/vector-icons";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplash, SplashPortal } from "@/components/AppSplash";
 import CivicBroadcastExperience from "@/components/CivicBroadcastExperience";
+import NetworkStatusBanner from "@/components/NetworkStatusBanner";
 import { ComplaintProvider } from "@/context/ComplaintContext";
 import { AlertProvider } from "@/context/AlertContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -137,6 +138,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
+      <NetworkStatusBanner />
       {bootChecked && !splashDone && !user && <AppSplash onFinish={handleFinish} />}
     </>
   );
