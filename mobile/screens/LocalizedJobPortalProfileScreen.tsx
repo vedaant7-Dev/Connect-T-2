@@ -285,33 +285,26 @@ export default function LocalizedJobPortalProfileScreen() {
     setEditVisible(true);
   };
 
-  const pickPhoto = async () => {
-    setFormError("");
-    if (Platform.OS !== "web") {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setFormError(c("photoPermissionBody"));
-        return;
-      }
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.55,
-    });
-    const asset = result.canceled ? null : result.assets[0];
+  const acceptProfilePhoto = (asset?: ImagePicker.ImagePickerAsset | null) => {
     if (!asset) return;
     const mime = String(asset.mimeType || "").toLowerCase();
-    if (mime && !["image/jpeg", "image/png", "image/webp"].includes(mime)) {
-      setFormError(c("unsupportedImageBody"));
-      return;
-    }
-    if (asset.fileSize && asset.fileSize > MAX_PROFILE_PHOTO_BYTES) {
-      setFormError(c("imageTooLargeBody"));
-      return;
-    }
+    if (mime && !["image/jpeg", "image/png", "image/webp"].includes(mime)) return setFormError(c("unsupportedImageBody"));
+    if (asset.fileSize && asset.fileSize > MAX_PROFILE_PHOTO_BYTES) return setFormError(c("imageTooLargeBody"));
     setField("profilePhoto", asset.uri);
+  };
+  const pickPhotoFromGallery = async () => {
+    setFormError("");
+    if (Platform.OS !== "web") { const permission = await ImagePicker.requestMediaLibraryPermissionsAsync(); if (!permission.granted) return setFormError(c("photoPermissionBody")); }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1,1], quality: 0.55 });
+    acceptProfilePhoto(result.canceled ? null : result.assets[0]);
+  };
+  const pickPhotoFromCamera = async () => {
+    setFormError("");
+    if (Platform.OS === "web") return pickPhotoFromGallery();
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return setFormError("Allow camera access to take a profile photo.");
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1,1], quality: 0.55 });
+    acceptProfilePhoto(result.canceled ? null : result.assets[0]);
   };
 
   const saveProfile = async () => {
@@ -486,11 +479,11 @@ export default function LocalizedJobPortalProfileScreen() {
             <View style={styles.editorHeader}><Text style={styles.editorTitle}>{c("editProfile")}</Text><TouchableOpacity style={styles.closeButton} onPress={() => setEditVisible(false)} disabled={saving} accessibilityLabel="Close"><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View>
             <AppScrollView contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets>
               <View style={styles.photoEditRow}>
-                <TouchableOpacity style={[styles.photoEdit, { backgroundColor: jobsUser.avatarColor || ORANGE }]} onPress={pickPhoto} accessibilityLabel={c("changePhoto")}>
+                <TouchableOpacity style={[styles.photoEdit, { backgroundColor: jobsUser.avatarColor || ORANGE }]} onPress={pickPhotoFromGallery} accessibilityLabel={c("changePhoto")}>
                   {form.profilePhoto ? <Image source={{ uri: form.profilePhoto }} style={styles.photoEditImage} /> : <Text style={styles.photoEditText}>{initials(form.name)}</Text>}
                   <View style={styles.photoCamera}><Feather name="camera" size={13} color="white" /></View>
                 </TouchableOpacity>
-                <View style={{ flex: 1 }}><Text style={styles.actionTitle}>{c("changePhoto")}</Text><TouchableOpacity onPress={() => setField("profilePhoto", null)}><Text style={styles.removePhotoText}>{c("removePhoto")}</Text></TouchableOpacity></View>
+                <View style={{ flex: 1 }}><Text style={styles.actionTitle}>{c("changePhoto")}</Text><View style={styles.photoSourceRow}><TouchableOpacity style={styles.photoSourceButton} onPress={pickPhotoFromCamera}><Feather name="camera" size={14} color={ORANGE} /><Text style={styles.photoSourceText}>Camera</Text></TouchableOpacity><TouchableOpacity style={styles.photoSourceButton} onPress={pickPhotoFromGallery}><Feather name="image" size={14} color={ORANGE} /><Text style={styles.photoSourceText}>Gallery</Text></TouchableOpacity></View><TouchableOpacity onPress={() => setField("profilePhoto", null)}><Text style={styles.removePhotoText}>{c("removePhoto")}</Text></TouchableOpacity></View>
               </View>
 
               <InputField label={`${c("fullName")} *`} value={form.name} onChangeText={(value) => setField("name", value)} placeholder={c("fullNamePlaceholder")} autoCapitalize="words" maxLength={160} />
@@ -622,6 +615,9 @@ const styles = StyleSheet.create({
   photoEditImage: { width: "100%", height: "100%", borderRadius: 24 },
   photoEditText: { color: "white", fontSize: 22, fontFamily: "Inter_700Bold" },
   photoCamera: { position: "absolute", right: -3, bottom: -3, width: 28, height: 28, borderRadius: 14, backgroundColor: ORANGE, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "white" },
+  photoSourceRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 7 },
+  photoSourceButton: { minHeight: 36, paddingHorizontal: 10, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" },
+  photoSourceText: { color: ORANGE, fontSize: 11, fontFamily: "Inter_600SemiBold" },
   removePhotoText: { marginTop: 5, color: "#DC2626", fontSize: 12, fontFamily: "Inter_600SemiBold" },
   formGroup: { marginBottom: 14 },
   formLabel: { marginBottom: 6, color: "#475569", fontSize: 11.5, fontFamily: "Inter_700Bold" },

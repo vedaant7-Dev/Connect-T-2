@@ -14,8 +14,11 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
 import * as FileSystem from "expo-file-system/legacy";
-import * as MediaLibrary from "expo-media-library";
+import * as MediaLibrary from "expo-media-library/legacy";
 import * as Sharing from "expo-sharing";
+import { buildApiUrl } from "@/constants/api";
+
+// DEVICE_REPORTED_FIXES_V105
 
 type MediaKind = "image" | "video";
 
@@ -28,6 +31,13 @@ type Props = {
 
 const VIDEO_EXTENSIONS = new Set(["mp4", "m4v", "mov", "webm", "3gp", "3gpp", "mkv", "avi"]);
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"]);
+
+export function resolveComplaintMediaUri(uri?: string | null) {
+  const value = String(uri || "").trim();
+  if (!value) return "";
+  if (/^(?:https?:|data:|file:|content:)/i.test(value)) return value;
+  return buildApiUrl(value.startsWith("/") ? value : `/${value}`);
+}
 
 export function inferComplaintMediaKind(uri?: string | null): MediaKind {
   const value = String(uri || "").trim().toLowerCase();
@@ -125,7 +135,7 @@ function ActionButton({ icon, label, onPress, busy, accentColor }: { icon: any; 
 }
 
 export default function ComplaintMediaViewer({ uri, title = "Complaint evidence", label = "Complaint evidence", accentColor = "#EA580C" }: Props) {
-  const safeUri = String(uri || "").trim();
+  const safeUri = resolveComplaintMediaUri(uri);
   const kind = inferComplaintMediaKind(safeUri);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [busyAction, setBusyAction] = useState<"save" | "share" | null>(null);

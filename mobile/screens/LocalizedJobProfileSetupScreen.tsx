@@ -84,7 +84,7 @@ export default function LocalizedJobProfileSetupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { activateJobs } = useJobsAuth();
+  const { activateJobsFromOnboarding } = useJobsAuth();
   const { language } = useLanguage();
   const c = (key: JobsCopyKey) => jobsCopy(language, key);
 
@@ -102,7 +102,6 @@ export default function LocalizedJobProfileSetupScreen() {
   const [currentStatus, setCurrentStatus] = useState<CurrentStatus>("fresher");
   const [company, setCompany] = useState("");
   const [industry, setIndustry] = useState("");
-  const [hiringCategories, setHiringCategories] = useState("");
   const [companyDescription, setCompanyDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -156,7 +155,6 @@ export default function LocalizedJobProfileSetupScreen() {
     } else {
       if (company.trim().length < 2) return c("validationCompany");
       if (industry.trim().length < 2) return c("validationIndustry");
-      if (hiringCategories.trim().length < 2) return c("validationHiring");
       if (companyDescription.trim().length < 10) return c("validationDescription");
     }
     return "";
@@ -179,7 +177,7 @@ export default function LocalizedJobProfileSetupScreen() {
         location: location.trim(),
         address: location.trim(),
       };
-      await apiPost("/api/job-portal/onboarding", role === "seeker" ? {
+      const response = await apiPost<any>("/api/job-portal/onboarding", role === "seeker" ? {
         ...common,
         qualification: qualification.trim(),
         skills: skills.trim(),
@@ -192,11 +190,10 @@ export default function LocalizedJobProfileSetupScreen() {
         company: company.trim(),
         contactPerson: name.trim(),
         industry: industry.trim(),
-        about: hiringCategories.trim(),
         companyDescription: companyDescription.trim(),
         whatsapp: user?.mobile,
       });
-      await activateJobs(role);
+      await activateJobsFromOnboarding(response.user || response.data || response, response.token);
       router.replace("/jobs/(tabs)" as any);
     } catch (err) {
       setError(getUserErrorMessage(err, c("setupFailed")));
@@ -292,7 +289,6 @@ export default function LocalizedJobProfileSetupScreen() {
                   <>
                     <Field label={`${c("companyName")} *`} value={company} onChangeText={setCompany} placeholder={c("businessNamePlaceholder")} />
                     <Field label={`${c("industry")} *`} value={industry} onChangeText={setIndustry} placeholder={c("industryPlaceholder")} />
-                    <Field label={`${c("hiringCategories")} *`} value={hiringCategories} onChangeText={setHiringCategories} placeholder={c("hiringCategoriesPlaceholder")} multiline />
                     <Field label={`${c("businessDescription")} *`} value={companyDescription} onChangeText={setCompanyDescription} placeholder={c("businessDescriptionPlaceholder")} multiline />
                     <Field label={`${c("businessLocation")} *`} value={location} onChangeText={setLocation} placeholder={c("businessLocationPlaceholder")} multiline />
                   </>
