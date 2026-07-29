@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, apiGet, apiPatch, apiPost, apiPostForm, isApiError } from "@/lib/api";
+import { ApiError, apiGet, apiPatch, apiPost, isApiError } from "@/lib/api";
+import { uploadComplaintForm } from "@/lib/complaintUpload";
 import { getNetworkState, probeNetwork } from "@/lib/networkStatus";
 
 export type ComplaintStatus = "submitted" | "assigned" | "in_progress" | "resolved" | "rejected";
@@ -166,7 +167,7 @@ async function submitMultipartWithNetworkRecovery(createForm: () => FormData) {
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      return await apiPostForm<any>("/api/complaints", createForm());
+      return await uploadComplaintForm<any>(createForm());
     } catch (error) {
       lastError = error;
       if (!isApiError(error) || error.status !== undefined) throw error;
@@ -178,6 +179,22 @@ async function submitMultipartWithNetworkRecovery(createForm: () => FormData) {
     }
   }
 
+  throw lastError;
+}
+
+async function submitJsonWithNetworkRecovery(payload: Record<string, unknown>) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await apiPost<any>("/api/complaints", payload);
+    } catch (error) {
+      lastError = error;
+      if (!isApiError(error) || error.status !== undefined || attempt === 1) throw error;
+      const network = getNetworkState().quality === "offline" ? await probeNetwork(10_000) : getNetworkState();
+      if (network.quality === "offline") throw error;
+      await wait(1_500);
+    }
+  }
   throw lastError;
 }
 
@@ -286,7 +303,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       }
       submittedPhoto = String(result.photo_url);
     } else {
-      result = await apiPost<any>("/api/complaints", {
+      result = await submitJsonWithNetworkRecovery({
         ...payload,
         id: clientRequestId,
         client_request_id: clientRequestId,

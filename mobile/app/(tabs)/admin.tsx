@@ -1,5 +1,6 @@
 import { AppScrollView } from "@/components/AppScrollView";
 import AppTimePicker, { formatTimeLabel } from "@/components/AppTimePicker";
+import UtilityStatusManager from "@/components/UtilityStatusManager";
 import React, { useCallback, useEffect, useState } from "react";
 import { Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -422,6 +423,8 @@ export default function AdminScreen() {
             <Text style={styles.postUtilityText}>{utilitySaving ? "Posting..." : assignedWard ? "Post Utility Update" : "Ward Not Assigned"}</Text>
           </TouchableOpacity>
         </View>
+
+        <UtilityStatusManager ward={assignedWard} wardCode={assignedWardCode} />
 
         <View style={styles.dashboardGrid}>
           {dashboardFilters.map((item) => (

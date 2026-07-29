@@ -2,10 +2,10 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import { AppState, AppStateStatus, Platform } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
-import { apiGet, apiPatch, apiPost, getUserErrorMessage, isApiError } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost, getUserErrorMessage, isApiError } from "@/lib/api";
 import { uploadBroadcastForm } from "@/lib/broadcastUpload";
 
-export type BroadcastStatus = "draft" | "scheduled" | "sent" | "archived";
+export type BroadcastStatus = "draft" | "scheduled" | "sent" | "paused";
 export type BroadcastAudience = "all" | "citizen" | "nagarsevak" | "seeker" | "employer";
 export type BroadcastLanguage = "en" | "mr" | "hi";
 export type BroadcastMediaType = "image" | "video";
@@ -66,7 +66,9 @@ type BroadcastContextValue = {
   uploadProgress: number | null;
   refreshBroadcasts: () => Promise<void>;
   createBroadcast: (data: NewBroadcast) => Promise<AppBroadcast>;
-  archiveBroadcast: (id: string) => Promise<void>;
+  pauseBroadcast: (id: string) => Promise<void>;
+  resumeBroadcast: (id: string) => Promise<void>;
+  deleteBroadcast: (id: string) => Promise<void>;
   markBroadcastRead: (id: string) => Promise<void>;
 };
 
@@ -78,6 +80,7 @@ function toBoolean(value: unknown) {
 
 function normalizeBroadcast(raw: any): AppBroadcast {
   const rawMediaType = raw.mediaType || raw.media_type;
+  const rawStatus = String(raw.status || "sent").toLowerCase();
   return {
     id: String(raw.id),
     title: String(raw.title || "Broadcast"),
@@ -88,7 +91,7 @@ function normalizeBroadcast(raw: any): AppBroadcast {
       ? raw.audienceRole || raw.audience_role
       : "all",
     ward: raw.ward || undefined,
-    status: ["draft", "scheduled", "archived"].includes(raw.status) ? raw.status : "sent",
+    status: ["draft", "scheduled", "paused"].includes(rawStatus) ? rawStatus as BroadcastStatus : "sent",
     scheduledAt: raw.scheduledAt || raw.scheduled_at || undefined,
     sentAt: raw.sentAt || raw.sent_at || undefined,
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
@@ -112,13 +115,8 @@ function normalizeBroadcast(raw: any): AppBroadcast {
 
 function broadcastFingerprint(data: NewBroadcast) {
   return JSON.stringify({
-    title: data.title.trim(),
-    body: data.body.trim(),
-    category: data.category,
-    language: data.language,
-    audienceRole: data.audienceRole,
-    ward: data.ward || "",
-    scheduledAt: data.scheduledAt || "",
+    title: data.title.trim(), body: data.body.trim(), category: data.category, language: data.language,
+    audienceRole: data.audienceRole, ward: data.ward || "", scheduledAt: data.scheduledAt || "",
     media: data.media ? `${data.media.fileName}:${data.media.sizeBytes || 0}:${data.media.durationMs || 0}` : "",
   });
 }
@@ -129,7 +127,7 @@ function makeIdempotencyKey() {
 
 function routeAwareMessage(error: unknown, fallback: string) {
   if (isApiError(error) && error.code === "ROUTE_NOT_FOUND") {
-    return "Broadcast API is not deployed on the connected backend. Redeploy the connect-t-2 backend from the latest main branch, then try again.";
+    return "Broadcast API is not deployed on the connected backend. Redeploy the connect-t-2 backend and try again.";
   }
   return getUserErrorMessage(error, fallback);
 }
@@ -148,18 +146,9 @@ function buildBroadcastForm(data: NewBroadcast, idempotencyKey: string) {
   appendField(form, "ward", data.ward);
   appendField(form, "scheduledAt", data.scheduledAt);
   appendField(form, "idempotencyKey", idempotencyKey);
-
-  const media = data.media;
-  if (media) {
-    if (Platform.OS === "web" && media.webFile) {
-      form.append("media", media.webFile, media.fileName);
-    } else {
-      form.append("media", {
-        uri: media.uri,
-        name: media.fileName,
-        type: media.mimeType,
-      } as any);
-    }
+  if (data.media) {
+    if (Platform.OS === "web" && data.media.webFile) form.append("media", data.media.webFile, data.media.fileName);
+    else form.append("media", { uri: data.media.uri, name: data.media.fileName, type: data.media.mimeType } as any);
   }
   return form;
 }
@@ -174,11 +163,7 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
   const pendingIdempotencyKeys = useRef(new Map<string, string>());
 
   const refreshBroadcasts = useCallback(async () => {
-    if (!user) {
-      setBroadcasts([]);
-      setError("");
-      return;
-    }
+    if (!user) { setBroadcasts([]); setError(""); return; }
     if (refreshing.current) return refreshing.current;
     const request = (async () => {
       setLoading(true);
@@ -199,12 +184,7 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user) {
-      setBroadcasts([]);
-      setUploadProgress(null);
-      pendingIdempotencyKeys.current.clear();
-      return;
-    }
+    if (!user) { setBroadcasts([]); setUploadProgress(null); pendingIdempotencyKeys.current.clear(); return; }
     void refreshBroadcasts().catch(() => undefined);
   }, [refreshBroadcasts, user?.id]);
 
@@ -221,7 +201,6 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
     const idempotencyKey = pendingIdempotencyKeys.current.get(fingerprint) || data.idempotencyKey || makeIdempotencyKey();
     pendingIdempotencyKeys.current.set(fingerprint, idempotencyKey);
     setUploadProgress(data.media ? 0 : null);
-
     try {
       const result = data.media
         ? await uploadBroadcastForm<{ broadcast: any }>("/api/broadcasts", buildBroadcastForm(data, idempotencyKey), setUploadProgress)
@@ -240,31 +219,33 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const archiveBroadcast = useCallback(async (id: string) => {
-    await apiPatch(`/api/broadcasts/${encodeURIComponent(id)}`, { action: "archive" });
+  const runAction = useCallback(async (id: string, action: "pause" | "resume") => {
+    const result = await apiPatch<{ broadcast?: any }>(`/api/broadcasts/${encodeURIComponent(id)}`, { action });
+    setBroadcasts((current) => current.map((item) => item.id === id
+      ? result.broadcast ? normalizeBroadcast(result.broadcast) : { ...item, status: action === "pause" ? "paused" : "sent" }
+      : item));
+  }, []);
+
+  const pauseBroadcast = useCallback((id: string) => runAction(id, "pause"), [runAction]);
+  const resumeBroadcast = useCallback((id: string) => runAction(id, "resume"), [runAction]);
+  const deleteBroadcast = useCallback(async (id: string) => {
+    await apiDelete(`/api/broadcasts/${encodeURIComponent(id)}`);
     setBroadcasts((current) => current.filter((item) => item.id !== id));
   }, []);
 
   const markBroadcastRead = useCallback(async (id: string) => {
     setBroadcasts((current) => current.map((item) => item.id === id ? { ...item, isRead: true } : item));
-    try {
-      await apiPost(`/api/broadcasts/${encodeURIComponent(id)}/read`, {});
-    } catch (requestError) {
+    try { await apiPost(`/api/broadcasts/${encodeURIComponent(id)}/read`, {}); }
+    catch (requestError) {
       setBroadcasts((current) => current.map((item) => item.id === id ? { ...item, isRead: false } : item));
       throw requestError;
     }
   }, []);
 
   const value = useMemo(() => ({
-    broadcasts,
-    loading,
-    error,
-    uploadProgress,
-    refreshBroadcasts,
-    createBroadcast,
-    archiveBroadcast,
-    markBroadcastRead,
-  }), [archiveBroadcast, broadcasts, createBroadcast, error, loading, markBroadcastRead, refreshBroadcasts, uploadProgress]);
+    broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast,
+    pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead,
+  }), [broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead]);
 
   return <BroadcastContext.Provider value={value}>{children}</BroadcastContext.Provider>;
 }
