@@ -37,7 +37,28 @@ def tidy_official_updates(text: str) -> str:
     return text
 
 
+def fix_home_video(text: str) -> str:
+    import_line = 'import { AppScrollView } from "@/components/AppScrollView";\n'
+    if 'import ComplaintMediaViewer from "@/components/ComplaintMediaViewer";' not in text:
+        if import_line not in text:
+            raise RuntimeError("Home import marker not found")
+        text = text.replace(
+            import_line,
+            import_line + 'import ComplaintMediaViewer from "@/components/ComplaintMediaViewer";\n',
+            1,
+        )
+    old = '<InlineVideo uri={selectedAlert.media.uri} style={styles.modalVideoPlayer} />'
+    if old not in text:
+        raise RuntimeError("Home InlineVideo usage not found")
+    return text.replace(
+        old,
+        '<ComplaintMediaViewer uri={selectedAlert.media.uri} title={selectedAlert.title} label="Official video" accentColor="#EA580C" />',
+        1,
+    )
+
+
 update("mobile/screens/BroadcastCenterMediaScreen.tsx", remove_broadcast_preview)
+update("mobile/app/(tabs)/index.tsx", fix_home_video)
 for relative in [
     "mobile/screens/OfficialUpdatesMediaScreen.tsx",
     "mobile/screens/OfficialUpdatesScreen.tsx",
