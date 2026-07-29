@@ -1133,9 +1133,16 @@ app.post("/api/users", async (req, res) => {
       return res.status(400).json({ success: false, error: "Enter a valid 10 digit office contact number" });
     }
 
-    const savedProfilePhoto = profile_photo === undefined
+    const requestedProfilePhoto = profile_photo === undefined
+      ? undefined
+      : String(profile_photo || "").trim();
+    const savedProfilePhoto = requestedProfilePhoto === undefined
       ? existing?.profile_photo || null
-      : await saveDataUriToUploads(profile_photo, "profile", req, { allowedMimeTypes: IMAGE_MIME_TYPES });
+      : !requestedProfilePhoto
+        ? null
+        : requestedProfilePhoto === String(existing?.profile_photo || "")
+          ? existing.profile_photo
+          : await saveDataUriToUploads(requestedProfilePhoto, "profile", req, { allowedMimeTypes: IMAGE_MIME_TYPES });
 
     await db.query(
       `INSERT INTO users
@@ -1216,7 +1223,8 @@ app.post("/api/users", async (req, res) => {
       }),
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.warn("[Connect-T] Profile save failed:", err?.code || err?.name || "profile_save_error");
+    res.status(500).json({ success: false, message: "Profile could not be saved right now. Please try again." });
   }
 });
 

@@ -22,7 +22,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { CurrentStatus, JobsUserRole, useJobsAuth } from "@/context/JobsAuthContext";
 import { jobsCopy, JobsCopyKey } from "@/i18n/jobsCopy";
-import { apiPost, clearJobsAuthToken, getUserErrorMessage } from "@/lib/api";
+import { apiPost, getUserErrorMessage } from "@/lib/api";
 
 const ORANGE = "#EA580C";
 const DARK = "#C2410C";
@@ -173,7 +173,6 @@ export default function LocalizedJobProfileSetupScreen() {
     setLoading(true);
     setError("");
     try {
-      await clearJobsAuthToken();
       const common = {
         role,
         name: name.trim(),
@@ -223,7 +222,6 @@ export default function LocalizedJobProfileSetupScreen() {
         <View style={s.headCenter}>
           <View style={s.headIcon}><Feather name="briefcase" size={23} color={ORANGE} /></View>
           <Text style={s.title}>{c("setupTitle")}</Text>
-          <Text style={s.sub}>{c("setupSubtitle")}</Text>
         </View>
       </LinearGradient>
 

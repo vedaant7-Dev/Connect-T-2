@@ -75,6 +75,12 @@ function normalizedProfilePhoto(raw: any): string | undefined {
   return raw?.profilePhoto || raw?.profile_photo || undefined;
 }
 
+function normalizedDob(value: any): string | undefined {
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1];
+}
+
 function normalizeUser(raw: any): User {
   const role = normalizeRole(raw.role);
   const mobile = normalizeMobile(raw.mobile || raw.phone || raw.contactNumber);
@@ -97,7 +103,7 @@ function normalizeUser(raw: any): User {
     isSuperAdmin,
     approvalStatus: raw.approvalStatus || raw.approval_status || undefined,
     age: raw.age === undefined || raw.age === null ? undefined : Number(raw.age),
-    dob: raw.dob || undefined,
+    dob: normalizedDob(raw.dob),
     email: raw.email || undefined,
     address: raw.address || undefined,
     contactNumber: raw.contactNumber || raw.contact_number || undefined,
@@ -140,7 +146,7 @@ async function upsertBackendUser(
 
   const profilePhoto = profilePhotoSpecified
     ? await toUploadableMediaUri(profilePhotoOverride)
-    : await toUploadableMediaUri(user.profilePhoto);
+    : undefined;
   const response = await apiPost<any>("/api/users", {
     id: user.id,
     name: user.name,
@@ -157,7 +163,7 @@ async function upsertBackendUser(
     address: user.address || null,
     nagarsevak_id: user.role === "nagarsevak" ? user.nagarsevakId || user.id : null,
     avatar_color: user.avatarColor || null,
-    profile_photo: profilePhoto,
+    profile_photo: profilePhotoSpecified ? profilePhoto : undefined,
     notify_email: user.notifyEmail ? 1 : 0,
     notify_whatsapp: user.notifyWhatsapp ? 1 : 0,
     approval_status: user.role === "nagarsevak" ? undefined : "approved",
@@ -173,7 +179,11 @@ async function upsertBackendUser(
 
   return normalizeUser({
     ...user,
-    profilePhoto: responseHasPhoto ? response.profilePhoto : profilePhoto || undefined,
+    profilePhoto: responseHasPhoto
+      ? response.profilePhoto
+      : profilePhotoSpecified
+        ? profilePhoto || undefined
+        : user.profilePhoto,
     wardChanged: response?.wardChanged ?? user.wardChanged ?? false,
   });
 }
@@ -190,15 +200,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (stored) await AsyncStorage.removeItem(SESSION_KEY);
           return;
         }
+        let cachedUser: User | null = null;
+        try {
+          cachedUser = normalizeUser(JSON.parse(stored));
+        } catch {
+          await AsyncStorage.removeItem(SESSION_KEY);
+          await clearAuthToken();
+          return;
+        }
         try {
           const session = await apiGet<any>("/api/auth/session");
           if (!session?.user) throw new Error("SESSION_INVALID");
           const verifiedUser = normalizeUser(session.user);
           setUser(verifiedUser);
           await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(verifiedUser));
-        } catch {
-          await AsyncStorage.removeItem(SESSION_KEY);
-          await clearAuthToken();
+        } catch (error) {
+          const sessionRejected = isApiError(error) && [401, 403].includes(error.status || 0);
+          if (sessionRejected) {
+            await AsyncStorage.removeItem(SESSION_KEY);
+            await clearAuthToken();
+          } else {
+            setUser(cachedUser);
+          }
         }
       })
       .catch(() => setUser(null))
@@ -288,7 +311,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = async (updates: UserUpdates) => {
     if (!user) return;
-    const profilePhotoSpecified = Object.prototype.hasOwnProperty.call(updates, "profilePhoto");
+    const requestedPhotoUpdate = Object.prototype.hasOwnProperty.call(updates, "profilePhoto");
+    const profilePhotoSpecified = requestedPhotoUpdate &&
+      (updates.profilePhoto ?? null) !== (user.profilePhoto ?? null);
     const updated: User = normalizeUser({
       ...user,
       ...updates,
