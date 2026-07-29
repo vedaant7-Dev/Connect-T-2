@@ -115,8 +115,8 @@ async function getAuthHeaders(path: string, body?: unknown, multipart = false) {
 
   if (storedCivicToken && !civicToken) void deleteSessionSecret(AUTH_TOKEN_KEY);
   if (storedJobsToken && !jobsToken) void deleteSessionSecret(JOB_AUTH_TOKEN_KEY);
-  const isUnifiedJobsSession = path === "/api/job-portal/session";
-  const token = path.startsWith("/api/job-portal/") && !isUnifiedJobsSession
+  const usesCivicJobSession = path === "/api/job-portal/session" || path === "/api/job-portal/onboarding";
+  const token = path.startsWith("/api/job-portal/") && !usesCivicJobSession
     ? isSuperAdminToken(civicToken)
       ? civicToken
       : jobsToken || civicToken
