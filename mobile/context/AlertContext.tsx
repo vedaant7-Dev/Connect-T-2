@@ -294,10 +294,17 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     setAlerts((items) => items.filter((item) => item.id !== id));
     try {
       await apiDelete(`/api/alerts/${encodeURIComponent(id)}`);
-      await refreshAlerts();
     } catch (requestError) {
       setAlerts(previous);
       throw requestError;
+    }
+
+    // The delete already succeeded. A temporary refresh failure must not
+    // restore the removed card and make the delete look unsuccessful.
+    try {
+      await refreshAlerts();
+    } catch {
+      // Pull-to-refresh or the next app resume will retry the authoritative list.
     }
   };
 

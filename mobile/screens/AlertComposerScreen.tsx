@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -122,22 +122,12 @@ export default function AlertComposerScreen() {
   const [publishAtText, setPublishAtText] = useState("");
   const [expiryText, setExpiryText] = useState("");
   const [image, setImage] = useState<ImageAsset | null>(null);
-  const [previewVisible, setPreviewVisible] = useState(false);
   const [wardVisible, setWardVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const theme = TYPE_OPTIONS.find((item) => item.key === type) || TYPE_OPTIONS[0];
   const effectiveWard = isSuperAdmin ? (audience === "all" ? undefined : ward) : user?.ward;
-
-  const previewMeta = useMemo(() => [
-    typeLabel(type, c),
-    priorityLabel(priority, c),
-    languageLabel(contentLanguage),
-    effectiveWard || c("allCitizens"),
-    modeLabel(mode, c),
-  ].join(" · "), [contentLanguage, effectiveWard, interfaceLanguage, mode, priority, type]);
 
   if (!canPublish) {
     return (
@@ -221,13 +211,10 @@ export default function AlertComposerScreen() {
       <LinearGradient colors={["#052E16", "#166534", GREEN]} style={[styles.header, { paddingTop: (Platform.OS === "web" ? 54 : insets.top) + 10 }]}>
         <TouchableOpacity style={styles.back} onPress={() => router.canGoBack() ? router.back() : router.replace("/alert/list" as any)}><Feather name="chevron-left" size={20} color="white" /><Text style={styles.backText}>{c("back")}</Text></TouchableOpacity>
         <Text style={styles.headerTitle}>{c("title")}</Text>
-        <Text style={styles.headerSub}>{c("subtitle")}</Text>
       </LinearGradient>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <AppScrollView contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 12) + 36 }]} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
-          {!isSuperAdmin ? <View style={styles.scope}><Feather name="shield" size={15} color="#166534" /><Text style={styles.scopeText}>{c("scopeOfficer")} {user?.ward ? `(${user.ward})` : ""}</Text></View> : null}
-
           <Text style={styles.label}>{c("type")}</Text>
           <View style={styles.choices}>{TYPE_OPTIONS.map((item) => <ChoiceButton key={item.key} active={type === item.key} label={typeLabel(item.key, c)} icon={item.icon} color={item.color} background={item.bg} onPress={() => setType(item.key)} />)}</View>
 
@@ -253,32 +240,20 @@ export default function AlertComposerScreen() {
 
           <Text style={styles.label}>{c("schedule")}</Text>
           <View style={styles.choices}>{MODE_OPTIONS.map((item) => <ChoiceButton key={item} active={mode === item} label={modeLabel(item, c)} icon={item === "draft" ? "file" : item === "scheduled" ? "clock" : "send"} onPress={() => setMode(item)} />)}</View>
-          {mode === "scheduled" ? <><Text style={styles.label}>{c("publishAt")} *</Text><AppDateTimePicker value={publishAtText} onChange={setPublishAtText} placeholder={c("selectDateTime")} minimumDate={new Date(Date.now() + 60_000)} accessibilityLabel={c("publishAt")} /><Text style={styles.help}>{c("dateHint")}</Text></> : null}
-          {mode !== "draft" ? <><Text style={styles.label}>{c("expiry")}</Text><AppDateTimePicker value={expiryText} onChange={setExpiryText} placeholder={c("selectDateTime")} minimumDate={new Date(Date.now() + 60_000)} accessibilityLabel={c("expiry")} /><Text style={styles.help}>{c("dateHint")}</Text></> : null}
+          {mode === "scheduled" ? <><Text style={styles.label}>{c("publishAt")} *</Text><AppDateTimePicker value={publishAtText} onChange={setPublishAtText} placeholder={c("selectDateTime")} minimumDate={new Date(Date.now() + 60_000)} accessibilityLabel={c("publishAt")} /></> : null}
+          {mode !== "draft" ? <><Text style={styles.label}>{c("expiry")}</Text><AppDateTimePicker value={expiryText} onChange={setExpiryText} placeholder={c("selectDateTime")} minimumDate={new Date(Date.now() + 60_000)} accessibilityLabel={c("expiry")} /></> : null}
 
           <Text style={styles.label}>{c("image")}</Text>
-          {image ? <View style={styles.imagePreview}><Image source={{ uri: image.uri }} style={styles.previewImage} /><TouchableOpacity style={styles.removeImage} onPress={() => setImage(null)} accessibilityLabel={c("removeImage")}><Feather name="x" size={17} color="white" /></TouchableOpacity></View> : <TouchableOpacity style={styles.imagePicker} onPress={pickImage}><Feather name="image" size={22} color={ORANGE} /><Text style={styles.imagePickerTitle}>{c("chooseImage")}</Text><Text style={styles.imagePickerSub}>JPEG, PNG or WebP · max 8MB</Text></TouchableOpacity>}
-
-          <View style={[styles.previewCard, { borderColor: `${theme.color}40` }]}>
-            <View style={styles.previewHeader}><View style={[styles.previewIcon, { backgroundColor: theme.bg }]}><Feather name={theme.icon} size={18} color={theme.color} /></View><View style={{ flex: 1 }}><Text style={styles.previewType}>{typeLabel(type, c)}</Text><Text style={styles.previewMeta}>{previewMeta}</Text></View></View>
-            <Text style={styles.previewTitle}>{title.trim() || c("headlinePlaceholder")}</Text>
-            <Text style={styles.previewBody} numberOfLines={4}>{body.trim() || c("messagePlaceholder")}</Text>
-            {image ? <Image source={{ uri: image.uri }} style={styles.previewThumb} /> : null}
-          </View>
+          {image ? <View style={styles.imagePreview}><Image source={{ uri: image.uri }} style={styles.previewImage} /><TouchableOpacity style={styles.removeImage} onPress={() => setImage(null)} accessibilityLabel={c("removeImage")}><Feather name="x" size={17} color="white" /></TouchableOpacity></View> : <TouchableOpacity style={styles.imagePicker} onPress={pickImage}><Feather name="image" size={22} color={ORANGE} /><Text style={styles.imagePickerTitle}>{c("chooseImage")}</Text></TouchableOpacity>}
 
           {error ? <Text style={styles.error} accessibilityLiveRegion="assertive">{error}</Text> : null}
           {success ? <Text style={styles.success} accessibilityLiveRegion="polite">{success}</Text> : null}
           <View style={styles.actions}>
             <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()} disabled={submitting}><Text style={styles.cancelText}>{c("cancel")}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.previewButton} onPress={() => setPreviewVisible(true)} disabled={submitting}><Feather name="eye" size={16} color={ORANGE} /><Text style={styles.previewButtonText}>{c("preview")}</Text></TouchableOpacity>
           </View>
           <TouchableOpacity style={[styles.submitButton, submitting && styles.disabled]} onPress={submit} disabled={submitting}>{submitting ? <ActivityIndicator color="white" /> : <Feather name={mode === "draft" ? "save" : mode === "scheduled" ? "clock" : "send"} size={17} color="white" />}<Text style={styles.submitText}>{submitting ? "Saving..." : mode === "draft" ? c("draftButton") : mode === "scheduled" ? c("scheduleButton") : c("publish")}</Text></TouchableOpacity>
         </AppScrollView>
       </KeyboardAvoidingView>
-
-      <Modal visible={previewVisible} transparent animationType="fade" onRequestClose={() => setPreviewVisible(false)}>
-        <View style={styles.modalOverlay} accessibilityViewIsModal><View style={styles.modalCard}><View style={[styles.previewIcon, { backgroundColor: theme.bg }]}><Feather name={theme.icon} size={24} color={theme.color} /></View><Text style={styles.modalTitle}>{title.trim() || c("headlinePlaceholder")}</Text><Text style={styles.modalBody}>{body.trim() || c("messagePlaceholder")}</Text>{image ? <Image source={{ uri: image.uri }} style={styles.modalImage} /> : null}<Text style={styles.previewMeta}>{previewMeta}</Text><TouchableOpacity style={styles.closeButton} onPress={() => setPreviewVisible(false)}><Text style={styles.closeText}>{c("close")}</Text></TouchableOpacity></View></View>
-      </Modal>
 
       <Modal visible={wardVisible} transparent animationType="slide" onRequestClose={() => setWardVisible(false)}>
         <View style={styles.modalOverlay}><View style={styles.wardSheet}><View style={styles.sheetHeader}><Text style={styles.sheetTitle}>{c("ward")}</Text><TouchableOpacity style={styles.sheetClose} onPress={() => setWardVisible(false)}><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View><AppScrollView contentContainerStyle={{ padding: 14 }}>{NAGARSEVAK_WARDS.map((item) => <TouchableOpacity key={item} style={[styles.wardRow, ward === item && styles.wardActive]} onPress={() => { setWard(item); setWardVisible(false); }}><Text style={[styles.wardText, ward === item && { color: ORANGE }]}>{item}</Text>{ward === item ? <Feather name="check" size={16} color={ORANGE} /> : null}</TouchableOpacity>)}</AppScrollView></View></View>
