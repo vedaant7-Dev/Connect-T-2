@@ -218,12 +218,6 @@ async function onboarding(req, res) {
         message: "Add your business type or industry.",
       });
     }
-    if (role === "employer" && about.length < 2) {
-      return sendJson(res, 400, {
-        success: false,
-        message: "Add the job categories you plan to hire for.",
-      });
-    }
 
     const [existingRows] = await db.query(
       "SELECT id FROM job_portal_users WHERE phone = ? AND role = ? LIMIT 1",
@@ -266,7 +260,7 @@ async function onboarding(req, res) {
         civicUser.profile_photo || null,
         role === "seeker" ? qualification : null,
         skills || null,
-        about || null,
+        role === "seeker" ? about || null : null,
         currentStatus || null,
         role === "seeker" ? experience || null : null,
         location,

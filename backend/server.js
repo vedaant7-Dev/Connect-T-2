@@ -68,6 +68,18 @@ const db = mysql.createPool({
   queueLimit: 0,
 });
 
+let userProfileSchemaReady = null;
+async function ensureUserProfileSchema() {
+  if (userProfileSchemaReady) return userProfileSchemaReady;
+  userProfileSchemaReady = (async () => {
+    const defs = { ward_changed: "TINYINT(1) NOT NULL DEFAULT 0", profile_photo: "LONGTEXT NULL", notify_email: "TINYINT(1) NOT NULL DEFAULT 0", notify_whatsapp: "TINYINT(1) NOT NULL DEFAULT 0", office_address: "TEXT NULL", residence_address: "TEXT NULL", office_timings: "VARCHAR(190) NULL", contact_name: "VARCHAR(160) NULL", contact_number: "VARCHAR(20) NULL" };
+    const [rows] = await db.query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'");
+    const existing = new Set(rows.map((row) => String(row.COLUMN_NAME)));
+    for (const [column, definition] of Object.entries(defs)) if (!existing.has(column)) await db.query(`ALTER TABLE users ADD COLUMN \`${column}\` ${definition}`);
+  })().catch((error) => { userProfileSchemaReady = null; throw error; });
+  return userProfileSchemaReady;
+}
+
 const createId = (prefix) =>
   `${prefix}_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`;
 
@@ -127,10 +139,13 @@ function replaceRequestQuery(req, updates, remove = []) {
 
 async function currentCivicUser(auth) {
   if (!auth?.sub) return null;
+  await ensureUserProfileSchema();
   const [rows] = await db.query(
     `SELECT id, name, mobile, role, ward, ward_code, ward_number, official_designation,
             is_super_admin, approval_status, address, age, dob, email, avatar_color,
-            profile_photo, nagarsevak_id, last_login_at, created_at
+            profile_photo, nagarsevak_id, ward_changed, notify_email, notify_whatsapp,
+            office_address, residence_address, office_timings, contact_name, contact_number,
+            last_login_at, created_at
      FROM users WHERE id = ? LIMIT 1`,
     [auth.sub],
   );
@@ -1024,6 +1039,7 @@ app.get("/api/auth/session", async (req, res) => {
 app.post("/api/users", async (req, res) => {
   try {
     await ensureRoleAuthorizationSchema(db);
+    await ensureUserProfileSchema();
     const requestedId = req.body.id || createId("user");
 
     const {

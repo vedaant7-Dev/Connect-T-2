@@ -50,29 +50,6 @@ function getRoleLabelKey(role?: string) {
   return "citizen";
 }
 
-function InlineVideo({ uri, style }: { uri: string; style: any }) {
-  return (
-    <TouchableOpacity
-      style={[
-        style,
-        {
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#FFF7ED",
-          borderWidth: 1,
-          borderColor: "#FED7AA",
-        },
-      ]}
-      activeOpacity={0.85}
-      onPress={() => Linking.openURL(uri).catch(() => {})}
-    >
-      <Feather name="play-circle" size={30} color="#EA580C" />
-      <Text style={{ marginTop: 6, fontSize: 11, color: "#EA580C", fontFamily: "Inter_700Bold" }}>
-        Video attached
-      </Text>
-    </TouchableOpacity>
-  );
-}
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -95,28 +72,6 @@ export default function HomeScreen() {
   const roleColor = getRoleColor(user?.role);
   const readAlertsKey = `connectt_read_alerts_${user?.id || "guest"}`;
   const alerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
-  const alertItems: AppAlert[] = broadcasts
-    .filter((item) => item.status === "sent" && item.category === "announcement")
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      body: item.body,
-      type: "alert" as const,
-      category: "announcement",
-      priority: "important" as const,
-      language: item.language,
-      status: "published" as const,
-      publishAt: item.sentAt || item.createdAt,
-      targetAudience: item.audienceRole,
-      media: item.mediaUri && item.mediaType ? { uri: item.mediaUri, type: item.mediaType } : null,
-      createdAt: item.sentAt || item.createdAt,
-      postedBy: item.createdByName,
-      postedById: item.createdBy,
-      ward: item.ward,
-      isRead: item.isRead,
-      deliveredCount: item.deliveredCount,
-      readCount: item.readCount,
-    }));
   const newsItems = alerts.filter((item) => item.type === "news");
   const myComplaints = complaints.filter((c) =>
     (user?.mobile && c.userMobile === user.mobile) ||
@@ -309,74 +264,6 @@ export default function HomeScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-
-        {/* ALERTS & NEWS */}
-        <View style={styles.alertsSection}>
-          <View style={styles.alertsSectionHeader}>
-            <View style={styles.alertsSectionTitleRow}>
-              <View style={styles.alertsDot} />
-              <Text style={styles.alertsSectionTitle}>{t("alerts")}</Text>
-            </View>
-            <View style={styles.alertsLivePill}>
-              <View style={styles.alertsLiveDot} />
-              <Text style={styles.alertsLiveText}>{t("live")}</Text>
-            </View>
-          </View>
-          {alertItems.length === 0 ? (
-            <View style={styles.alertsEmpty}>
-              <Feather name="bell-off" size={20} color="#CBD5E1" />
-              <Text style={styles.alertsEmptyText}>No announcements right now</Text>
-            </View>
-          ) : (
-            <View style={styles.alertCardList}>
-              {alertItems.map((item) => {
-                const cardColor = "#C2410C";
-                const cardBg = "#FFEDD5";
-                const timeStr = (() => {
-                  const diff = Date.now() - new Date(item.createdAt).getTime();
-                  const mins = Math.floor(diff / 60000);
-                  const hours = Math.floor(mins / 60);
-                  const days = Math.floor(hours / 24);
-                  if (days > 0) return `${days}d ago`;
-                  if (hours > 0) return `${hours}h ago`;
-                  if (mins > 0) return `${mins}m ago`;
-                  return "just now";
-                })();
-                return (
-                  <TouchableOpacity key={item.id} style={styles.alertCard} activeOpacity={0.88} onPress={() => router.push({ pathname: "/(tabs)/feed", params: { broadcastId: item.id } } as any)}>
-                    {item.media?.type === "image" ? (
-                      <Image source={{ uri: item.media.uri }} style={styles.alertCardMedia} />
-                    ) : item.media?.type === "video" ? (
-                      <InlineVideo uri={item.media.uri} style={styles.alertCardVideo} />
-                    ) : (
-                      <View style={[styles.alertCardIcon, { backgroundColor: cardBg }]}>
-                        <Feather name="radio" size={16} color={cardColor} />
-                      </View>
-                    )}
-                    <View style={styles.alertCardBody}>
-                      <View style={styles.alertCardRow}>
-                        <View style={[styles.alertTypePill, { backgroundColor: cardBg }]}>
-                          <Text style={[styles.alertTypeText, { color: cardColor }]}>
-                            Announcement
-                          </Text>
-                        </View>
-                        <Text style={styles.alertCardTime}>{timeStr}</Text>
-                      </View>
-                      <Text style={styles.alertCardTitle}>{item.title}</Text>
-                      {!!item.location && (
-                        <View style={styles.alertLocationRow}>
-                          <Feather name="map-pin" size={10} color="#94A3B8" />
-                          <Text style={styles.alertLocationText} numberOfLines={1}>{item.location}</Text>
-                        </View>
-                      )}
-                      <Text style={styles.alertCardDesc} numberOfLines={2}>{item.body}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </View>
 
         {/* REPORT A PROBLEM CTA */}
         <TouchableOpacity style={styles.complaintCTA} onPress={() => router.push("/complaint/new")} activeOpacity={0.88}>

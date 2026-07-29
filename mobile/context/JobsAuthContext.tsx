@@ -116,6 +116,7 @@ interface JobsAuthContextType {
   jobsUser: JobsUser | null;
   loading: boolean;
   activateJobs: (role: JobsUserRole, data?: Partial<JobsUser>) => Promise<void>;
+  activateJobsFromOnboarding: (user: unknown, token?: string | null) => Promise<void>;
   logoutJobs: () => Promise<void>;
   updateJobsUser: (data: Partial<JobsUser>) => Promise<void>;
   addCompany: (company: Omit<CompanyProfile, "id">) => Promise<string | undefined>;
@@ -275,8 +276,10 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
     return () => { active = false; };
   }, [civicUser?.id, civicLoading]);
 
-  const activateJobs = async (role: JobsUserRole, data: Partial<JobsUser> = {}) => {
-    await openUnifiedSession(role, data);
+  const activateJobs = async (role: JobsUserRole, data: Partial<JobsUser> = {}) => { await openUnifiedSession(role, data); };
+  const activateJobsFromOnboarding = async (rawUser: unknown, token?: string | null) => {
+    if (token) await storeJobsAuthToken(token);
+    await persist(normalizeUser(rawUser || {}));
   };
 
   const logoutJobs = async () => {
@@ -297,9 +300,8 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
     if (Object.prototype.hasOwnProperty.call(data, "name") && String(data.name || "").trim().split(/\s+/).filter(Boolean).length < 2) {
       throw new Error("Enter your full name, including surname.");
     }
-    if (Object.prototype.hasOwnProperty.call(data, "profilePhoto")) {
-      payload.profilePhoto = await toUploadableMediaUri(data.profilePhoto);
-    }
+    const photoChanged = Object.prototype.hasOwnProperty.call(data, "profilePhoto") && (data.profilePhoto ?? null) !== (jobsUser.profilePhoto ?? null);
+    if (photoChanged) payload.profilePhoto = await toUploadableMediaUri(data.profilePhoto); else delete payload.profilePhoto;
 
     const response = await apiPatch<any>(`/api/job-portal/users/${jobsUser.id}`, payload);
     if (!response?.user) throw new Error("The updated profile could not be loaded. Please try again.");
@@ -345,7 +347,7 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <JobsContext.Provider value={{ jobsUser, loading, activateJobs, logoutJobs, updateJobsUser, addCompany, updateCompany }}>
+    <JobsContext.Provider value={{ jobsUser, loading, activateJobs, activateJobsFromOnboarding, logoutJobs, updateJobsUser, addCompany, updateCompany }}>
       {children}
     </JobsContext.Provider>
   );

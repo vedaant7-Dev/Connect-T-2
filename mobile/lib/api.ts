@@ -11,6 +11,7 @@ const OTP_VERIFICATION_KEY = "connect_t_otp_verification_v1";
 
 const inFlightGets = new Map<string, Promise<unknown>>();
 let cacheGeneration = 0;
+let jobsRecoveryPromise: Promise<boolean> | null = null;
 
 export class ApiError extends Error {
   status?: number;
@@ -209,6 +210,19 @@ async function assertResponse(res: Response, method: string, path: string) {
   });
 }
 
+function isRecoverableJobsPath(path: string) { return path.startsWith("/api/job-portal/") && path !== "/api/job-portal/session" && path !== "/api/job-portal/onboarding"; }
+async function recoverJobsSession() {
+  if (jobsRecoveryPromise) return jobsRecoveryPromise;
+  jobsRecoveryPromise = (async () => {
+    const civicToken = await getStoredAuthToken(); if (!civicToken) return false;
+    const res = await fetchWithTimeout(apiUrl("/api/job-portal/session"), { method: "POST", headers: { Authorization: `Bearer ${civicToken}`, "Content-Type": "application/json" }, body: "{}" });
+    if (!res.ok) return false;
+    const data = await parseSuccess<any>(res, "POST", "/api/job-portal/session");
+    if (!data?.token) return false; await storeJobsAuthToken(data.token); return true;
+  })().catch(() => false).finally(() => { jobsRecoveryPromise = null; });
+  return jobsRecoveryPromise;
+}
+
 async function request<T = any>(
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
@@ -253,6 +267,9 @@ async function request<T = any>(
       throw new ApiError(message, { code: "NETWORK_UNAVAILABLE", internalMessage });
     }
 
+    if (res.status === 401 && isRecoverableJobsPath(path) && await recoverJobsSession()) {
+      res = await fetchWithTimeout(url, { method, headers: await getAuthHeaders(path, body), body: body === undefined ? undefined : JSON.stringify(body) });
+    }
     await assertResponse(res, method, path);
     return parseSuccess<T>(res, method, path);
   })();
