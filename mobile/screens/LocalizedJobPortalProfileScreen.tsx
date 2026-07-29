@@ -24,21 +24,13 @@ import { languageOptions, useLanguage } from "@/context/LanguageContext";
 import { useAccountActions } from "@/hooks/useAccountActions";
 import { jobsCopy, JobsCopyKey } from "@/i18n/jobsCopy";
 import { profileCopy } from "@/i18n/profileCopy";
-import { apiGet, apiPost, getUserErrorMessage } from "@/lib/api";
+import { getUserErrorMessage } from "@/lib/api";
 
 const ORANGE = "#EA580C";
+// INSTANT_JOB_ROLE_SWITCH_V2
 const GREEN = "#059669";
 const BG = "#EEF2F7";
 const MAX_PROFILE_PHOTO_BYTES = 8 * 1024 * 1024;
-
-type RoleRequest = {
-  id: string;
-  currentRole: "seeker" | "employer";
-  targetRole: "seeker" | "employer";
-  reason: string;
-  status: "pending" | "approved" | "rejected";
-  adminNote?: string;
-};
 
 type ProfileForm = {
   name: string;
@@ -198,7 +190,7 @@ function ActionRow({ icon, title, subtitle, onPress, disabled }: {
 
 export default function LocalizedJobPortalProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { jobsUser, updateJobsUser } = useJobsAuth();
+  const { jobsUser, updateJobsUser, activateJobs } = useJobsAuth();
   const { language, setLanguage } = useLanguage();
   const accountActions = useAccountActions();
   const c = (key: JobsCopyKey) => jobsCopy(language, key);
@@ -206,11 +198,9 @@ export default function LocalizedJobPortalProfileScreen() {
 
   const [editVisible, setEditVisible] = useState(false);
   const [languageVisible, setLanguageVisible] = useState(false);
-  const [roleRequestVisible, setRoleRequestVisible] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [requestLoading, setRequestLoading] = useState(false);
-  const [reason, setReason] = useState("");
-  const [roleRequest, setRoleRequest] = useState<RoleRequest | null>(null);
+  const [roleSwitchVisible, setRoleSwitchVisible] = useState(false);
+  const [roleSwitching, setRoleSwitching] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [pageError, setPageError] = useState("");
   const [formError, setFormError] = useState("");
@@ -218,15 +208,33 @@ export default function LocalizedJobPortalProfileScreen() {
 
   const isEmployer = jobsUser?.role === "employer";
   const roleLabel = isEmployer ? c("employer") : c("jobSeeker");
+  const targetRole = isEmployer ? "seeker" : "employer";
   const targetRoleLabel = isEmployer ? c("jobSeeker") : c("employer");
+  const switchRoleLabel = language === "mr"
+    ? `${targetRoleLabel} म्हणून बदला`
+    : language === "hi"
+      ? `${targetRoleLabel} में बदलें`
+      : `Switch to ${targetRoleLabel}`;
+  const switchRoleTitle = language === "mr"
+    ? "जॉब पोर्टल भूमिका बदलायची?"
+    : language === "hi"
+      ? "जॉब पोर्टल भूमिका बदलें?"
+      : "Switch Job Portal role?";
+  const switchRoleBody = language === "mr"
+    ? "तुम्ही नोकरी शोधणारा आणि नियोक्ता भूमिका कधीही त्वरित बदलू शकता. मंजुरीची गरज नाही."
+    : language === "hi"
+      ? "आप नौकरी खोजने वाले और नियोक्ता की भूमिका कभी भी तुरंत बदल सकते हैं। किसी मंजूरी की जरूरत नहीं है।"
+      : "Switch instantly between Job Seeker and Employer anytime. No approval is required.";
+  const switchRoleSuccess = language === "mr"
+    ? `${targetRoleLabel} भूमिका सक्रिय झाली.`
+    : language === "hi"
+      ? `${targetRoleLabel} भूमिका सक्रिय हो गई।`
+      : `${targetRoleLabel} role is now active.`;
 
   useEffect(() => {
     if (!jobsUser) return;
     if (!editVisible) setForm(formFromUser(jobsUser));
-    void apiGet<{ request: RoleRequest | null }>("/api/job-portal/role-change-requests/me")
-      .then((result) => setRoleRequest(result.request || null))
-      .catch(() => undefined);
-  }, [editVisible, jobsUser?.id]);
+  }, [editVisible, jobsUser]);
 
   const statusLabels = useMemo<Record<CurrentStatus, string>>(() => ({
     fresher: c("fresher"),
@@ -376,31 +384,35 @@ export default function LocalizedJobPortalProfileScreen() {
     }
   };
 
-  const submitRoleRequest = async () => {
-    if (requestLoading) return;
+  const switchJobRole = async () => {
+    if (!jobsUser || roleSwitching) return;
+    setRoleSwitching(true);
     setPageError("");
-    if (reason.trim().length < 10) {
-      setPageError(c("moreDetailBody"));
-      return;
-    }
-    setRequestLoading(true);
+    setSuccessMessage("");
     try {
-      const result = await apiPost<{ request: RoleRequest; message?: string }>("/api/job-portal/role-change-requests", {
-        targetRole: isEmployer ? "seeker" : "employer",
-        reason: reason.trim(),
+      const sharedLocation = jobsUser.location || jobsUser.address || "Badlapur";
+      await activateJobs(targetRole, targetRole === "employer" ? {
+        name: jobsUser.name,
+        company: jobsUser.company || `${jobsUser.name}'s Business`,
+        contactPerson: jobsUser.name,
+        location: sharedLocation,
+        address: sharedLocation,
+      } : {
+        name: jobsUser.name,
+        location: sharedLocation,
       });
-      setRoleRequest(result.request);
-      setRoleRequestVisible(false);
-      setReason("");
-      setSuccessMessage(result.message || c("requestSubmittedBody"));
+      setRoleSwitchVisible(false);
+      setSuccessMessage(switchRoleSuccess);
     } catch (error) {
-      setPageError(getUserErrorMessage(error, c("retryLater")));
+      setPageError(getUserErrorMessage(error, language === "mr"
+        ? "भूमिका बदलता आली नाही. कृपया पुन्हा प्रयत्न करा."
+        : language === "hi"
+          ? "भूमिका बदली नहीं जा सकी। कृपया फिर से प्रयास करें।"
+          : "Role could not be switched. Please try again."));
     } finally {
-      setRequestLoading(false);
+      setRoleSwitching(false);
     }
   };
-
-  const requestColor = roleRequest?.status === "approved" ? GREEN : roleRequest?.status === "rejected" ? "#DC2626" : "#D97706";
   const actionTitle = accountActions.pendingAction === "logout" ? c("logoutTitle") : c("switchTitle");
   const actionMessage = accountActions.pendingAction === "logout" ? c("logoutMessage") : c("switchMessage");
   const accountDate = jobsUser.createdAt ? new Date(jobsUser.createdAt).toLocaleDateString() : p("missing");
@@ -414,7 +426,7 @@ export default function LocalizedJobPortalProfileScreen() {
           </View>
           <View style={styles.headerText}>
             <Text style={styles.userName} numberOfLines={2}>{jobsUser.name}</Text>
-            <View style={styles.rolePill}><Feather name={isEmployer ? "briefcase" : "user"} size={11} color="white" /><Text style={styles.roleText}>{roleLabel}</Text><Feather name="lock" size={10} color="rgba(255,255,255,0.8)" /></View>
+            <View style={styles.rolePill}><Feather name={isEmployer ? "briefcase" : "user"} size={11} color="white" /><Text style={styles.roleText}>{roleLabel}</Text></View>
             <Text style={styles.headerSub}>Connect-T Job Portal</Text>
           </View>
           <TouchableOpacity style={styles.editHeaderButton} onPress={openEditor} accessibilityLabel={c("editProfile")}>
@@ -423,7 +435,7 @@ export default function LocalizedJobPortalProfileScreen() {
         </View>
       </LinearGradient>
 
-      <AppScrollView style={styles.scroll} contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 12) + 116 }}>
+      <AppScrollView style={styles.scroll} contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 12) + 32 }}>
         {successMessage ? <View style={styles.successBanner}><Feather name="check-circle" size={16} color={GREEN} /><Text style={styles.successText}>{successMessage}</Text></View> : null}
         {pageError ? <View style={styles.errorBanner}><Feather name="alert-circle" size={16} color="#DC2626" /><Text style={styles.errorBannerText}>{pageError}</Text></View> : null}
 
@@ -441,16 +453,13 @@ export default function LocalizedJobPortalProfileScreen() {
 
         <Section title={c("activeJobRole")}>
           <DetailRow icon={isEmployer ? "briefcase" : "user-check"} label={c("activeJobRole")} value={roleLabel} verified verifiedText={p("verified")} />
-          <DetailRow icon="lock" label={c("requestStatus")} value={roleRequest ? roleRequest.status.toUpperCase() : c("roleLockedBody")} verifiedText={p("verified")} />
-          {roleRequest?.adminNote ? <DetailRow icon="message-square" label={c("adminNote")} value={roleRequest.adminNote} verifiedText={p("verified")} /> : null}
           <ActionRow
             icon="repeat"
-            title={c("requestCorrection")}
-            subtitle={roleRequest?.status === "pending" ? `${c("requestStatus")}: ${roleRequest.status}` : `${c("requestChangeTo")} ${targetRoleLabel}`}
-            onPress={() => { setPageError(""); setRoleRequestVisible(true); }}
-            disabled={roleRequest?.status === "pending"}
+            title={switchRoleLabel}
+            subtitle={switchRoleBody}
+            onPress={() => { setPageError(""); setSuccessMessage(""); setRoleSwitchVisible(true); }}
+            disabled={roleSwitching}
           />
-          {roleRequest ? <View style={[styles.requestStrip, { backgroundColor: `${requestColor}12` }]}><Feather name="shield" size={14} color={requestColor} /><Text style={[styles.requestStripText, { color: requestColor }]}>{c("roleLockedBody")}</Text></View> : null}
         </Section>
 
         <Section title={p("preferences")}>
@@ -533,19 +542,22 @@ export default function LocalizedJobPortalProfileScreen() {
         <View style={styles.modalOverlay}><View style={styles.editorSheet}><View style={styles.sheetHandle} /><View style={styles.editorHeader}><Text style={styles.editorTitle}>{p("language")}</Text><TouchableOpacity style={styles.closeButton} onPress={() => setLanguageVisible(false)}><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View><View style={{ padding: 16 }}>{languageOptions.map((option) => <TouchableOpacity key={option.code} style={[styles.optionRow, language === option.code && styles.optionActive]} onPress={() => { setLanguage(option.code); setLanguageVisible(false); }} accessibilityState={{ selected: language === option.code }}><View style={{ flex: 1 }}><Text style={styles.optionText}>{option.nativeLabel}</Text><Text style={styles.optionSub}>{option.label}</Text></View>{language === option.code ? <Feather name="check-circle" size={18} color={ORANGE} /> : null}</TouchableOpacity>)}</View></View></View>
       </Modal>
 
-      <Modal visible={roleRequestVisible} transparent animationType="slide" onRequestClose={() => !requestLoading && setRoleRequestVisible(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <View style={styles.editorSheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.editorHeader}><Text style={styles.editorTitle}>{c("requestCorrection")}</Text><TouchableOpacity style={styles.closeButton} onPress={() => setRoleRequestVisible(false)} disabled={requestLoading}><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View>
-            <AppScrollView contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-              <View style={styles.roleNotice}><Feather name="shield" size={18} color={ORANGE} /><View style={{ flex: 1 }}><Text style={styles.actionTitle}>{roleLabel} → {targetRoleLabel}</Text><Text style={styles.actionSub}>{c("reasonWarning")}</Text></View></View>
-              <InputField label={c("reasonLabel")} value={reason} onChangeText={setReason} placeholder={c("reasonPlaceholder")} multiline maxLength={1200} />
-              <TouchableOpacity style={[styles.saveButton, styles.fullButton, requestLoading && styles.disabled]} onPress={submitRoleRequest} disabled={requestLoading}>{requestLoading ? <ActivityIndicator color="white" /> : <Feather name="send" size={16} color="white" />}<Text style={styles.saveText}>{c("submitRequest")}</Text></TouchableOpacity>
-            </AppScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+
+      <ConfirmActionModal
+        visible={roleSwitchVisible}
+        title={switchRoleTitle}
+        message={`${switchRoleBody}
+
+${roleLabel} → ${targetRoleLabel}`}
+        confirmLabel={switchRoleLabel}
+        cancelLabel={p("cancel")}
+        icon="repeat"
+        tone="primary"
+        busy={roleSwitching}
+        errorMessage={pageError}
+        onCancel={() => !roleSwitching && setRoleSwitchVisible(false)}
+        onConfirm={switchJobRole}
+      />
 
       <ConfirmActionModal
         visible={!!accountActions.pendingAction}

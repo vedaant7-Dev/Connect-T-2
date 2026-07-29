@@ -33,17 +33,21 @@ test("Job Portal profile uses the Civic profile visual structure", () => {
   assert.doesNotMatch(route, /ProfileLanguageButton/);
 });
 
-test("unified Job Portal profile preserves job fields and governed role correction", () => {
+test("unified Job Portal profile preserves fields and supports instant role switching", () => {
   const jobs = read("screens/LocalizedJobPortalProfileScreen.tsx");
+  const route = read("app/jobs/(tabs)/profile.tsx");
   for (const field of [
     "qualification", "skills", "currentCompany", "currentRole", "previousCompany", "previousRole",
     "collegeName", "fieldOfStudy", "company", "companyType", "companySize", "companyDescription",
     "pincode", "whatsapp", "website", "gstNo", "yearEstablished",
   ]) assert.match(jobs, new RegExp(field));
 
-  assert.match(jobs, /\/api\/job-portal\/role-change-requests/);
+  assert.match(jobs, /activateJobs/);
+  assert.match(jobs, /roleSwitchVisible/);
+  assert.match(jobs, /Switch to/);
   assert.match(jobs, /requestCivicPortal/);
   assert.match(jobs, /requestLogout/);
   assert.match(jobs, /c\("mobileReadOnly"\)/);
-  assert.doesNotMatch(jobs, /switchJobsRole|portal-select/);
+  assert.doesNotMatch(jobs, /role-change-requests|requestCorrection|roleRequestVisible/);
+  assert.doesNotMatch(route, /switchContainer|position: "absolute"/);
 });
