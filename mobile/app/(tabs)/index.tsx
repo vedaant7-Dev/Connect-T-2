@@ -16,6 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAlerts, AppAlert, wardKey } from "@/context/AlertContext";
+import { useBroadcasts } from "@/context/BroadcastContext";
 import { useComplaints, Complaint } from "@/context/ComplaintContext";
 import { fetchEmergencyContacts, fetchServiceCatalog, EmergencyContact } from "@/lib/servicesApi";
 import { displayUtilityStatus, fetchUtilityStatuses, statusIsOk, UtilityStatus, utilityLastUpdated } from "@/lib/utilityStatusApi";
@@ -81,6 +82,7 @@ export default function HomeScreen() {
   const { t } = useLanguage();
   const { handleScroll } = useTabBarVisibility();
   const { alerts: allAlerts, refreshAlerts } = useAlerts();
+  const { broadcasts, refreshBroadcasts } = useBroadcasts();
   const { complaints, refreshComplaints } = useComplaints();
   const [selectedAlert, setSelectedAlert] = useState<AppAlert | null>(null);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
@@ -93,7 +95,28 @@ export default function HomeScreen() {
   const roleColor = getRoleColor(user?.role);
   const readAlertsKey = `connectt_read_alerts_${user?.id || "guest"}`;
   const alerts = allAlerts.filter((a) => !a.ward || (!!user?.ward && wardKey(a.ward) === wardKey(user.ward)));
-  const alertItems = alerts.filter((item) => item.type === "alert" || item.type === "emergency");
+  const alertItems: AppAlert[] = broadcasts
+    .filter((item) => item.status === "sent" && item.category === "announcement")
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      body: item.body,
+      type: "alert" as const,
+      category: "announcement",
+      priority: "important" as const,
+      language: item.language,
+      status: "published" as const,
+      publishAt: item.sentAt || item.createdAt,
+      targetAudience: item.audienceRole,
+      media: item.mediaUri && item.mediaType ? { uri: item.mediaUri, type: item.mediaType } : null,
+      createdAt: item.sentAt || item.createdAt,
+      postedBy: item.createdByName,
+      postedById: item.createdBy,
+      ward: item.ward,
+      isRead: item.isRead,
+      deliveredCount: item.deliveredCount,
+      readCount: item.readCount,
+    }));
   const newsItems = alerts.filter((item) => item.type === "news");
   const myComplaints = complaints.filter((c) =>
     (user?.mobile && c.userMobile === user.mobile) ||
@@ -279,7 +302,7 @@ export default function HomeScreen() {
       </LinearGradient>
 
       <AppScrollView
-        onAppRefresh={() => Promise.all([refreshAlerts(), refreshComplaints()]).then(() => undefined)}
+        onAppRefresh={() => Promise.all([refreshAlerts(), refreshBroadcasts(), refreshComplaints()]).then(() => undefined)}
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 8) + 60 }]}
         showsVerticalScrollIndicator={false}
@@ -302,13 +325,13 @@ export default function HomeScreen() {
           {alertItems.length === 0 ? (
             <View style={styles.alertsEmpty}>
               <Feather name="bell-off" size={20} color="#CBD5E1" />
-              <Text style={styles.alertsEmptyText}>No alerts right now</Text>
+              <Text style={styles.alertsEmptyText}>No announcements right now</Text>
             </View>
           ) : (
             <View style={styles.alertCardList}>
               {alertItems.map((item) => {
-                const cardColor = "#DC2626";
-                const cardBg = "#FEE2E2";
+                const cardColor = "#C2410C";
+                const cardBg = "#FFEDD5";
                 const timeStr = (() => {
                   const diff = Date.now() - new Date(item.createdAt).getTime();
                   const mins = Math.floor(diff / 60000);
@@ -320,21 +343,21 @@ export default function HomeScreen() {
                   return "just now";
                 })();
                 return (
-                  <TouchableOpacity key={item.id} style={styles.alertCard} activeOpacity={0.88} onPress={() => openAlertDetail(item)}>
+                  <TouchableOpacity key={item.id} style={styles.alertCard} activeOpacity={0.88} onPress={() => router.push({ pathname: "/(tabs)/feed", params: { broadcastId: item.id } } as any)}>
                     {item.media?.type === "image" ? (
                       <Image source={{ uri: item.media.uri }} style={styles.alertCardMedia} />
                     ) : item.media?.type === "video" ? (
                       <InlineVideo uri={item.media.uri} style={styles.alertCardVideo} />
                     ) : (
                       <View style={[styles.alertCardIcon, { backgroundColor: cardBg }]}>
-                        <Feather name="alert-triangle" size={16} color={cardColor} />
+                        <Feather name="radio" size={16} color={cardColor} />
                       </View>
                     )}
                     <View style={styles.alertCardBody}>
                       <View style={styles.alertCardRow}>
                         <View style={[styles.alertTypePill, { backgroundColor: cardBg }]}>
                           <Text style={[styles.alertTypeText, { color: cardColor }]}>
-                            ⚠ {t("alert")}
+                            Announcement
                           </Text>
                         </View>
                         <Text style={styles.alertCardTime}>{timeStr}</Text>

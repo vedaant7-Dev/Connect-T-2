@@ -4,10 +4,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { useFeed, FeedPost, PostType } from "@/context/FeedContext";
 import { AppAlert, useAlerts, wardKey } from "@/context/AlertContext";
+import { AppBroadcast, useBroadcasts } from "@/context/BroadcastContext";
 import { ambernathWards } from "@/data/mumbaiServices";
 import { useAuth } from "@/context/AuthContext";
 import { useTabBarVisibility } from "@/context/TabBarVisibilityContext";
@@ -15,255 +16,57 @@ import DecorativeCircles from "@/components/DecorativeCircles";
 import TopShade from "@/components/TopShade";
 
 const postTypeConfig: Record<PostType, { color: string; bg: string; icon: string }> = {
-  announcement: { color: "#DC2626", bg: "#FEE2E2", icon: "alert-circle" },
-  update: { color: "#059669", bg: "#D1FAE5", icon: "check-circle" },
-  complaint: { color: "#D97706", bg: "#FEF3C7", icon: "alert-triangle" },
-  general: { color: "#EA580C", bg: "#FFEDD5", icon: "message-circle" },
+  announcement: { color: "#DC2626", bg: "#FEE2E2", icon: "alert-circle" }, update: { color: "#059669", bg: "#D1FAE5", icon: "check-circle" }, complaint: { color: "#D97706", bg: "#FEF3C7", icon: "alert-triangle" }, general: { color: "#EA580C", bg: "#FFEDD5", icon: "message-circle" },
 };
-
-const roleBadgeColor: Record<string, { bg: string; text: string }> = {
-  citizen: { bg: "#FFF7ED", text: "#EA580C" },
-  nagarsevak: { bg: "#ECFDF5", text: "#059669" },
-  super_admin: { bg: "#EDE9FE", text: "#6D28D9" },
-};
-
-function timeAgo(dateStr: string): string {
-  const timestamp = new Date(dateStr).getTime();
-  if (!Number.isFinite(timestamp)) return "now";
-  const mins = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
-  const hours = Math.floor(mins / 60);
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d`;
-  if (hours > 0) return `${hours}h`;
-  if (mins > 0) return `${mins}m`;
-  return "now";
-}
-
-function Avatar({ name, color, size = 40 }: { name: string; color: string; size?: number }) {
-  const initials = name.split(" ").filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "U";
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.35, color: "white", fontFamily: "Inter_700Bold" }}>{initials}</Text>
-    </View>
-  );
-}
-
-function InlineVideo({ uri }: { uri: string }) {
-  return (
-    <TouchableOpacity style={styles.postVideo} activeOpacity={0.85} onPress={() => void Linking.openURL(uri)} accessibilityRole="button" accessibilityLabel="Play attached video">
-      <Feather name="play-circle" size={32} color="#EA580C" />
-      <Text style={styles.postVideoText}>Play attached video</Text>
-    </TouchableOpacity>
-  );
-}
-
-async function shareText(title: string, body: string) {
-  const message = `${title}\n\n${body}\n\n— Connect-T Ambernath`;
-  if (Platform.OS === "web" && typeof navigator !== "undefined" && (navigator as any).share) {
-    await (navigator as any).share({ title, text: message });
-  } else {
-    await Share.share({ title, message });
-  }
-}
+const roleBadgeColor: Record<string, { bg: string; text: string }> = { citizen: { bg: "#FFF7ED", text: "#EA580C" }, nagarsevak: { bg: "#ECFDF5", text: "#059669" }, super_admin: { bg: "#EDE9FE", text: "#6D28D9" } };
+function timeAgo(dateStr: string) { const ts = new Date(dateStr).getTime(); if (!Number.isFinite(ts)) return "now"; const mins = Math.max(0, Math.floor((Date.now() - ts) / 60000)); if (mins < 1) return "now"; if (mins < 60) return `${mins}m`; const hours = Math.floor(mins / 60); return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`; }
+function Avatar({ name, color, size = 40 }: { name: string; color: string; size?: number }) { const initials = name.split(" ").filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "U"; return <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: size * 0.35, color: "white", fontFamily: "Inter_700Bold" }}>{initials}</Text></View>; }
+function InlineVideo({ uri }: { uri: string }) { return <TouchableOpacity style={styles.postVideo} activeOpacity={0.85} onPress={() => void Linking.openURL(uri)} accessibilityRole="button" accessibilityLabel="Play attached video"><Feather name="play-circle" size={32} color="#EA580C" /><Text style={styles.postVideoText}>Play attached video</Text></TouchableOpacity>; }
+async function shareText(title: string, body: string) { const message = `${title}\n\n${body}\n\n— Connect-T Ambernath`; if (Platform.OS === "web" && typeof navigator !== "undefined" && (navigator as any).share) await (navigator as any).share({ title, text: message }); else await Share.share({ title, message }); }
 
 function PostCard({ post, userId }: { post: FeedPost; userId: string }) {
-  const router = useRouter();
-  const { toggleLike } = useFeed();
-  const liked = post.likes.includes(userId);
-  const type = postTypeConfig[post.type] || postTypeConfig.general;
-  const role = roleBadgeColor[String(post.authorRole || "").toLowerCase()] || roleBadgeColor.citizen;
-
-  return (
-    <View style={[styles.card, post.pinned && styles.cardPinned]}>
-      {post.pinned ? <View style={styles.pinnedBar}><Feather name="bookmark" size={10} color="#7C3AED" /><Text style={styles.pinnedText}>Pinned official post</Text></View> : null}
-      <View style={styles.cardMeta}>
-        <Avatar name={post.authorName} color={post.avatarColor} size={34} />
-        <View style={styles.authorCopy}><Text style={styles.cardAuthor} numberOfLines={1}>{post.authorName}</Text><Text style={styles.cardTime}>{timeAgo(post.createdAt)}</Text></View>
-        <View style={[styles.roleBadge, { backgroundColor: role.bg }]}><Text style={[styles.roleBadgeText, { color: role.text }]}>{post.authorRole}</Text></View>
-      </View>
-      <View style={[styles.typePill, { backgroundColor: type.bg }]}><Feather name={type.icon as any} size={10} color={type.color} /><Text style={[styles.typePillText, { color: type.color }]}>{post.type}</Text></View>
-      <Text style={styles.cardContent}>{post.content}</Text>
-      {post.imageUri ? <Image source={{ uri: post.imageUri }} style={styles.postImage} resizeMode="contain" /> : null}
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={styles.action}
-          onPress={() => { if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); void toggleLike(post.id, userId); }}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={liked ? `Unlike post by ${post.authorName}` : `Like post by ${post.authorName}`}
-          accessibilityState={{ selected: liked }}
-        >
-          <Feather name="heart" size={17} color={liked ? "#DC2626" : "#64748B"} />
-          <Text style={[styles.actionText, liked && styles.likedText]}>{post.likes.length || "Like"}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.action}
-          onPress={() => router.push({ pathname: "/feed/comments/[id]", params: { id: post.id, title: post.content.slice(0, 80) } } as any)}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={`Open ${post.commentsCount} comments for this post`}
-        >
-          <Feather name="message-circle" size={17} color="#64748B" />
-          <Text style={styles.actionText}>{post.commentsCount || "Comment"}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.action} onPress={() => void shareText(`${post.authorName}'s post`, post.content)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Share this post">
-          <Feather name="share-2" size={17} color="#64748B" /><Text style={styles.actionText}>Share</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  const router = useRouter(); const { toggleLike } = useFeed(); const liked = post.likes.includes(userId); const type = postTypeConfig[post.type] || postTypeConfig.general; const role = roleBadgeColor[String(post.authorRole || "").toLowerCase()] || roleBadgeColor.citizen;
+  return <View style={[styles.card, post.pinned && styles.cardPinned]}>{post.pinned ? <View style={styles.pinnedBar}><Feather name="bookmark" size={10} color="#7C3AED" /><Text style={styles.pinnedText}>Pinned official post</Text></View> : null}<View style={styles.cardMeta}><Avatar name={post.authorName} color={post.avatarColor} size={34} /><View style={styles.authorCopy}><Text style={styles.cardAuthor} numberOfLines={1}>{post.authorName}</Text><Text style={styles.cardTime}>{timeAgo(post.createdAt)}</Text></View><View style={[styles.roleBadge, { backgroundColor: role.bg }]}><Text style={[styles.roleBadgeText, { color: role.text }]}>{post.authorRole}</Text></View></View><View style={[styles.typePill, { backgroundColor: type.bg }]}><Feather name={type.icon as any} size={10} color={type.color} /><Text style={[styles.typePillText, { color: type.color }]}>{post.type}</Text></View><Text style={styles.cardContent}>{post.content}</Text>{post.imageUri ? <Image source={{ uri: post.imageUri }} style={styles.postImage} resizeMode="contain" /> : null}<View style={styles.cardActions}><TouchableOpacity style={styles.action} onPress={() => { if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); void toggleLike(post.id, userId); }}><Feather name="heart" size={17} color={liked ? "#DC2626" : "#64748B"} /><Text style={[styles.actionText, liked && styles.likedText]}>{post.likes.length || "Like"}</Text></TouchableOpacity><TouchableOpacity style={styles.action} accessibilityLabel={`Open ${post.commentsCount} comments for this post`} onPress={() => router.push({ pathname: "/feed/comments/[id]", params: { id: post.id, title: post.content.slice(0, 80) } } as any)}><Feather name="message-circle" size={17} color="#64748B" /><Text style={styles.actionText}>{post.commentsCount || "Comment"}</Text></TouchableOpacity><TouchableOpacity style={styles.action} onPress={() => void shareText(`${post.authorName}'s post`, post.content)}><Feather name="share-2" size={17} color="#64748B" /><Text style={styles.actionText}>Share</Text></TouchableOpacity></View></View>;
 }
 
 function NewsAlertCard({ item }: { item: AppAlert }) {
-  const isAlert = item.type === "alert" || item.type === "emergency";
-  const pillColor = isAlert ? "#DC2626" : "#EA580C";
-  const pillBg = isAlert ? "#FEE2E2" : "#FFEDD5";
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardMeta}>
-        <Avatar name={item.postedBy || "Nagarsevak"} color="#16A34A" size={34} />
-        <View style={styles.authorCopy}><Text style={styles.cardAuthor} numberOfLines={1}>{item.postedBy || "Nagarsevak"}</Text><Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text></View>
-        <View style={[styles.roleBadge, { backgroundColor: "#ECFDF5" }]}><Text style={[styles.roleBadgeText, { color: "#059669" }]}>Official</Text></View>
-      </View>
-      <View style={[styles.typePill, { backgroundColor: pillBg }]}><Feather name={isAlert ? "alert-triangle" : "radio"} size={10} color={pillColor} /><Text style={[styles.typePillText, { color: pillColor }]}>{isAlert ? "alert" : "news"}</Text></View>
-      <Text style={styles.newsTitle}>{item.title}</Text>
-      <Text style={styles.cardContent}>{item.body}</Text>
-      {item.media?.type === "image" ? <Image source={{ uri: item.media.uri }} style={styles.postImage} resizeMode="contain" /> : item.media?.type === "video" ? <InlineVideo uri={item.media.uri} /> : null}
-      <View style={styles.newsInfoRow}>
-        {item.location ? <View style={styles.newsInfoChip}><Feather name="map-pin" size={11} color="#64748B" /><Text style={styles.newsInfoText}>{item.location}</Text></View> : null}
-        {item.validUntil ? <View style={styles.newsInfoChip}><Feather name="clock" size={11} color="#64748B" /><Text style={styles.newsInfoText}>Valid until {item.validUntil}</Text></View> : null}
-      </View>
-      <TouchableOpacity style={styles.officialShare} onPress={() => void shareText(item.title, item.body)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={`Share ${item.title}`}>
-        <Feather name="share-2" size={14} color="#059669" /><Text style={styles.officialShareText}>Share official update</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const isAlert = item.type === "alert" || item.type === "emergency"; const color = isAlert ? "#DC2626" : "#EA580C"; const bg = isAlert ? "#FEE2E2" : "#FFEDD5";
+  return <View style={styles.card}><View style={styles.cardMeta}><Avatar name={item.postedBy || "Nagarsevak"} color="#16A34A" size={34} /><View style={styles.authorCopy}><Text style={styles.cardAuthor}>{item.postedBy || "Nagarsevak"}</Text><Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text></View><View style={[styles.roleBadge, { backgroundColor: "#ECFDF5" }]}><Text style={[styles.roleBadgeText, { color: "#059669" }]}>Official</Text></View></View><View style={[styles.typePill, { backgroundColor: bg }]}><Feather name={isAlert ? "alert-triangle" : "radio"} size={10} color={color} /><Text style={[styles.typePillText, { color }]}>{isAlert ? "alert" : "news"}</Text></View><Text style={styles.newsTitle}>{item.title}</Text><Text style={styles.cardContent}>{item.body}</Text>{item.media?.type === "image" ? <Image source={{ uri: item.media.uri }} style={styles.postImage} resizeMode="contain" /> : item.media?.type === "video" ? <InlineVideo uri={item.media.uri} /> : null}<TouchableOpacity style={styles.officialShare} onPress={() => void shareText(item.title, item.body)}><Feather name="share-2" size={14} color="#059669" /><Text style={styles.officialShareText}>Share official update</Text></TouchableOpacity></View>;
 }
 
-type FeedItem = { kind: "news"; createdAt: string; item: AppAlert } | { kind: "post"; createdAt: string; item: FeedPost };
+function broadcastMeta(category: AppBroadcast["category"]) {
+  if (category === "emergency") return { label: "Emergency", icon: "alert-triangle" as const, color: "#DC2626", bg: "#FEE2E2" };
+  if (category === "information") return { label: "Information", icon: "info" as const, color: "#2563EB", bg: "#DBEAFE" };
+  if (category === "notice") return { label: "Notice", icon: "file-text" as const, color: "#7C3AED", bg: "#EDE9FE" };
+  return { label: "Announcement", icon: "radio" as const, color: "#B45309", bg: "#FEF3C7" };
+}
+function BroadcastCard({ item, highlighted }: { item: AppBroadcast; highlighted: boolean }) {
+  const router = useRouter(); const meta = broadcastMeta(item.category);
+  return <TouchableOpacity style={[styles.card, styles.officialCard, highlighted && styles.highlightedCard]} onPress={() => router.push({ pathname: "/(tabs)/feed", params: { broadcastId: item.id } } as any)} activeOpacity={0.9}><View style={styles.cardMeta}><Avatar name={item.createdByName || "Connect-T"} color="#16A34A" size={34} /><View style={styles.authorCopy}><Text style={styles.cardAuthor}>{item.createdByName || "Connect-T"}</Text><Text style={styles.cardTime}>{timeAgo(item.sentAt || item.createdAt)}</Text></View><View style={[styles.roleBadge, { backgroundColor: "#ECFDF5" }]}><Text style={[styles.roleBadgeText, { color: "#059669" }]}>Official</Text></View></View><View style={[styles.typePill, { backgroundColor: meta.bg }]}><Feather name={meta.icon} size={10} color={meta.color} /><Text style={[styles.typePillText, { color: meta.color }]}>{meta.label}</Text></View><Text style={styles.newsTitle}>{item.title}</Text><Text style={styles.cardContent}>{item.body}</Text>{item.mediaType === "image" && item.mediaUri ? <Image source={{ uri: item.mediaUri }} style={styles.postImage} resizeMode="contain" /> : item.mediaType === "video" && item.mediaUri ? <InlineVideo uri={item.mediaUri} /> : null}<View style={styles.broadcastFooter}><View style={styles.newsInfoChip}><Feather name="map-pin" size={11} color="#64748B" /><Text style={styles.newsInfoText}>{item.ward || "All wards"}</Text></View><Text style={styles.openText}>Open update</Text><Feather name="chevron-right" size={16} color="#EA580C" /></View></TouchableOpacity>;
+}
 
+type FeedItem = { kind: "alert"; createdAt: string; item: AppAlert } | { kind: "broadcast"; createdAt: string; item: AppBroadcast } | { kind: "post"; createdAt: string; item: FeedPost };
 export default function FeedScreen() {
-  const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const tabHeight = Platform.OS === "web" ? 72 : 56 + Math.max(insets.bottom, 8);
-  const { posts, refreshFeed } = useFeed();
-  const { alerts: allAlerts, refreshAlerts } = useAlerts();
-  const { user } = useAuth();
-  const { handleScroll } = useTabBarVisibility();
-  const userId = user?.id || "guest";
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedWard, setSelectedWard] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const rawQuery = searchQuery.trim();
-  const query = rawQuery.toLowerCase();
-  const wardMatch = rawQuery.match(/^(?:ward\s*|w\.?\s*)?(\d{1,3})$/i);
-  const wardDigits = wardMatch?.[1] || "";
-  const wardSuggestions = wardDigits ? ambernathWards.filter((ward) => wardKey(ward).startsWith(wardDigits)).slice(0, 8) : [];
-
+  const insets = useSafeAreaInsets(); const topPad = Platform.OS === "web" ? 67 : insets.top; const tabHeight = Platform.OS === "web" ? 72 : 56 + Math.max(insets.bottom, 8);
+  const { posts, refreshFeed } = useFeed(); const { alerts: allAlerts, refreshAlerts } = useAlerts(); const { broadcasts, refreshBroadcasts } = useBroadcasts(); const { user } = useAuth(); const { handleScroll } = useTabBarVisibility();
+  const params = useLocalSearchParams<{ broadcastId?: string | string[] }>(); const requestedId = Array.isArray(params.broadcastId) ? params.broadcastId[0] : params.broadcastId;
+  const userId = user?.id || "guest"; const [searchQuery, setSearchQuery] = useState(""); const [selectedWard, setSelectedWard] = useState<string | null>(null); const [refreshing, setRefreshing] = useState(false);
+  const rawQuery = searchQuery.trim(); const query = rawQuery.toLowerCase(); const wardMatch = rawQuery.match(/^(?:ward\s*|w\.?\s*)?(\d{1,3})$/i); const wardDigits = wardMatch?.[1] || ""; const wardSuggestions = wardDigits ? ambernathWards.filter((ward) => wardKey(ward).startsWith(wardDigits)).slice(0, 8) : [];
   const items = useMemo<FeedItem[]>(() => {
     const visibleAlerts = allAlerts.filter((item) => !item.ward || (!!user?.ward && wardKey(item.ward) === wardKey(user.ward)));
-    let news = visibleAlerts;
-    let community = posts;
-    if (selectedWard) {
-      const key = wardKey(selectedWard);
-      news = allAlerts.filter((item) => wardKey(item.ward) === key || (!!item.location && wardKey(item.location) === key));
-      community = [];
-    } else if (query && !wardDigits) {
-      news = visibleAlerts.filter((item) => `${item.title} ${item.body}`.toLowerCase().includes(query));
-      community = posts.filter((item) => `${item.authorName} ${item.content} ${item.type}`.toLowerCase().includes(query));
-    } else if (wardDigits) {
-      news = [];
-      community = [];
-    }
-    return [
-      ...news.map((item) => ({ kind: "news" as const, createdAt: item.publishAt || item.createdAt, item })),
-      ...community.map((item) => ({ kind: "post" as const, createdAt: item.createdAt, item })),
-    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [allAlerts, posts, query, selectedWard, user?.ward, wardDigits]);
-
-  const refresh = async () => {
-    setRefreshing(true);
-    try { await Promise.allSettled([refreshFeed(), refreshAlerts()]); } finally { setRefreshing(false); }
-  };
-
+    const visibleBroadcasts = broadcasts.filter((item) => item.status === "sent");
+    let alerts = visibleAlerts, official = visibleBroadcasts, community = posts;
+    if (selectedWard) { const key = wardKey(selectedWard); alerts = allAlerts.filter((item) => wardKey(item.ward) === key || (!!item.location && wardKey(item.location) === key)); official = visibleBroadcasts.filter((item) => !item.ward || wardKey(item.ward) === key); community = []; }
+    else if (query && !wardDigits) { alerts = visibleAlerts.filter((item) => `${item.title} ${item.body}`.toLowerCase().includes(query)); official = visibleBroadcasts.filter((item) => `${item.title} ${item.body} ${item.category} ${item.createdByName}`.toLowerCase().includes(query)); community = posts.filter((item) => `${item.authorName} ${item.content} ${item.type}`.toLowerCase().includes(query)); }
+    else if (wardDigits) { alerts = []; official = []; community = []; }
+    return [...official.map((item) => ({ kind: "broadcast" as const, createdAt: item.sentAt || item.createdAt, item })), ...alerts.map((item) => ({ kind: "alert" as const, createdAt: item.publishAt || item.createdAt, item })), ...community.map((item) => ({ kind: "post" as const, createdAt: item.createdAt, item }))].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [allAlerts, broadcasts, posts, query, selectedWard, user?.ward, wardDigits]);
+  const refresh = async () => { setRefreshing(true); try { await Promise.allSettled([refreshFeed(), refreshAlerts(), refreshBroadcasts()]); } finally { setRefreshing(false); } };
   const clearSearch = () => { setSearchQuery(""); setSelectedWard(null); };
-
-  return (
-    <View style={styles.root}>
-      <LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <TopShade height={100} /><DecorativeCircles />
-        <Text style={styles.headerTitle}>News Feed</Text>
-        <Text style={styles.headerSub}>Ambernath · Official and community updates</Text>
-        <View style={styles.searchBar}>
-          <Feather name="search" size={16} color="#94A3B8" />
-          {selectedWard ? <View style={styles.activeWardChip}><Feather name="map-pin" size={12} color="#EA580C" /><Text style={styles.activeWardChipText}>{selectedWard}</Text></View> : <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Search updates or enter ward number" placeholderTextColor="#94A3B8" style={styles.searchInput} returnKeyType="search" accessibilityLabel="Search news and community posts" />}
-          {(selectedWard || rawQuery) ? <TouchableOpacity onPress={clearSearch} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear feed search"><Feather name="x-circle" size={17} color="#94A3B8" /></TouchableOpacity> : null}
-        </View>
-        {wardDigits ? <View style={styles.wardSuggestRow}>{wardSuggestions.length ? wardSuggestions.map((ward) => <TouchableOpacity key={ward} style={styles.wardSuggestChip} onPress={() => { setSelectedWard(ward); setSearchQuery(""); }} accessibilityRole="button"><Feather name="map-pin" size={11} color="#C2410C" /><Text style={styles.wardSuggestText}>{ward}</Text></TouchableOpacity>) : <Text style={styles.searchHint}>No matching ward</Text>}</View> : null}
-      </LinearGradient>
-
-      <FlatList
-        refreshing={refreshing}
-        onRefresh={() => void refresh()}
-        data={items}
-        keyExtractor={(item) => `${item.kind}:${item.item.id}`}
-        renderItem={({ item }) => item.kind === "news" ? <NewsAlertCard item={item.item} /> : <PostCard post={item.item} userId={userId} />}
-        contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 + tabHeight }, !items.length && styles.emptyList]}
-        showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        keyboardShouldPersistTaps="handled"
-        ListEmptyComponent={<View style={styles.emptyState}><Feather name="inbox" size={40} color="#CBD5E1" /><Text style={styles.emptyTitle}>No matching updates</Text><Text style={styles.emptyText}>Pull down to refresh or change your search.</Text></View>}
-      />
-    </View>
-  );
+  return <View style={styles.root}><LinearGradient colors={["#C2410C", "#EA580C", "#FB923C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: topPad + 12 }]}><TopShade height={100} /><DecorativeCircles /><Text style={styles.headerTitle}>News Feed</Text><Text style={styles.headerSub}>Official municipal, ward and community updates</Text><View style={styles.searchBar}><Feather name="search" size={16} color="#94A3B8" />{selectedWard ? <View style={styles.activeWardChip}><Feather name="map-pin" size={12} color="#EA580C" /><Text style={styles.activeWardChipText}>{selectedWard}</Text></View> : <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Search updates or enter ward number" placeholderTextColor="#94A3B8" style={styles.searchInput} returnKeyType="search" />}{(selectedWard || rawQuery) ? <TouchableOpacity onPress={clearSearch}><Feather name="x-circle" size={17} color="#94A3B8" /></TouchableOpacity> : null}</View>{wardDigits ? <View style={styles.wardSuggestRow}>{wardSuggestions.length ? wardSuggestions.map((ward) => <TouchableOpacity key={ward} style={styles.wardSuggestChip} onPress={() => { setSelectedWard(ward); setSearchQuery(""); }}><Feather name="map-pin" size={11} color="#C2410C" /><Text style={styles.wardSuggestText}>{ward}</Text></TouchableOpacity>) : <Text style={styles.searchHint}>No matching ward</Text>}</View> : null}</LinearGradient><FlatList refreshing={refreshing} onRefresh={() => void refresh()} data={items} keyExtractor={(entry) => `${entry.kind}:${entry.item.id}`} renderItem={({ item }) => item.kind === "broadcast" ? <BroadcastCard item={item.item} highlighted={item.item.id === requestedId} /> : item.kind === "alert" ? <NewsAlertCard item={item.item} /> : <PostCard post={item.item} userId={userId} />} contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 8) + 20 + tabHeight }, !items.length && styles.emptyList]} showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} ItemSeparatorComponent={() => <View style={styles.separator} />} keyboardShouldPersistTaps="handled" ListEmptyComponent={<View style={styles.emptyState}><Feather name="inbox" size={40} color="#CBD5E1" /><Text style={styles.emptyTitle}>No matching updates</Text><Text style={styles.emptyText}>Pull down to refresh or change your search.</Text></View>} /></View>;
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F1F5F9" },
-  header: { paddingHorizontal: 16, paddingBottom: 12, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
-  headerTitle: { fontSize: 22, color: "white", fontFamily: "Inter_700Bold" },
-  headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginTop: 2 },
-  searchBar: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "white", borderRadius: 14, paddingHorizontal: 13, minHeight: 48, marginTop: 12 },
-  searchInput: { flex: 1, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular", paddingVertical: 0 },
-  activeWardChip: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFEDD5", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9 },
-  activeWardChipText: { flex: 1, color: "#C2410C", fontSize: 12, fontFamily: "Inter_700Bold" },
-  wardSuggestRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
-  wardSuggestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "white", paddingHorizontal: 9, paddingVertical: 6, borderRadius: 18 },
-  wardSuggestText: { color: "#C2410C", fontSize: 10.5, fontFamily: "Inter_700Bold" },
-  searchHint: { color: "white", fontSize: 10.5, fontFamily: "Inter_600SemiBold" },
-  list: { paddingTop: 8 },
-  emptyList: { flexGrow: 1 },
-  separator: { height: 8 },
-  card: { backgroundColor: "white", padding: 14, marginHorizontal: 10, borderRadius: 18, borderWidth: 1, borderColor: "#E2E8F0" },
-  cardPinned: { borderColor: "#C4B5FD", borderLeftWidth: 4 },
-  pinnedBar: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 7 },
-  pinnedText: { color: "#7C3AED", fontSize: 9.5, fontFamily: "Inter_700Bold" },
-  cardMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 9 },
-  authorCopy: { flex: 1, minWidth: 0 },
-  cardAuthor: { color: "#0F172A", fontSize: 13, fontFamily: "Inter_700Bold" },
-  cardTime: { color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular", marginTop: 2 },
-  roleBadge: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 999 },
-  roleBadgeText: { fontSize: 8.5, textTransform: "capitalize", fontFamily: "Inter_700Bold" },
-  typePill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, alignSelf: "flex-start", marginBottom: 8 },
-  typePillText: { fontSize: 9, textTransform: "capitalize", fontFamily: "Inter_700Bold" },
-  newsTitle: { color: "#0F172A", fontSize: 16, lineHeight: 21, marginBottom: 5, fontFamily: "Inter_700Bold" },
-  cardContent: { color: "#334155", fontSize: 13, lineHeight: 20, marginBottom: 9, fontFamily: "Inter_400Regular" },
-  postImage: { width: "100%", height: 240, borderRadius: 14, marginBottom: 10, backgroundColor: "#F8FAFC" },
-  postVideo: { width: "100%", height: 150, borderRadius: 14, marginBottom: 10, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", alignItems: "center", justifyContent: "center" },
-  postVideoText: { marginTop: 7, color: "#EA580C", fontSize: 11, fontFamily: "Inter_700Bold" },
-  cardActions: { flexDirection: "row", justifyContent: "space-between", paddingTop: 9, borderTopWidth: 1, borderTopColor: "#F1F5F9" },
-  action: { minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 8, borderRadius: 10 },
-  actionText: { color: "#64748B", fontSize: 10.5, fontFamily: "Inter_600SemiBold" },
-  likedText: { color: "#DC2626" },
-  newsInfoRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
-  newsInfoChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F8FAFC", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5 },
-  newsInfoText: { color: "#64748B", fontSize: 10, fontFamily: "Inter_600SemiBold" },
-  officialShare: { minHeight: 42, borderRadius: 12, backgroundColor: "#ECFDF5", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  officialShareText: { color: "#059669", fontSize: 11, fontFamily: "Inter_700Bold" },
-  emptyState: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
-  emptyTitle: { marginTop: 10, color: "#334155", fontSize: 15, fontFamily: "Inter_700Bold" },
-  emptyText: { marginTop: 4, color: "#64748B", fontSize: 11, textAlign: "center", fontFamily: "Inter_400Regular" },
+  root: { flex: 1, backgroundColor: "#F1F5F9" }, header: { paddingHorizontal: 16, paddingBottom: 12, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" }, headerTitle: { fontSize: 22, color: "white", fontFamily: "Inter_700Bold" }, headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginTop: 2 }, searchBar: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "white", borderRadius: 14, paddingHorizontal: 13, minHeight: 48, marginTop: 12 }, searchInput: { flex: 1, fontSize: 14, color: "#0F172A", fontFamily: "Inter_400Regular", paddingVertical: 0 }, activeWardChip: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFEDD5", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9 }, activeWardChipText: { flex: 1, color: "#C2410C", fontSize: 12, fontFamily: "Inter_700Bold" }, wardSuggestRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }, wardSuggestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "white", paddingHorizontal: 9, paddingVertical: 6, borderRadius: 18 }, wardSuggestText: { color: "#C2410C", fontSize: 10.5, fontFamily: "Inter_700Bold" }, searchHint: { color: "white", fontSize: 10.5, fontFamily: "Inter_600SemiBold" },
+  list: { paddingTop: 8 }, emptyList: { flexGrow: 1 }, separator: { height: 8 }, card: { backgroundColor: "white", padding: 14, marginHorizontal: 10, borderRadius: 18, borderWidth: 1, borderColor: "#E2E8F0" }, officialCard: { borderColor: "#D1FAE5" }, highlightedCard: { borderColor: "#EA580C", borderWidth: 2 }, cardPinned: { borderColor: "#C4B5FD", borderLeftWidth: 4 }, pinnedBar: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 7 }, pinnedText: { color: "#7C3AED", fontSize: 9.5, fontFamily: "Inter_700Bold" }, cardMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 9 }, authorCopy: { flex: 1, minWidth: 0 }, cardAuthor: { color: "#0F172A", fontSize: 13, fontFamily: "Inter_700Bold" }, cardTime: { color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular", marginTop: 2 }, roleBadge: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 999 }, roleBadgeText: { fontSize: 8.5, textTransform: "capitalize", fontFamily: "Inter_700Bold" }, typePill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, alignSelf: "flex-start", marginBottom: 8 }, typePillText: { fontSize: 9, textTransform: "capitalize", fontFamily: "Inter_700Bold" }, newsTitle: { color: "#0F172A", fontSize: 16, lineHeight: 21, marginBottom: 5, fontFamily: "Inter_700Bold" }, cardContent: { color: "#334155", fontSize: 13, lineHeight: 20, marginBottom: 9, fontFamily: "Inter_400Regular" }, postImage: { width: "100%", height: 240, borderRadius: 14, marginBottom: 10, backgroundColor: "#F8FAFC" }, postVideo: { width: "100%", height: 150, borderRadius: 14, marginBottom: 10, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", alignItems: "center", justifyContent: "center" }, postVideoText: { marginTop: 7, color: "#EA580C", fontSize: 11, fontFamily: "Inter_700Bold" }, cardActions: { flexDirection: "row", justifyContent: "space-between", paddingTop: 9, borderTopWidth: 1, borderTopColor: "#F1F5F9" }, action: { minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 8, borderRadius: 10 }, actionText: { color: "#64748B", fontSize: 10.5, fontFamily: "Inter_600SemiBold" }, likedText: { color: "#DC2626" }, officialShare: { minHeight: 42, borderRadius: 12, backgroundColor: "#ECFDF5", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }, officialShareText: { color: "#059669", fontSize: 11, fontFamily: "Inter_700Bold" }, broadcastFooter: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 6, borderTopWidth: 1, borderTopColor: "#F1F5F9", paddingTop: 8 }, newsInfoChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F8FAFC", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5 }, newsInfoText: { color: "#64748B", fontSize: 10, fontFamily: "Inter_600SemiBold" }, openText: { marginLeft: "auto", color: "#EA580C", fontSize: 10.5, fontFamily: "Inter_700Bold" }, emptyState: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 }, emptyTitle: { marginTop: 10, color: "#334155", fontSize: 15, fontFamily: "Inter_700Bold" }, emptyText: { marginTop: 4, color: "#64748B", fontSize: 11, textAlign: "center", fontFamily: "Inter_400Regular" },
 });

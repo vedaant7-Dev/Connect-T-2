@@ -19,14 +19,15 @@ test("citizen official updates combine alerts news and broadcasts", () => {
   assert.match(screen, /externalPushStatus === "not_configured"/);
 });
 
-test("broadcast center supports audience language preview schedule and archive", () => {
-  const screen = read("screens/BroadcastCenterScreen.tsx");
+test("broadcast center supports audience language preview schedule and pause/delete", () => {
+  const screen = read("screens/BroadcastCenterMediaScreen.tsx");
   assert.match(screen, /AUDIENCES/);
   assert.match(screen, /LANGUAGES/);
   assert.match(screen, /SCHEDULE \(OPTIONAL\)/);
   assert.match(screen, /PREVIEW/);
-  assert.match(screen, /archiveBroadcast/);
-  assert.match(screen, /Not configured/);
+  assert.match(screen, /pauseBroadcast/);
+  assert.match(screen, /deleteBroadcast/);
+  assert.doesNotMatch(screen, /archiveBroadcast/);
 });
 
 test("alert details hide destructive controls from citizens, recover deep links, and sync read state", () => {

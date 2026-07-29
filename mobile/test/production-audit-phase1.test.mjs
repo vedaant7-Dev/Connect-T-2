@@ -25,7 +25,7 @@ test("OTP UI has persistent resend timing, restart recovery, and duplicate-submi
 test("complaints use retry-safe request ids for image and text-only submissions", () => {
   const context = read("context/ComplaintContext.tsx");
   const screen = read("app/complaint/new.tsx");
-  assert.match(context, /apiPostForm/);
+  assert.match(context, /uploadComplaintForm/);
   assert.ok(context.includes('form.append("photo"'));
   assert.match(context, /submitMultipartWithNetworkRecovery/);
   assert.match(context, /clientRequestId\?: string/);

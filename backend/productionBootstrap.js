@@ -7,6 +7,7 @@
 const PRODUCTION_PATCHES = [
   "./otpProductionPatch.js",
   "./profileSessionHydrationPatch.js",
+  "./utilityStatusActionsPatch.js",
   "./utilityStatusPatch.js",
   "./nagarsevakWardAssignmentPatch.js",
   "./alertPartialUpdatePatch.js",
@@ -15,6 +16,7 @@ const PRODUCTION_PATCHES = [
   "./alertDeliveryPatch.js",
   "./broadcastMediaPatch.js",
   "./broadcastGovernancePatch.js",
+  "./broadcastActionsPatch.js",
   "./broadcastDeliveryPatch.js",
   "./complaintUploadPatch.js",
   "./complaintJsonPatch.js",
