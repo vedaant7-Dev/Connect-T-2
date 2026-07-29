@@ -23,15 +23,16 @@ test("job dashboards use authoritative refresh and strict database booleans", ()
   assert.match(applied, /Job closed/);
 });
 
-test("citizen alerts refresh on focus and publishing controls are role restricted", () => {
+test("citizen News combines alerts and broadcasts while publishing remains role restricted", () => {
   const context = read("context/AlertContext.tsx");
-  const list = read("screens/OfficialUpdatesScreen.tsx");
+  const feed = read("app/(tabs)/feed.tsx");
   const form = read("screens/AlertComposerScreen.tsx");
   assert.match(context, /AppState\.addEventListener/);
   assert.match(context, /alertVisibleForWard/);
-  assert.match(list, /useFocusEffect/);
-  assert.match(list, /canPublish/);
-  assert.match(list, /citizenSub/);
+  assert.match(feed, /useAlerts/);
+  assert.match(feed, /useBroadcasts/);
+  assert.match(feed, /refreshAlerts/);
+  assert.match(feed, /visibleAlerts/);
   assert.match(form, /const canPublish/);
   assert.match(form, /Publishing unavailable/);
   assert.match(form, /All citizens/);
@@ -51,5 +52,6 @@ test("forms use keyboard-safe scroll behavior and adjustable insets", () => {
   assert.match(profileRoute, /LocalizedJobPortalProfileScreen/);
   assert.match(profile, /KeyboardAvoidingView/);
   assert.match(profile, /automaticallyAdjustKeyboardInsets/);
-  assert.match(profile, /c\("requestCorrection"\)/);
+  assert.match(profile, /roleSwitchVisible/);
+  assert.match(profile, /switchRoleLabel/);
 });
