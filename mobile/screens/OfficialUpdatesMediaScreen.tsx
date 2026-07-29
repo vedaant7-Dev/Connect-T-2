@@ -4,7 +4,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Linking,
@@ -17,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import ConfirmActionModal from "@/components/ConfirmActionModal";
 import { alertVisibleForWard, AppAlert, useAlerts } from "@/context/AlertContext";
 import { AppBroadcast, useBroadcasts } from "@/context/BroadcastContext";
 import { useAuth } from "@/context/AuthContext";
@@ -85,8 +85,7 @@ function BroadcastCard({ item, label, sentLabel, pushMissingLabel, onOpen }: { i
         <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.body} numberOfLines={3}>{item.body}</Text>
         <View style={styles.metaRow}><View style={styles.meta}><Feather name="check-circle" size={10} color="#64748B" /><Text style={styles.metaText}>{sentLabel}</Text></View><View style={styles.meta}><Feather name="users" size={10} color="#64748B" /><Text style={styles.metaText} numberOfLines={1}>{item.ward || item.audienceRole}</Text></View></View>
-        {item.mediaType === "video" ? <Text style={styles.mediaHint}>Tap to view the attached video</Text> : null}
-        {item.externalPushStatus === "not_configured" ? <Text style={styles.pushWarning}>{pushMissingLabel}</Text> : null}
+                {item.externalPushStatus === "not_configured" ? <Text style={styles.pushWarning}>{pushMissingLabel}</Text> : null}
       </View>
       <Feather name="chevron-right" size={17} color="#CBD5E1" />
     </TouchableOpacity>
@@ -102,6 +101,9 @@ export default function OfficialUpdatesMediaScreen() {
   const { alerts: allAlerts, loading: alertLoading, error: alertError, refreshAlerts, removeAlert } = useAlerts();
   const { broadcasts, loading: broadcastLoading, error: broadcastError, refreshBroadcasts, markBroadcastRead } = useBroadcasts();
   const [selectedBroadcast, setSelectedBroadcast] = useState<AppBroadcast | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<AppAlert | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const canPublish = user?.role === "nagarsevak" || user?.role === "super_admin" || !!user?.isSuperAdmin;
   const isSuperAdmin = user?.role === "super_admin" || !!user?.isSuperAdmin;
@@ -145,10 +147,19 @@ export default function OfficialUpdatesMediaScreen() {
     }
   };
 
-  const confirmDelete = (item: AppAlert) => Alert.alert(c("removeTitle"), `${c("removeMessage")}\n\n${item.title}`, [
-    { text: c("cancel"), style: "cancel" },
-    { text: c("remove"), style: "destructive", onPress: () => void removeAlert(item.id).catch((requestError) => Alert.alert(c("removeFailed"), getUserErrorMessage(requestError))) },
-  ]);
+  const runDelete = async () => {
+    if (!pendingDelete || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      await removeAlert(pendingDelete.id);
+      setPendingDelete(null);
+    } catch (requestError) {
+      setDeleteError(getUserErrorMessage(requestError, c("removeFailed")));
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   const loading = alertLoading || broadcastLoading;
   const error = alertError || broadcastError;
@@ -164,8 +175,7 @@ export default function OfficialUpdatesMediaScreen() {
           </View>
         </View>
         <Text style={styles.headerTitle}>{c("title")}</Text>
-        <Text style={styles.headerSub}>{canPublish ? c("managerSub") : c("citizenSub")}</Text>
-        <View style={styles.stats}><Stat value={items.length} label={c("total")} /><Stat value={counts.alerts} label={c("alerts")} /><Stat value={counts.news} label={c("news")} /><Stat value={counts.unread} label={c("unread")} /></View>
+                <View style={styles.stats}><Stat value={items.length} label={c("total")} /><Stat value={counts.alerts} label={c("alerts")} /><Stat value={counts.news} label={c("news")} /><Stat value={counts.unread} label={c("unread")} /></View>
       </LinearGradient>
 
       {error ? <TouchableOpacity style={styles.errorBanner} onPress={() => void refresh()}><Feather name="wifi-off" size={15} color="#B45309" /><Text style={styles.errorText}>{error}</Text><Text style={styles.retry}>{c("retry")}</Text></TouchableOpacity> : null}
@@ -175,11 +185,28 @@ export default function OfficialUpdatesMediaScreen() {
         keyExtractor={(item) => item.key}
         refreshing={loading}
         onRefresh={() => void refresh()}
-        renderItem={({ item }) => item.kind === "alert" ? <AlertCard item={item.alert} canDelete={isSuperAdmin || (user?.role === "nagarsevak" && String(item.alert.postedById || "") === String(user.id))} onOpen={() => router.push(`/alert/${item.alert.id}` as any)} onDelete={() => confirmDelete(item.alert)} /> : <BroadcastCard item={item.broadcast} label={c("broadcast")} sentLabel={c("sentInApp")} pushMissingLabel={c("externalPushMissing")} onOpen={() => void openBroadcast(item.broadcast)} />}
+        renderItem={({ item }) => item.kind === "alert" ? <AlertCard item={item.alert} canDelete={isSuperAdmin || (user?.role === "nagarsevak" && String(item.alert.postedById || "") === String(user.id))} onOpen={() => router.push(`/alert/${item.alert.id}` as any)} onDelete={() => { setPendingDelete(item.alert); setDeleteError(""); }} /> : <BroadcastCard item={item.broadcast} label={c("broadcast")} sentLabel={c("sentInApp")} pushMissingLabel={c("externalPushMissing")} onOpen={() => void openBroadcast(item.broadcast)} />}
         contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 12) + 28 }, !items.length && styles.emptyList]}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<View style={styles.empty}><View style={styles.emptyIcon}><Feather name="bell" size={30} color={GREEN} /></View><Text style={styles.emptyTitle}>{c("emptyTitle")}</Text><Text style={styles.emptyText}>{canPublish ? c("emptyManager") : c("emptyCitizen")}</Text>{canPublish ? <TouchableOpacity style={styles.emptyAction} onPress={() => router.push("/alert/new" as any)}><Text style={styles.emptyActionText}>{c("post")}</Text></TouchableOpacity> : null}</View>}
+        ListEmptyComponent={<View style={styles.empty}><View style={styles.emptyIcon}><Feather name="bell" size={30} color={GREEN} /></View><Text style={styles.emptyTitle}>{c("emptyTitle")}</Text>{canPublish ? <TouchableOpacity style={styles.emptyAction} onPress={() => router.push("/alert/new" as any)}><Text style={styles.emptyActionText}>{c("post")}</Text></TouchableOpacity> : null}</View>}
       />}
+
+      <ConfirmActionModal
+        visible={!!pendingDelete}
+        title={c("removeTitle")}
+        message={pendingDelete ? `${c("removeMessage")}
+
+${pendingDelete.title}` : c("removeMessage")}
+        confirmLabel={c("remove")}
+        cancelLabel={c("cancel")}
+        icon="trash-2"
+        confirmIcon="trash-2"
+        tone="danger"
+        busy={deleteBusy}
+        errorMessage={deleteError}
+        onCancel={() => { if (!deleteBusy) { setPendingDelete(null); setDeleteError(""); } }}
+        onConfirm={runDelete}
+      />
 
       <Modal visible={!!selectedBroadcast} transparent animationType="fade" onRequestClose={() => setSelectedBroadcast(null)}>
         <View style={styles.modalOverlay} accessibilityViewIsModal>

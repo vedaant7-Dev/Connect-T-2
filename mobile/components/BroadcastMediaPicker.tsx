@@ -102,7 +102,6 @@ export default function BroadcastMediaPicker({
           <View style={styles.addIcon}><Feather name="paperclip" size={18} color={ORANGE} /></View>
           <View style={styles.addCopy}>
             <Text style={styles.addTitle}>Add image or video</Text>
-            <Text style={styles.addSub}>Images up to 10MB · MP4/MOV video up to 5 minutes and 50MB · original quality retained</Text>
           </View>
           <Feather name="plus" size={18} color={ORANGE} />
         </TouchableOpacity>
