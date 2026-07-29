@@ -108,26 +108,17 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [splashDone, setSplashDone] = useState(false);
   const [bootChecked, setBootChecked] = useState(false);
+  const initialRouteHandled = useRef(false);
 
   useEffect(() => {
-    if (loading) return;
-    let alive = true;
+    if (loading || initialRouteHandled.current) return;
+    initialRouteHandled.current = true;
 
-    const boot = async () => {
-      if (user) {
-        if (!alive) return;
-        setSplashDone(true);
-        staticRouter.replace(dashboardForUser(user) as any);
-        setBootChecked(true);
-        return;
-      }
-
-      if (!alive) return;
-      setBootChecked(true);
-    };
-
-    boot();
-    return () => { alive = false; };
+    if (user) {
+      setSplashDone(true);
+      staticRouter.replace(dashboardForUser(user) as any);
+    }
+    setBootChecked(true);
   }, [user, loading]);
 
   const handleFinish = async (_portal: SplashPortal) => {
