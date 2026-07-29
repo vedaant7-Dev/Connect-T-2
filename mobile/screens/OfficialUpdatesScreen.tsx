@@ -177,7 +177,7 @@ export default function OfficialUpdatesScreen() {
           </View>
         </View>
         <Text style={styles.headerTitle}>{c("title")}</Text>
-                <View style={styles.stats}><Stat value={items.length} label={c("total")} /><Stat value={counts.alerts} label={c("alerts")} /><Stat value={counts.news} label={c("news")} /><Stat value={counts.unread} label={c("unread")} /></View>
+        <View style={styles.stats}><Stat value={items.length} label={c("total")} /><Stat value={counts.alerts} label={c("alerts")} /><Stat value={counts.news} label={c("news")} /><Stat value={counts.unread} label={c("unread")} /></View>
       </LinearGradient>
 
       {error ? <TouchableOpacity style={styles.errorBanner} onPress={() => void refresh()}><Feather name="wifi-off" size={15} color="#B45309" /><Text style={styles.errorText}>{error}</Text><Text style={styles.retry}>{c("retry")}</Text></TouchableOpacity> : null}
@@ -196,9 +196,7 @@ export default function OfficialUpdatesScreen() {
       <ConfirmActionModal
         visible={!!pendingDelete}
         title={c("removeTitle")}
-        message={pendingDelete ? `${c("removeMessage")}
-
-${pendingDelete.title}` : c("removeMessage")}
+        message={pendingDelete ? `${c("removeMessage")} — ${pendingDelete.title}` : c("removeMessage")}
         confirmLabel={c("remove")}
         cancelLabel={c("cancel")}
         icon="trash-2"

@@ -85,7 +85,7 @@ function BroadcastCard({ item, label, sentLabel, pushMissingLabel, onOpen }: { i
         <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.body} numberOfLines={3}>{item.body}</Text>
         <View style={styles.metaRow}><View style={styles.meta}><Feather name="check-circle" size={10} color="#64748B" /><Text style={styles.metaText}>{sentLabel}</Text></View><View style={styles.meta}><Feather name="users" size={10} color="#64748B" /><Text style={styles.metaText} numberOfLines={1}>{item.ward || item.audienceRole}</Text></View></View>
-                {item.externalPushStatus === "not_configured" ? <Text style={styles.pushWarning}>{pushMissingLabel}</Text> : null}
+        {item.externalPushStatus === "not_configured" ? <Text style={styles.pushWarning}>{pushMissingLabel}</Text> : null}
       </View>
       <Feather name="chevron-right" size={17} color="#CBD5E1" />
     </TouchableOpacity>
@@ -175,7 +175,7 @@ export default function OfficialUpdatesMediaScreen() {
           </View>
         </View>
         <Text style={styles.headerTitle}>{c("title")}</Text>
-                <View style={styles.stats}><Stat value={items.length} label={c("total")} /><Stat value={counts.alerts} label={c("alerts")} /><Stat value={counts.news} label={c("news")} /><Stat value={counts.unread} label={c("unread")} /></View>
+        <View style={styles.stats}><Stat value={items.length} label={c("total")} /><Stat value={counts.alerts} label={c("alerts")} /><Stat value={counts.news} label={c("news")} /><Stat value={counts.unread} label={c("unread")} /></View>
       </LinearGradient>
 
       {error ? <TouchableOpacity style={styles.errorBanner} onPress={() => void refresh()}><Feather name="wifi-off" size={15} color="#B45309" /><Text style={styles.errorText}>{error}</Text><Text style={styles.retry}>{c("retry")}</Text></TouchableOpacity> : null}
@@ -194,9 +194,7 @@ export default function OfficialUpdatesMediaScreen() {
       <ConfirmActionModal
         visible={!!pendingDelete}
         title={c("removeTitle")}
-        message={pendingDelete ? `${c("removeMessage")}
-
-${pendingDelete.title}` : c("removeMessage")}
+        message={pendingDelete ? `${c("removeMessage")} — ${pendingDelete.title}` : c("removeMessage")}
         confirmLabel={c("remove")}
         cancelLabel={c("cancel")}
         icon="trash-2"

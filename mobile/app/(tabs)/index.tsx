@@ -1,4 +1,5 @@
 import { AppScrollView } from "@/components/AppScrollView";
+import ComplaintMediaViewer from "@/components/ComplaintMediaViewer";
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Platform, Modal, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -512,7 +513,7 @@ export default function HomeScreen() {
                     {selectedAlert.media?.type === "image" ? (
                       <Image source={{ uri: selectedAlert.media.uri }} style={styles.modalMediaImage} />
                     ) : selectedAlert.media?.type === "video" ? (
-                      <InlineVideo uri={selectedAlert.media.uri} style={styles.modalVideoPlayer} />
+                      <ComplaintMediaViewer uri={selectedAlert.media.uri} title={selectedAlert.title} label="Official video" accentColor="#EA580C" />
                     ) : null}
                     <View style={styles.alertDetailGrid}>
                       {!!selectedAlert.priority && (
