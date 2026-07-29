@@ -1,0 +1,41 @@
+name: Apply Remaining Requested UI Fixes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/apply_remaining_ui_fixes.py"
+      - ".github/workflows/apply-remaining-requested-ui-fixes.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fixes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply requested UI fixes
+        run: python3 scripts/apply_remaining_ui_fixes.py
+
+      - name: Validate patch
+        run: |
+          git diff --check
+          node --test mobile/test/remaining-requested-ui-fixes.test.mjs
+
+      - name: Commit fixes
+        run: |
+          if git diff --quiet; then
+            echo "No changes required."
+            exit 0
+          fi
+          git config user.name "Connect-T Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add mobile/app/'(tabs)'/index.tsx mobile/components/ComplaintMediaViewer.tsx mobile/screens/BroadcastCenterMediaScreen.tsx mobile/test/remaining-requested-ui-fixes.test.mjs
+          git commit -m "Complete Broadcast and Civic home UI fixes"
+          git push origin HEAD:main
