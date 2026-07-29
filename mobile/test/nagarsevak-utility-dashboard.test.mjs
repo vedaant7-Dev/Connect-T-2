@@ -16,6 +16,19 @@ test("Nagarsevak home keeps news in the dedicated News tab", () => {
   assert.match(layout, /orderedNames = \["admin", "ward", "news", "profile"\]/);
 });
 
+test("Complaint status cards stay above Ward Utility Status", () => {
+  const screen = read("app/(tabs)/admin.tsx");
+  const complaintSummaryIndex = screen.indexOf("styles.dashboardGrid");
+  const utilityStatusIndex = screen.indexOf("styles.utilityPanel");
+
+  assert.notEqual(complaintSummaryIndex, -1, "Complaint status summary must exist");
+  assert.notEqual(utilityStatusIndex, -1, "Ward Utility Status panel must exist");
+  assert.ok(
+    complaintSummaryIndex < utilityStatusIndex,
+    "Complaint status cards must render before Ward Utility Status",
+  );
+});
+
 test("Ward utility form uses exact start and end time pickers", () => {
   const screen = read("app/(tabs)/admin.tsx");
   const picker = read("components/AppTimePicker.tsx");
