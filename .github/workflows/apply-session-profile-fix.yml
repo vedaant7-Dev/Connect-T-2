@@ -1,0 +1,111 @@
+name: Apply Session and Profile Fix
+
+on:
+  push:
+    branches:
+      - fix/session-profile-save-reliability
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[session-fix-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/session-profile-save-reliability
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply focused fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"Expected source not found in {path}: {old[:80]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace(
+              "mobile/lib/api.ts",
+              '  const isUnifiedJobsSession = path === "/api/job-portal/session";\n  const token = path.startsWith("/api/job-portal/") && !isUnifiedJobsSession',
+              '  const usesCivicJobSession = path === "/api/job-portal/session" || path === "/api/job-portal/onboarding";\n  const token = path.startsWith("/api/job-portal/") && !usesCivicJobSession',
+          )
+
+          replace(
+              "mobile/screens/LocalizedJobProfileSetupScreen.tsx",
+              'import { apiPost, clearJobsAuthToken, getUserErrorMessage } from "@/lib/api";',
+              'import { apiPost, getUserErrorMessage } from "@/lib/api";',
+          )
+          replace("mobile/screens/LocalizedJobProfileSetupScreen.tsx", '      await clearJobsAuthToken();\n', '')
+          replace("mobile/screens/LocalizedJobProfileSetupScreen.tsx", '          <Text style={s.sub}>{c("setupSubtitle")}</Text>\n', '')
+
+          replace(
+              "mobile/context/AuthContext.tsx",
+              'function normalizedProfilePhoto(raw: any): string | undefined {\n  return raw?.profilePhoto || raw?.profile_photo || undefined;\n}\n',
+              'function normalizedProfilePhoto(raw: any): string | undefined {\n  return raw?.profilePhoto || raw?.profile_photo || undefined;\n}\n\nfunction normalizedDob(value: any): string | undefined {\n  const text = String(value || "").trim();\n  const match = text.match(/^(\\d{4}-\\d{2}-\\d{2})/);\n  return match?.[1];\n}\n',
+          )
+          replace("mobile/context/AuthContext.tsx", '    dob: raw.dob || undefined,', '    dob: normalizedDob(raw.dob),')
+          replace(
+              "mobile/context/AuthContext.tsx",
+              '  const profilePhoto = profilePhotoSpecified\n    ? await toUploadableMediaUri(profilePhotoOverride)\n    : await toUploadableMediaUri(user.profilePhoto);',
+              '  const profilePhoto = profilePhotoSpecified\n    ? await toUploadableMediaUri(profilePhotoOverride)\n    : undefined;',
+          )
+          replace("mobile/context/AuthContext.tsx", '    profile_photo: profilePhoto,', '    profile_photo: profilePhotoSpecified ? profilePhoto : undefined,')
+          replace(
+              "mobile/context/AuthContext.tsx",
+              '    profilePhoto: responseHasPhoto ? response.profilePhoto : profilePhoto || undefined,',
+              '    profilePhoto: responseHasPhoto\n      ? response.profilePhoto\n      : profilePhotoSpecified\n        ? profilePhoto || undefined\n        : user.profilePhoto,',
+          )
+          replace(
+              "mobile/context/AuthContext.tsx",
+              '    const profilePhotoSpecified = Object.prototype.hasOwnProperty.call(updates, "profilePhoto");',
+              '    const requestedPhotoUpdate = Object.prototype.hasOwnProperty.call(updates, "profilePhoto");\n    const profilePhotoSpecified = requestedPhotoUpdate &&\n      (updates.profilePhoto ?? null) !== (user.profilePhoto ?? null);',
+          )
+
+          old_boot = '''        try {\n          const session = await apiGet<any>("/api/auth/session");\n          if (!session?.user) throw new Error("SESSION_INVALID");\n          const verifiedUser = normalizeUser(session.user);\n          setUser(verifiedUser);\n          await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(verifiedUser));\n        } catch {\n          await AsyncStorage.removeItem(SESSION_KEY);\n          await clearAuthToken();\n        }'''
+          new_boot = '''        let cachedUser: User | null = null;\n        try {\n          cachedUser = normalizeUser(JSON.parse(stored));\n        } catch {\n          await AsyncStorage.removeItem(SESSION_KEY);\n          await clearAuthToken();\n          return;\n        }\n        try {\n          const session = await apiGet<any>("/api/auth/session");\n          if (!session?.user) throw new Error("SESSION_INVALID");\n          const verifiedUser = normalizeUser(session.user);\n          setUser(verifiedUser);\n          await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(verifiedUser));\n        } catch (error) {\n          const sessionRejected = isApiError(error) && [401, 403].includes(error.status || 0);\n          if (sessionRejected) {\n            await AsyncStorage.removeItem(SESSION_KEY);\n            await clearAuthToken();\n          } else {\n            setUser(cachedUser);\n          }\n        }'''
+          replace("mobile/context/AuthContext.tsx", old_boot, new_boot)
+
+          replace(
+              "backend/server.js",
+              '''    const savedProfilePhoto = profile_photo === undefined\n      ? existing?.profile_photo || null\n      : await saveDataUriToUploads(profile_photo, "profile", req, { allowedMimeTypes: IMAGE_MIME_TYPES });''',
+              '''    const requestedProfilePhoto = profile_photo === undefined\n      ? undefined\n      : String(profile_photo || "").trim();\n    const savedProfilePhoto = requestedProfilePhoto === undefined\n      ? existing?.profile_photo || null\n      : !requestedProfilePhoto\n        ? null\n        : requestedProfilePhoto === String(existing?.profile_photo || "")\n          ? existing.profile_photo\n          : await saveDataUriToUploads(requestedProfilePhoto, "profile", req, { allowedMimeTypes: IMAGE_MIME_TYPES });''',
+          )
+          replace(
+              "backend/server.js",
+              '  } catch (err) {\n    res.status(500).json({ success: false, error: err.message });\n  }\n});\n\napp.post("/api/auth/user-by-mobile"',
+              '  } catch (err) {\n    console.warn("[Connect-T] Profile save failed:", err?.code || err?.name || "profile_save_error");\n    res.status(500).json({ success: false, message: "Profile could not be saved right now. Please try again." });\n  }\n});\n\napp.post("/api/auth/user-by-mobile"',
+          )
+
+          Path("mobile/test/session-profile-reliability.test.mjs").write_text('''import assert from "node:assert/strict";\nimport fs from "node:fs";\nimport test from "node:test";\n\nconst read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");\n\ntest("job onboarding always uses the civic session and keeps it intact", () => {\n  const api = read("lib/api.ts");\n  const setup = read("screens/LocalizedJobProfileSetupScreen.tsx");\n  assert.match(api, /usesCivicJobSession[\\s\\S]*job-portal\\/onboarding/);\n  assert.doesNotMatch(setup, /clearJobsAuthToken/);\n  assert.doesNotMatch(setup, /setupSubtitle/);\n});\n\ntest("temporary network failures do not log out a valid cached civic session", () => {\n  const auth = read("context/AuthContext.tsx");\n  assert.match(auth, /sessionRejected/);\n  assert.match(auth, /setUser\\(cachedUser\\)/);\n  assert.match(auth, /normalizedDob/);\n});\n\ntest("unchanged profile photos are not re-uploaded", () => {\n  const auth = read("context/AuthContext.tsx");\n  assert.match(auth, /profilePhotoSpecified \\? profilePhoto : undefined/);\n  assert.match(auth, /updates\\.profilePhoto \\?\\? null/);\n});\n''')
+
+          Path("backend/test/profile-save-reliability.test.js").write_text('''"use strict";\nconst assert = require("node:assert/strict");\nconst fs = require("node:fs");\nconst path = require("node:path");\nconst test = require("node:test");\nconst source = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");\ntest("profile save preserves an unchanged managed photo and hides internal errors", () => {\n  assert.match(source, /requestedProfilePhoto === String\\(existing\\?\\.profile_photo/);\n  assert.match(source, /Profile could not be saved right now/);\n});\n''')
+          PY
+      - name: Run focused validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd backend
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run check
+          npm test
+          cd ../mobile
+          npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+          npm run test:api
+          npm run typecheck
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "Connect-T Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add backend mobile
+          git commit -m "[session-fix-applied] Fix persistent sessions and profile saves"
+          git push origin HEAD:fix/session-profile-save-reliability
