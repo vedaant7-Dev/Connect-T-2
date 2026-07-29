@@ -1,6 +1,6 @@
 name: Apply Instant Job Role Switch Fix
 
-# PR_TRIGGER_INSTANT_ROLE_SWITCH_V2
+# PR_TRIGGER_INSTANT_ROLE_SWITCH_V3
 on:
   push:
     branches:
@@ -34,6 +34,18 @@ jobs:
           fetch-depth: 0
       - name: Apply role switch UI fix
         run: python3 scripts/apply_instant_role_switch_fix.py
+      - name: Repair focused regression fixture
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("mobile/test/job-civic-profile-consistency.test.mjs")
+          text = path.read_text(encoding="utf-8")
+          marker = 'test("unified Job Portal profile preserves fields and supports instant role switching", () => {\n  const jobs = read("screens/LocalizedJobPortalProfileScreen.tsx");'
+          replacement = marker + '\n  const route = read("app/jobs/(tabs)/profile.tsx");'
+          if marker in text and replacement not in text:
+              text = text.replace(marker, replacement, 1)
+              path.write_text(text, encoding="utf-8")
+          PY
       - name: Validate changes
         run: |
           git diff --check
