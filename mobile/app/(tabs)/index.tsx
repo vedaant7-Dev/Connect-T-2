@@ -1,4 +1,5 @@
 import { AppScrollView } from "@/components/AppScrollView";
+import ComplaintMediaViewer from "@/components/ComplaintMediaViewer";
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Platform, Modal, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -265,22 +266,6 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
       >
 
-        {/* REPORT A PROBLEM CTA */}
-        <TouchableOpacity style={styles.complaintCTA} onPress={() => router.push("/complaint/new")} activeOpacity={0.88}>
-          <LinearGradient colors={["#15803D", "#16A34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.complaintCTAGrad}>
-            <View style={styles.complaintCTAIcon}>
-              <Feather name="camera" size={24} color="white" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.complaintCTATitle}>{t("reportProblem")}</Text>
-              <Text style={styles.complaintCTASub}>{t("reportProblemSub")}</Text>
-            </View>
-            <View style={styles.complaintCTAArrow}>
-              <Feather name="arrow-right" size={18} color="white" />
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-
         {/* UTILITY STATUS */}
         <SectionHeader title={t("utilityStatus")} />
         <View style={styles.utilityRow}>
@@ -528,7 +513,7 @@ export default function HomeScreen() {
                     {selectedAlert.media?.type === "image" ? (
                       <Image source={{ uri: selectedAlert.media.uri }} style={styles.modalMediaImage} />
                     ) : selectedAlert.media?.type === "video" ? (
-                      <InlineVideo uri={selectedAlert.media.uri} style={styles.modalVideoPlayer} />
+                      <ComplaintMediaViewer uri={selectedAlert.media.uri} title={selectedAlert.title} label="Official video" accentColor="#EA580C" />
                     ) : null}
                     <View style={styles.alertDetailGrid}>
                       {!!selectedAlert.priority && (

@@ -4,7 +4,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
@@ -16,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import ConfirmActionModal from "@/components/ConfirmActionModal";
 import { alertVisibleForWard, AppAlert, useAlerts } from "@/context/AlertContext";
 import { AppBroadcast, useBroadcasts } from "@/context/BroadcastContext";
 import { useAuth } from "@/context/AuthContext";
@@ -101,6 +101,9 @@ export default function OfficialUpdatesScreen() {
   const { alerts: allAlerts, loading: alertLoading, error: alertError, refreshAlerts, removeAlert } = useAlerts();
   const { broadcasts, loading: broadcastLoading, error: broadcastError, refreshBroadcasts, markBroadcastRead } = useBroadcasts();
   const [selectedBroadcast, setSelectedBroadcast] = useState<AppBroadcast | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<AppAlert | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const canPublish = user?.role === "nagarsevak" || user?.role === "super_admin" || !!user?.isSuperAdmin;
   const isSuperAdmin = user?.role === "super_admin" || !!user?.isSuperAdmin;
@@ -146,10 +149,19 @@ export default function OfficialUpdatesScreen() {
     }
   };
 
-  const confirmDelete = (item: AppAlert) => Alert.alert(c("removeTitle"), `${c("removeMessage")}\n\n${item.title}`, [
-    { text: c("cancel"), style: "cancel" },
-    { text: c("remove"), style: "destructive", onPress: () => void removeAlert(item.id).catch((requestError) => Alert.alert(c("removeFailed"), getUserErrorMessage(requestError))) },
-  ]);
+  const runDelete = async () => {
+    if (!pendingDelete || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      await removeAlert(pendingDelete.id);
+      setPendingDelete(null);
+    } catch (requestError) {
+      setDeleteError(getUserErrorMessage(requestError, c("removeFailed")));
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   const loading = alertLoading || broadcastLoading;
   const error = alertError || broadcastError;
@@ -165,7 +177,6 @@ export default function OfficialUpdatesScreen() {
           </View>
         </View>
         <Text style={styles.headerTitle}>{c("title")}</Text>
-        <Text style={styles.headerSub}>{canPublish ? c("managerSub") : c("citizenSub")}</Text>
         <View style={styles.stats}><Stat value={items.length} label={c("total")} /><Stat value={counts.alerts} label={c("alerts")} /><Stat value={counts.news} label={c("news")} /><Stat value={counts.unread} label={c("unread")} /></View>
       </LinearGradient>
 
@@ -176,11 +187,26 @@ export default function OfficialUpdatesScreen() {
         keyExtractor={(item) => item.key}
         refreshing={loading}
         onRefresh={() => void refresh()}
-        renderItem={({ item }) => item.kind === "alert" ? <AlertCard item={item.alert} canDelete={isSuperAdmin || (user?.role === "nagarsevak" && String(item.alert.postedById || "") === String(user.id))} onOpen={() => router.push(`/alert/${item.alert.id}` as any)} onDelete={() => confirmDelete(item.alert)} /> : <BroadcastCard item={item.broadcast} label={c("broadcast")} sentLabel={c("sentInApp")} pushMissingLabel={c("externalPushMissing")} onOpen={() => void openBroadcast(item.broadcast)} />}
+        renderItem={({ item }) => item.kind === "alert" ? <AlertCard item={item.alert} canDelete={isSuperAdmin || (user?.role === "nagarsevak" && String(item.alert.postedById || "") === String(user.id))} onOpen={() => router.push(`/alert/${item.alert.id}` as any)} onDelete={() => { setPendingDelete(item.alert); setDeleteError(""); }} /> : <BroadcastCard item={item.broadcast} label={c("broadcast")} sentLabel={c("sentInApp")} pushMissingLabel={c("externalPushMissing")} onOpen={() => void openBroadcast(item.broadcast)} />}
         contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 12) + 28 }, !items.length && { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<View style={styles.empty}><View style={styles.emptyIcon}><Feather name="bell" size={30} color={GREEN} /></View><Text style={styles.emptyTitle}>{c("emptyTitle")}</Text><Text style={styles.emptyText}>{canPublish ? c("emptyManager") : c("emptyCitizen")}</Text>{canPublish ? <TouchableOpacity style={styles.emptyAction} onPress={() => router.push("/alert/new" as any)}><Text style={styles.emptyActionText}>{c("post")}</Text></TouchableOpacity> : null}</View>}
+        ListEmptyComponent={<View style={styles.empty}><View style={styles.emptyIcon}><Feather name="bell" size={30} color={GREEN} /></View><Text style={styles.emptyTitle}>{c("emptyTitle")}</Text>{canPublish ? <TouchableOpacity style={styles.emptyAction} onPress={() => router.push("/alert/new" as any)}><Text style={styles.emptyActionText}>{c("post")}</Text></TouchableOpacity> : null}</View>}
       />}
+
+      <ConfirmActionModal
+        visible={!!pendingDelete}
+        title={c("removeTitle")}
+        message={pendingDelete ? `${c("removeMessage")} — ${pendingDelete.title}` : c("removeMessage")}
+        confirmLabel={c("remove")}
+        cancelLabel={c("cancel")}
+        icon="trash-2"
+        confirmIcon="trash-2"
+        tone="danger"
+        busy={deleteBusy}
+        errorMessage={deleteError}
+        onCancel={() => { if (!deleteBusy) { setPendingDelete(null); setDeleteError(""); } }}
+        onConfirm={runDelete}
+      />
 
       <Modal visible={!!selectedBroadcast} transparent animationType="fade" onRequestClose={() => setSelectedBroadcast(null)}>
         <View style={styles.modalOverlay} accessibilityViewIsModal>

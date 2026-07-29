@@ -346,12 +346,24 @@ export default function AdminScreen() {
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 8) + 96 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Complaint status summary stays at the top of Work Progress */}
+        <View style={styles.dashboardGrid}>
+          {dashboardFilters.map((item) => (
+            <TouchableOpacity key={item.filter} style={[styles.dashboardCard, { borderColor: item.color }]} onPress={() => openComplaintList(item.filter)} activeOpacity={0.85}>
+              <Text style={styles.dashboardLabel}>{item.label}</Text>
+              <View style={[styles.dashboardIcon, { backgroundColor: `${item.color}15` }]}><Feather name={item.icon as any} size={20} color={item.color} /></View>
+              <Text style={[styles.dashboardCount, { color: item.color }]}>{item.count}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+
+        {/* Utility status follows the complaint summary */}
         <View style={styles.utilityPanel}>
           <View style={styles.panelTitleRow}>
             <View style={styles.panelIcon}><Feather name="zap" size={15} color="#C2410C" /></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.panelTitle}>Ward Utility Status</Text>
-              <Text style={styles.panelSubtitle}>Water and electricity timing</Text>
             </View>
           </View>
 
@@ -426,16 +438,6 @@ export default function AdminScreen() {
 
         <UtilityStatusManager ward={assignedWard} wardCode={assignedWardCode} />
 
-        <View style={styles.dashboardGrid}>
-          {dashboardFilters.map((item) => (
-            <TouchableOpacity key={item.filter} style={[styles.dashboardCard, { borderColor: item.color }]} onPress={() => openComplaintList(item.filter)} activeOpacity={0.85}>
-              <Text style={styles.dashboardLabel}>{item.label}</Text>
-              <View style={[styles.dashboardIcon, { backgroundColor: `${item.color}15` }]}><Feather name={item.icon as any} size={20} color={item.color} /></View>
-              <Text style={[styles.dashboardCount, { color: item.color }]}>{item.count}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
         <View style={styles.listSection}>
           {filteredComplaints.length === 0 ? (
             <View style={styles.empty}><Feather name="check-circle" size={34} color="#CBD5E1" /><Text style={styles.emptyText}>{t("noComplaintsInCategory")}</Text></View>
@@ -504,7 +506,7 @@ const styles = StyleSheet.create({
   postUtilityButton: { minHeight: 46, marginTop: 10, borderRadius: 14, backgroundColor: "#C2410C", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
   postUtilityButtonDisabled: { backgroundColor: "#94A3B8", opacity: 0.72 },
   postUtilityText: { color: "white", fontSize: 12, fontFamily: "Inter_700Bold" },
-  dashboardGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 12 },
+  dashboardGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 12, paddingTop: 12 },
   dashboardCard: { width: "48%", minHeight: 105, borderRadius: 18, backgroundColor: "white", borderWidth: 1.5, padding: 13 },
   dashboardLabel: { color: "#334155", fontSize: 11, fontFamily: "Inter_700Bold" },
   dashboardIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 10 },
