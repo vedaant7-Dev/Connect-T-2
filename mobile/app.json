@@ -2,7 +2,7 @@
   "expo": {
     "name": "Connect T",
     "slug": "connect-t-final-2",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "connectt",
@@ -13,12 +13,13 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Connect T uses your location to attach accurate coordinates to civic complaints.",
         "NSCameraUsageDescription": "Connect T uses your camera to capture evidence for civic complaints and authorised official updates.",
-        "NSPhotoLibraryUsageDescription": "Connect T uses your photo library to attach complaint evidence and authorised images or videos to official updates."
+        "NSPhotoLibraryUsageDescription": "Connect T uses your photo library to attach complaint evidence and authorised images or videos to official updates.",
+        "NSPhotoLibraryAddUsageDescription": "Connect T saves complaint images and videos to your media library only when you choose Save."
       }
     },
     "android": {
       "package": "com.connectt.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#047857"
@@ -60,7 +61,10 @@
         }
       ],
       "expo-build-properties",
-      "./plugins/withAndroidAbiSplits"
+      "./plugins/withAndroidAbiSplits",
+      "expo-media-library",
+      "expo-video",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

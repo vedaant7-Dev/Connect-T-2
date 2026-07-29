@@ -8,6 +8,7 @@ import { useComplaints, Complaint } from "@/context/ComplaintContext";
 import { Officer } from "@/hooks/useOfficers";
 import { useNagarsevakAssignments } from "@/hooks/useNagarsevakAssignments";
 import { useRouter } from "expo-router";
+import ComplaintMediaViewer from "@/components/ComplaintMediaViewer";
 
 const { width } = Dimensions.get("window");
 
@@ -126,7 +127,7 @@ function ComplaintDetail({ c, onBack, officers }: { c: Complaint; onBack: () => 
         <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "#334155", lineHeight: 20 }}>{c.description}</Text>
       </View>
 
-      {c.photoUri ? <Image source={{ uri: c.photoUri }} style={{ width: "100%", height: 210, borderRadius: 16, marginBottom: 12, backgroundColor: "#E2E8F0" }} resizeMode="cover" /> : null}
+      {c.photoUri ? <ComplaintMediaViewer uri={c.photoUri} title={c.title} label="Complaint evidence" accentColor="#16A34A" /> : null}
 
       <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
         <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 10 }}>Complaint Issued User Detail</Text>
