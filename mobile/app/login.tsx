@@ -15,7 +15,7 @@ import { ambernathWards } from "@/data/mumbaiServices";
 import { getUserErrorMessage } from "@/lib/api";
 
  type AuthTab = "register" | "login";
- type Step = "form" | "otp" | "notifications" | "success";
+ type Step = "form" | "otp" | "success";
 
 const ORANGE = "#EA580C";
 const DARK = "#C2410C";
@@ -61,8 +61,6 @@ export default function LoginScreen() {
   const [regAddress, setRegAddress] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regWard, setRegWard] = useState("");
-  const [notifyEmail, setNotifyEmail] = useState(true);
-  const [notifyWhatsapp, setNotifyWhatsapp] = useState(true);
   const [loginPhone, setLoginPhone] = useState("");
   const [otp, setOtp] = useState("");
 
@@ -74,8 +72,6 @@ export default function LoginScreen() {
     regDob: regDob.trim(),
     regAddress: regAddress.trim(),
     regWard,
-    notifyEmail,
-    notifyWhatsapp,
   });
 
   const updateCountdown = useCallback(() => {
@@ -109,8 +105,6 @@ export default function LoginScreen() {
       setRegAddress(restoredAddress);
       setRegPhone(session.mobile);
       setRegWard(restoredWard);
-      setNotifyEmail(draft.notifyEmail !== false);
-      setNotifyWhatsapp(draft.notifyWhatsapp !== false);
 
       if (restoredName && restoredDob && restoredAddress && restoredWard) {
         setStep("otp");
@@ -218,7 +212,17 @@ export default function LoginScreen() {
         return;
       }
       if (tab === "register") {
-        setStep("notifications");
+        await register({
+          name: regName.trim(),
+          email: regEmail.trim(),
+          mobile: cleanPhone(regPhone),
+          role: "citizen",
+          ward: regWard,
+          dob: regDob.trim(),
+          address: regAddress.trim(),
+        } as any);
+        setStep("success");
+        setTimeout(() => router.replace("/portal-select" as any), 800);
       } else {
         const user = await unifiedLogin(cleanPhone(loginPhone));
         router.replace(user.role === "super_admin" || user.isSuperAdmin ? ("/super-admin" as any) : user.role === "nagarsevak" ? ("/(tabs)/admin" as any) : ("/portal-select" as any));
@@ -230,30 +234,6 @@ export default function LoginScreen() {
     }
   };
 
-  const finishRegister = async () => {
-    if (loading) return;
-    setLoading(true);
-    setError("");
-    try {
-      await register({
-        name: regName.trim(),
-        email: regEmail.trim(),
-        mobile: cleanPhone(regPhone),
-        role: "citizen",
-        ward: regWard,
-        dob: regDob.trim(),
-        address: regAddress.trim(),
-        notifyEmail,
-        notifyWhatsapp,
-      } as any);
-      setStep("success");
-      setTimeout(() => router.replace("/portal-select" as any), 800);
-    } catch (e: any) {
-      setError(getUserErrorMessage(e, "Registration could not be completed. Please try again."));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <LinearGradient colors={["#9A3412", DARK, ORANGE, "#F97316", "#FB923C"]} locations={[0, 0.2, 0.45, 0.75, 1]} style={[s.root, { paddingTop: Platform.OS === "web" ? 44 : insets.top }]}>
@@ -309,18 +289,6 @@ export default function LoginScreen() {
             </View>
           )}
 
-          {step === "notifications" && (
-            <View style={s.formCard}>
-              <View style={s.otpIconWrap}><Feather name="check-circle" size={28} color={GREEN} /></View>
-              <Text style={s.otpTitle}>Phone Verified</Text>
-              <Text style={s.otpSub}>Choose notification preferences.</Text>
-              <CheckRow checked={notifyEmail} onPress={() => setNotifyEmail(!notifyEmail)} title="Email Notifications" sub="Receive complaint updates by email." />
-              <CheckRow checked={notifyWhatsapp} onPress={() => setNotifyWhatsapp(!notifyWhatsapp)} title="WhatsApp Notifications" sub="Receive important updates on WhatsApp." />
-              {error ? <Text style={s.errorText}>{error}</Text> : null}
-              <PrimaryButton loading={loading} label="Register" icon="user-plus" onPress={finishRegister} />
-            </View>
-          )}
-
           {step === "success" && <View style={s.successCard}><Feather name="check-circle" size={48} color={GREEN} /><Text style={s.successTitle}>Registration Successful</Text><Text style={s.successSub}>Redirecting...</Text></View>}
         </AppScrollView>
       </KeyboardAvoidingView>
@@ -350,9 +318,6 @@ function TabButton({ label, icon, active, onPress }: { label: string; icon: keyo
   return <TouchableOpacity style={[s.tab, active && s.tabActive]} onPress={onPress} activeOpacity={0.8} accessibilityRole="tab" accessibilityState={{ selected: active }}><Feather name={icon} size={14} color={active ? ORANGE : "#94A3B8"} /><Text style={[s.tabText, active && s.tabTextActive]}>{label}</Text></TouchableOpacity>;
 }
 
-function CheckRow({ checked, onPress, title, sub }: { checked: boolean; onPress: () => void; title: string; sub: string }) {
-  return <TouchableOpacity style={s.checkRow} onPress={onPress} activeOpacity={0.8} accessibilityRole="checkbox" accessibilityState={{ checked }}><View style={[s.checkbox, checked && s.checkboxActive]}>{checked && <Feather name="check" size={14} color="white" />}</View><View style={{ flex: 1 }}><Text style={s.checkLabel}>{title}</Text><Text style={s.checkSub}>{sub}</Text></View></TouchableOpacity>;
-}
 
 const s = StyleSheet.create({
   root: { flex: 1 },

@@ -84,10 +84,10 @@ export default function HomeScreen() {
     | { kind: "complaint"; id: string; createdAt: string; complaint: Complaint }
     | { kind: "news"; id: string; createdAt: string; alert: AppAlert };
 
-  const notifItems: NotifItem[] = [
-    ...complaintNotifs.map((c) => ({ kind: "complaint" as const, id: `c-${c.id}`, createdAt: c.updatedAt || c.createdAt, complaint: c })),
-    ...newsItems.map((a) => ({ kind: "news" as const, id: `n-${a.id}`, createdAt: a.createdAt, alert: a })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Complaints are intentionally excluded from Home. Citizens track them only in the Complaints tab.
+  const notifItems: NotifItem[] = newsItems
+    .map((a) => ({ kind: "news" as const, id: `n-${a.id}`, createdAt: a.createdAt, alert: a }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   useEffect(() => {
     let mounted = true;

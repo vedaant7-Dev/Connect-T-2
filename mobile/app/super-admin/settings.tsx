@@ -99,7 +99,7 @@ export default function SettingsScreen() {
 
       <ConfirmActionModal
         visible={accountActions.pendingAction === "logout"}
-        title="Logout from Connect-T?"
+        title="Logout?"
         message="This will securely clear Civic and Job Portal sessions on this device. Administrative records and account access will not be deleted."
         confirmLabel="Logout"
         icon="log-out"

@@ -276,7 +276,19 @@ export function JobsAuthProvider({ children }: { children: ReactNode }) {
     return () => { active = false; };
   }, [civicUser?.id, civicLoading]);
 
-  const activateJobs = async (role: JobsUserRole, data: Partial<JobsUser> = {}) => { await openUnifiedSession(role, data); };
+  const activateJobs = async (role: JobsUserRole, data: Partial<JobsUser> = {}) => {
+    const payload = { ...data, role } as Record<string, unknown>;
+    delete payload.phone;
+    delete payload.id;
+    delete payload.createdAt;
+    delete payload.companies;
+    const response = await apiPost<any>("/api/job-portal/switch-role", payload);
+    if (!response?.user || response.user.role !== role) {
+      throw new Error("The selected Job Portal role could not be activated. Please try again.");
+    }
+    await storeJobsAuthToken(response.token);
+    await persist(normalizeUser(response.user));
+  };
   const activateJobsFromOnboarding = async (rawUser: unknown, token?: string | null) => {
     if (token) await storeJobsAuthToken(token);
     await persist(normalizeUser(rawUser || {}));

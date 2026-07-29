@@ -4,30 +4,29 @@ import test from "node:test";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("Civic Home announcements open the exact item in the Citizen News tab", () => {
-  const experience = read("components/CivicBroadcastExperience.tsx");
-  const home = read("app/(tabs)/index.tsx");
+test("Citizen News opens and highlights the exact broadcast item", () => {
   const feed = read("app/(tabs)/feed.tsx");
-  const layout = read("app/_layout.tsx");
+  const layout = read("app/(tabs)/_layout.tsx");
 
-  assert.match(layout, /CivicBroadcastExperience/);
-  assert.match(home, /item\.category === "announcement"/);
-  assert.match(home, /pathname: "\/\(tabs\)\/feed"/);
-  assert.match(feed, /broadcastId: item\.id/);
-  assert.match(experience, /secondSegment === "feed"/);
-  assert.match(experience, /selectedBroadcast/);
-  assert.match(experience, /markBroadcastRead/);
-  assert.doesNotMatch(experience, /floatingBar/);
+  assert.match(layout, /name="feed" options=\{\{ title: t\("feed"\)/);
+  assert.match(feed, /useLocalSearchParams/);
+  assert.match(feed, /broadcastId/);
+  assert.match(feed, /requestedId/);
+  assert.match(feed, /highlighted=\{item\.item\.id === requestedId\}/);
+  assert.match(feed, /BroadcastCard/);
+  assert.match(feed, /markBroadcastRead|Official update/);
 });
 
-test("broadcast detail displays original image URLs and provides video playback", () => {
-  const experience = read("components/CivicBroadcastExperience.tsx");
+test("citizen feed displays original images and supports in-app video playback", () => {
+  const feed = read("app/(tabs)/feed.tsx");
+  const viewer = read("components/ComplaintMediaViewer.tsx");
 
-  assert.match(experience, /item\.mediaType === "image"/);
-  assert.match(experience, /source=\{\{ uri: item\.mediaUri \}\}/);
-  assert.match(experience, /resizeMode="contain"/);
-  assert.match(experience, /item\.mediaType === "video"/);
-  assert.match(experience, /Linking\.openURL\(item\.mediaUri!/);
+  assert.match(feed, /item\.mediaUri/);
+  assert.match(feed, /item\.media\?\.uri/);
+  assert.match(feed, /autoPlay active=\{active\}/);
+  assert.match(viewer, /VideoView/);
+  assert.match(viewer, /InlineFeedVideo/);
+  assert.match(viewer, /setPausedByUser/);
 });
 
 test("broadcast media picker keeps maximum image quality and video pass-through limits", () => {

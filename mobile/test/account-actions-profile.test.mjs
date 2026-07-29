@@ -30,6 +30,7 @@ test("shared logout confirmation is used by civic, nagarsevak, jobs and super ad
   for (const file of ["screens/LocalizedJobPortalProfileScreen.tsx", "app/super-admin/settings.tsx"]) {
     assert.match(read(file), /ConfirmActionModal/, file);
     assert.match(read(file), /requestLogout/, file);
+    assert.doesNotMatch(read(file), /Logout from Connect-T/, file);
   }
 });
 
@@ -40,12 +41,11 @@ test("logout also clears protected in-memory query data", () => {
   assert.match(layout, /client\.clear\(\)/);
 });
 
-test("civic profile exposes registration, official, preference and account fields", () => {
+test("civic profile exposes registration, official and account fields without legacy notification toggles", () => {
   const screen = read("screens/CivicProfileScreen.tsx");
   const auth = read("context/AuthContext.tsx");
   assert.match(screen, /readOnlyMobile/);
-  assert.match(screen, /notifyEmail/);
-  assert.match(screen, /notifyWhatsapp/);
+  assert.doesNotMatch(screen, /notifyEmail|notifyWhatsapp|<Switch/);
   assert.match(screen, /officeTimings/);
   assert.match(screen, /residenceAddress/);
   assert.match(screen, /contactName/);
@@ -69,8 +69,8 @@ test("Job Portal profiles expose complete role-specific fields and verified mobi
   assert.match(screen, /c\("mobileReadOnly"\)/);
   assert.match(screen, /setField\("profilePhoto", null\)/);
   assert.match(screen, /requestCivicPortal/);
-  assert.match(screen, /role-change-requests/);
-  assert.doesNotMatch(context, /switchJobsRole/);
+  assert.doesNotMatch(screen, /role-change-requests|requestCorrection/);
+  assert.match(context, /apiPost<any>\("\/api\/job-portal\/switch-role"/);
   assert.match(context, /delete payload\.phone/);
   assert.match(context, /delete payload\.role/);
   assert.match(context, /apiPatch<any>\(`\/api\/job-portal\/users\/\$\{jobsUser\.id\}`/);
