@@ -55,6 +55,16 @@ type CardProps = {
 function BroadcastCard({ item, onPause, onResume, onDelete }: CardProps) {
   const category = CATEGORIES.find((entry) => entry.key === item.category) || CATEGORIES[0];
   const status = statusMeta(item.status);
+  const adminActions = (
+    <>
+      {item.status === "paused" ? (
+        <TouchableOpacity style={[styles.actionButton, styles.resumeButton]} onPress={onResume}><Feather name="play" size={14} color="#166534" /><Text style={styles.resumeText}>Resume</Text></TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={[styles.actionButton, styles.pauseButton]} onPress={onPause}><Feather name="pause" size={14} color="#7C3AED" /><Text style={styles.pauseText}>Pause</Text></TouchableOpacity>
+      )}
+      <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={onDelete}><Feather name="trash-2" size={14} color="#DC2626" /><Text style={styles.deleteText}>Delete</Text></TouchableOpacity>
+    </>
+  );
   return (
     <View style={styles.card}>
       <View style={styles.cardTop}>
@@ -63,22 +73,19 @@ function BroadcastCard({ item, onPause, onResume, onDelete }: CardProps) {
         <View style={[styles.statusPill, { backgroundColor: status.bg }]}><Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text></View>
       </View>
       <Text style={styles.cardBody}>{item.body}</Text>
-      {item.mediaUri ? <ComplaintMediaViewer uri={item.mediaUri} title={item.title} label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"} accentColor={ORANGE} /> : null}
-      <View style={styles.metrics}>
-        <View style={styles.metric}><Text style={styles.metricValue}>{item.deliveredCount}</Text><Text style={styles.metricLabel}>Delivered</Text></View>
-        <View style={styles.metric}><Text style={styles.metricValue}>{item.readCount}</Text><Text style={styles.metricLabel}>Read</Text></View>
-        <View style={styles.metric}><Text style={[styles.metricValue, styles.providerValue]}>{item.externalPushStatus === "not_configured" ? "In-app" : item.externalPushStatus}</Text><Text style={styles.metricLabel}>Delivery</Text></View>
-      </View>
+      {item.mediaUri ? (
+        <ComplaintMediaViewer
+          uri={item.mediaUri}
+          title={item.title}
+          label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"}
+          accentColor={ORANGE}
+          showInlineViewAction={false}
+          rightActions={adminActions}
+        />
+      ) : null}
       <View style={styles.cardFooter}>
         <Text style={styles.cardDate}>{formatDate(item.status === "scheduled" ? item.scheduledAt : item.sentAt || item.createdAt)}</Text>
-        <View style={styles.actionRow}>
-          {item.status === "paused" ? (
-            <TouchableOpacity style={[styles.actionButton, styles.resumeButton]} onPress={onResume}><Feather name="play" size={14} color="#166534" /><Text style={styles.resumeText}>Resume</Text></TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={[styles.actionButton, styles.pauseButton]} onPress={onPause}><Feather name="pause" size={14} color="#7C3AED" /><Text style={styles.pauseText}>Pause</Text></TouchableOpacity>
-          )}
-          <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={onDelete}><Feather name="trash-2" size={14} color="#DC2626" /><Text style={styles.deleteText}>Delete</Text></TouchableOpacity>
-        </View>
+        {!item.mediaUri ? <View style={styles.actionRow}>{adminActions}</View> : null}
       </View>
     </View>
   );

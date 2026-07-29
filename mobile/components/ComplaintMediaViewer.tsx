@@ -27,6 +27,8 @@ type Props = {
   title?: string;
   label?: string;
   accentColor?: string;
+  showInlineViewAction?: boolean;
+  rightActions?: React.ReactNode;
 };
 
 const VIDEO_EXTENSIONS = new Set(["mp4", "m4v", "mov", "webm", "3gp", "3gpp", "mkv", "avi"]);
@@ -134,7 +136,14 @@ function ActionButton({ icon, label, onPress, busy, accentColor }: { icon: any; 
   );
 }
 
-export default function ComplaintMediaViewer({ uri, title = "Complaint evidence", label = "Complaint evidence", accentColor = "#EA580C" }: Props) {
+export default function ComplaintMediaViewer({
+  uri,
+  title = "Complaint evidence",
+  label = "Complaint evidence",
+  accentColor = "#EA580C",
+  showInlineViewAction = true,
+  rightActions,
+}: Props) {
   const safeUri = resolveComplaintMediaUri(uri);
   const kind = inferComplaintMediaKind(safeUri);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -209,10 +218,13 @@ export default function ComplaintMediaViewer({ uri, title = "Complaint evidence"
           <Feather name={kind === "video" ? "video" : "image"} size={15} color="#64748B" />
           <Text style={styles.captionText} numberOfLines={1}>{label}</Text>
         </View>
-        <View style={styles.inlineActions}>
-          <ActionButton icon="eye" label="View" onPress={() => setViewerOpen(true)} accentColor={accentColor} />
-          <ActionButton icon="download" label="Save" onPress={saveMedia} busy={busyAction === "save"} accentColor={accentColor} />
-          <ActionButton icon="share-2" label="Share" onPress={shareMedia} busy={busyAction === "share"} accentColor={accentColor} />
+        <View style={styles.actionBar}>
+          <View style={styles.inlineActions}>
+            {showInlineViewAction ? <ActionButton icon="eye" label="View" onPress={() => setViewerOpen(true)} accentColor={accentColor} /> : null}
+            <ActionButton icon="download" label="Save" onPress={saveMedia} busy={busyAction === "save"} accentColor={accentColor} />
+            <ActionButton icon="share-2" label="Share" onPress={shareMedia} busy={busyAction === "share"} accentColor={accentColor} />
+          </View>
+          {rightActions ? <View style={styles.rightActions}>{rightActions}</View> : null}
         </View>
       </View>
 
@@ -253,7 +265,9 @@ const styles = StyleSheet.create({
   captionRow: { paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: "#F1F5F9", gap: 8 },
   captionTextWrap: { flexDirection: "row", alignItems: "center", gap: 7 },
   captionText: { flex: 1, fontSize: 12, color: "#475569", fontFamily: "Inter_600SemiBold" },
-  inlineActions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 6 },
+  actionBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  inlineActions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-start", gap: 6 },
+  rightActions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 6 },
   actionButton: { minHeight: 42, minWidth: 70, paddingHorizontal: 10, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "rgba(148,163,184,0.1)" },
   actionText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   modalRoot: { flex: 1, backgroundColor: "#020617" },
