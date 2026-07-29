@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -29,6 +29,8 @@ type Props = {
   accentColor?: string;
   showInlineViewAction?: boolean;
   rightActions?: React.ReactNode;
+  autoPlay?: boolean;
+  active?: boolean;
 };
 
 const VIDEO_EXTENSIONS = new Set(["mp4", "m4v", "mov", "webm", "3gp", "3gpp", "mkv", "avi"]);
@@ -127,6 +129,40 @@ function FullScreenVideo({ uri }: { uri: string }) {
   return <VideoView player={player} style={styles.fullMedia} nativeControls contentFit="contain" />;
 }
 
+
+function InlineFeedVideo({ uri, active }: { uri: string; active: boolean }) {
+  const source = useMemo(() => ({ uri, useCaching: true }), [uri]);
+  const [pausedByUser, setPausedByUser] = useState(false);
+  const player = useVideoPlayer(source, (instance) => {
+    instance.loop = true;
+    instance.muted = true;
+  });
+
+  useEffect(() => {
+    if (active && !pausedByUser) player.play();
+    else player.pause();
+    return () => player.pause();
+  }, [active, pausedByUser, player]);
+
+  const paused = !active || pausedByUser;
+  return (
+    <TouchableOpacity
+      style={styles.inlineVideoWrap}
+      onPress={() => setPausedByUser((value) => !value)}
+      activeOpacity={0.96}
+      accessibilityRole="button"
+      accessibilityLabel={paused ? "Play video" : "Pause video"}
+    >
+      <VideoView player={player} style={styles.inlineVideo} nativeControls={false} contentFit="cover" />
+      <View style={styles.inlineVideoControl}>
+        <Feather name={paused ? "play" : "pause"} size={17} color="white" />
+        <Text style={styles.inlineVideoControlText}>{paused ? "Play" : "Pause"}</Text>
+      </View>
+      <View style={styles.mutedBadge}><Feather name="volume-x" size={13} color="white" /><Text style={styles.mutedText}>Muted</Text></View>
+    </TouchableOpacity>
+  );
+}
+
 function ActionButton({ icon, label, onPress, busy, accentColor }: { icon: any; label: string; onPress: () => void; busy?: boolean; accentColor: string }) {
   return (
     <TouchableOpacity style={styles.actionButton} onPress={onPress} disabled={busy} activeOpacity={0.82} accessibilityRole="button" accessibilityLabel={label}>
@@ -143,6 +179,8 @@ export default function ComplaintMediaViewer({
   accentColor = "#EA580C",
   showInlineViewAction = true,
   rightActions,
+  autoPlay = false,
+  active = false,
 }: Props) {
   const safeUri = resolveComplaintMediaUri(uri);
   const kind = inferComplaintMediaKind(safeUri);
@@ -197,21 +235,25 @@ export default function ComplaintMediaViewer({
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity style={styles.previewButton} onPress={() => setViewerOpen(true)} activeOpacity={0.9} accessibilityRole="button" accessibilityLabel={`View full complaint ${kind}`}>
-        {kind === "video" ? (
-          <View style={styles.videoPreview}>
-            <View style={styles.playCircle}><Feather name="play" size={30} color="white" /></View>
-            <Text style={styles.videoPreviewTitle}>Complaint video</Text>
-            <Text style={styles.videoPreviewHint}>Tap to play inside the app</Text>
+      {kind === "video" && autoPlay ? (
+        <InlineFeedVideo uri={safeUri} active={active} />
+      ) : (
+        <TouchableOpacity style={styles.previewButton} onPress={() => setViewerOpen(true)} activeOpacity={0.9} accessibilityRole="button" accessibilityLabel={`View full ${kind}`}>
+          {kind === "video" ? (
+            <View style={styles.videoPreview}>
+              <View style={styles.playCircle}><Feather name="play" size={30} color="white" /></View>
+              <Text style={styles.videoPreviewTitle}>Video update</Text>
+              <Text style={styles.videoPreviewHint}>Tap to play inside the app</Text>
+            </View>
+          ) : (
+            <Image source={{ uri: safeUri }} style={styles.previewImage} resizeMode="cover" />
+          )}
+          <View style={styles.viewOverlay}>
+            <Feather name="maximize-2" size={15} color="white" />
+            <Text style={styles.viewOverlayText}>View full {kind}</Text>
           </View>
-        ) : (
-          <Image source={{ uri: safeUri }} style={styles.previewImage} resizeMode="cover" />
-        )}
-        <View style={styles.viewOverlay}>
-          <Feather name="maximize-2" size={15} color="white" />
-          <Text style={styles.viewOverlayText}>View full {kind}</Text>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.captionRow}>
         <View style={styles.captionTextWrap}>
@@ -255,6 +297,12 @@ export default function ComplaintMediaViewer({
 const styles = StyleSheet.create({
   card: { backgroundColor: "white", borderRadius: 18, overflow: "hidden", marginBottom: 14, shadowColor: "#0F172A", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3 },
   previewButton: { minHeight: 220, backgroundColor: "#0F172A", position: "relative" },
+  inlineVideoWrap: { height: 420, backgroundColor: "#020617", position: "relative", overflow: "hidden" },
+  inlineVideo: { width: "100%", height: "100%" },
+  inlineVideoControl: { position: "absolute", left: 12, bottom: 12, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(2,6,23,0.78)", paddingHorizontal: 11, paddingVertical: 8, borderRadius: 999 },
+  inlineVideoControlText: { color: "white", fontSize: 11, fontFamily: "Inter_700Bold" },
+  mutedBadge: { position: "absolute", right: 12, bottom: 12, flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(2,6,23,0.72)", paddingHorizontal: 9, paddingVertical: 7, borderRadius: 999 },
+  mutedText: { color: "white", fontSize: 10, fontFamily: "Inter_600SemiBold" },
   previewImage: { width: "100%", height: 240, backgroundColor: "#E2E8F0" },
   videoPreview: { minHeight: 240, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "#0F172A" },
   playCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.32)", alignItems: "center", justifyContent: "center", paddingLeft: 4 },

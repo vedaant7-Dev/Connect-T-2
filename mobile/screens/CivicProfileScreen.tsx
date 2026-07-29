@@ -10,7 +10,6 @@ import {
   Modal,
   Platform,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -75,8 +74,6 @@ type FormState = {
   officeTimings: string;
   contactName: string;
   contactNumber: string;
-  notifyEmail: boolean;
-  notifyWhatsapp: boolean;
   profilePhoto?: string | null;
 };
 
@@ -92,8 +89,6 @@ function formFromUser(user: User): FormState {
     officeTimings: user.officeTimings || "",
     contactName: user.contactName || user.name || "",
     contactNumber: user.contactNumber || "",
-    notifyEmail: !!user.notifyEmail,
-    notifyWhatsapp: !!user.notifyWhatsapp,
     profilePhoto: user.profilePhoto ?? null,
   };
 }
@@ -225,8 +220,6 @@ export default function CivicProfileScreen() {
         officeTimings: officialAccount ? form.officeTimings.trim() || undefined : user.officeTimings,
         contactName: officialAccount ? form.contactName.trim() || undefined : user.contactName,
         contactNumber: officialAccount ? cleanMobile(form.contactNumber) || undefined : user.contactNumber,
-        notifyEmail: form.notifyEmail,
-        notifyWhatsapp: form.notifyWhatsapp,
         profilePhoto: form.profilePhoto,
       });
       setEditVisible(false);
@@ -286,8 +279,6 @@ export default function CivicProfileScreen() {
         {officialRows.length ? <Section title={c("officialInfo")}>{officialRows.map((row) => <DetailRow key={row.label} {...row} />)}</Section> : null}
 
         <Section title={c("preferences")}>
-          <DetailRow icon="mail" label={c("emailNotifications")} value={user.notifyEmail ? c("notificationsOn") : c("notificationsOff")} />
-          <DetailRow icon="message-circle" label={c("whatsappNotifications")} value={user.notifyWhatsapp ? c("notificationsOn") : c("notificationsOff")} />
           <DetailRow icon="globe" label={c("language")} value={languageOptions.find((option) => option.code === language)?.nativeLabel} />
         </Section>
 
@@ -346,8 +337,6 @@ export default function CivicProfileScreen() {
                 <InputField label={c("officeContact")} value={form.contactNumber} onChangeText={(contactNumber) => setForm({ ...form, contactNumber: contactNumber.replace(/\D/g, "").slice(0, 10) })} placeholder="10-digit mobile number" keyboardType="phone-pad" maxLength={10} />
               </> : null}
 
-              <View style={styles.preferenceRow}><View style={styles.preferenceText}><Text style={styles.actionTitle}>{c("emailNotifications")}</Text></View><Switch value={form.notifyEmail} onValueChange={(notifyEmail) => setForm({ ...form, notifyEmail })} /></View>
-              <View style={styles.preferenceRow}><View style={styles.preferenceText}><Text style={styles.actionTitle}>{c("whatsappNotifications")}</Text></View><Switch value={form.notifyWhatsapp} onValueChange={(notifyWhatsapp) => setForm({ ...form, notifyWhatsapp })} /></View>
 
               {formError ? <Text style={styles.errorText} accessibilityLiveRegion="assertive">{formError}</Text> : null}
               <View style={styles.editorActions}>

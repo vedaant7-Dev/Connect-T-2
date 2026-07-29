@@ -7,6 +7,8 @@
 
 "use strict";
 
+// FINAL_CITIZEN_FIXES_V106
+
 const crypto = require("crypto");
 const { signToken, verifyRequestToken } = require("./authSecurity");
 
@@ -98,7 +100,7 @@ async function saveActiveRole(db, phone, profile) {
   );
 }
 
-async function findOrCreateRoleProfile(db, civicUser, phone, role) {
+async function findOrCreateRoleProfile(db, civicUser, phone, role, data = {}) {
   let [profileRows] = await db.query(
     "SELECT * FROM job_portal_users WHERE phone = ? AND role = ? ORDER BY updated_at DESC, created_at DESC LIMIT 1",
     [phone, role],
@@ -106,8 +108,10 @@ async function findOrCreateRoleProfile(db, civicUser, phone, role) {
   if (profileRows.length) return profileRows[0];
 
   const id = makeId(role);
-  const name = cleanText(civicUser.name, 160) || "Connect T Citizen";
-  const location = cleanText(civicUser.address, 190) || null;
+  const name = cleanText(data.name || civicUser.name, 160) || "Connect T Citizen";
+  const location = cleanText(data.location || data.address || civicUser.address, 190) || null;
+  const company = role === "employer" ? (cleanText(data.company, 190) || `${name}'s Business`) : null;
+  const contactPerson = role === "employer" ? (cleanText(data.contactPerson, 160) || name) : null;
 
   await db.query(
     `INSERT INTO job_portal_users
@@ -126,8 +130,8 @@ async function findOrCreateRoleProfile(db, civicUser, phone, role) {
       civicUser.profile_photo || null,
       role === "seeker" ? "unemployed" : null,
       location,
-      null,
-      role === "employer" ? name : null,
+      company,
+      contactPerson,
       location,
       role === "employer" ? phone : null,
     ],
@@ -221,6 +225,54 @@ async function session(req, res) {
   }
 }
 
+
+async function switchRole(req, res) {
+  try {
+    if (!pool) throw new Error("Database pool is not ready");
+    await ensureLockSchema(pool);
+
+    const auth = verifyRequestToken(req);
+    if (!auth?.sub || auth.scope === "job_portal") {
+      return sendJson(res, 401, { success: false, message: "Please log in to Connect T first." });
+    }
+
+    const [civicRows] = await pool.query(
+      "SELECT id, name, mobile, dob, email, address, profile_photo, role FROM users WHERE id = ? LIMIT 1",
+      [auth.sub],
+    );
+    const civicUser = civicRows[0];
+    if (!civicUser || civicUser.role !== "citizen") {
+      return sendJson(res, 403, { success: false, message: "Job Portal is available from a citizen account." });
+    }
+
+    const phone = cleanPhone(civicUser.mobile);
+    if (phone.length !== 10) {
+      return sendJson(res, 400, { success: false, message: "Your Connect T mobile number is not valid." });
+    }
+
+    const requestedRole = cleanText(req.body?.role, 20);
+    if (!["seeker", "employer"].includes(requestedRole)) {
+      return sendJson(res, 400, { success: false, message: "Choose Job Seeker or Employer." });
+    }
+
+    const profile = await findOrCreateRoleProfile(pool, civicUser, phone, requestedRole, req.body || {});
+    if (!profile) throw new Error("Requested role profile could not be created");
+    await saveActiveRole(pool, phone, profile);
+
+    const user = userPayload(profile);
+    return sendJson(res, 200, {
+      success: true,
+      roleLocked: false,
+      roleSwitchingEnabled: true,
+      user,
+      token: signToken({ sub: user.id, mobile: user.phone, role: user.role, scope: "job_portal" }),
+    });
+  } catch (err) {
+    console.warn("[JobPortalSessionRecovery] role switch failed:", err.message);
+    return sendJson(res, 500, { success: false, message: "Job Portal role could not be switched right now." });
+  }
+}
+
 try {
   const mysql = require("mysql2/promise");
   const originalCreatePool = mysql.createPool;
@@ -240,6 +292,7 @@ try {
     if (installed) return;
     installed = true;
     originalPost.call(app, "/api/job-portal/session", session);
+    originalPost.call(app, "/api/job-portal/switch-role", switchRole);
   }
 
   express.application.post = function patchedPost(path, ...handlers) {
@@ -252,4 +305,4 @@ try {
   console.warn("[JobPortalSessionRecovery] express patch disabled:", err.message);
 }
 
-module.exports = { session, findOrCreateRoleProfile };
+module.exports = { session, switchRole, findOrCreateRoleProfile };
