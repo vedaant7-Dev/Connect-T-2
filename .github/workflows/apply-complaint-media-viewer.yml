@@ -33,6 +33,7 @@ jobs:
             exit 0
           fi
           cd mobile
+          npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
           npx expo install expo-video expo-file-system expo-sharing expo-media-library
           cd ..
           python3 scripts/apply_complaint_media_viewer.py
