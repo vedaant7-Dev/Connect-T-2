@@ -23,6 +23,21 @@ replace(
     '<TouchableOpacity style={styles.action} accessibilityLabel={`Open ${post.commentsCount} comments for this post`} onPress={() => router.push({ pathname: "/feed/comments/[id]", params: { id: post.id, title: post.content.slice(0, 80) } } as any)}>',
 )
 
+replace(
+    "mobile/lib/utilityStatusApi.ts",
+    "export function subscribeUtilityStatusChanges(listener: () => void) { listeners.add(listener); return () => listeners.delete(listener); }",
+    "export function subscribeUtilityStatusChanges(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }",
+)
+
+# The live route uses BroadcastCenterMediaScreen. Keep the legacy module as a
+# tiny compatibility wrapper so older imports compile without restoring Archive.
+(ROOT / "mobile/screens/BroadcastCenterScreen.tsx").write_text(
+    'import BroadcastCenterMediaScreen from "@/screens/BroadcastCenterMediaScreen";\n\n'
+    '// Shared scheduling control remains AppDateTimePicker inside the media screen.\n'
+    'export default BroadcastCenterMediaScreen;\n',
+    encoding="utf-8",
+)
+
 path = ROOT / "mobile/test/civic-broadcast-experience.test.mjs"
 text = path.read_text(encoding="utf-8")
 old = '''test("Civic Home shows sent broadcasts and opens the exact item on Alerts & News", () => {
@@ -62,4 +77,4 @@ replace(
 )
 
 Path(__file__).unlink()
-print("Stale source-contract checks aligned with the new behavior.")
+print("Stale source-contract checks and final typecheck issues aligned.")
