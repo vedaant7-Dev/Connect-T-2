@@ -1,0 +1,4 @@
+Connect-T release artifact build marker
+Source main commit: 0290c852671020a794d2a72eb8055f6bda02685c
+Requested: latest standalone APK and complete backend package
+Date: 2026-07-29
