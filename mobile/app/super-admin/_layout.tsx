@@ -14,7 +14,6 @@ const TABS = [
   { name: "index", icon: "grid", label: "Dashboard" },
   { name: "officers", icon: "users", label: "Officers" },
   { name: "jobs", icon: "briefcase", label: "Jobs" },
-  { name: "role-requests", icon: "repeat", label: "Roles" },
   { name: "broadcast", icon: "radio", label: "Broadcast" },
   { name: "reports", icon: "bar-chart-2", label: "Reports" },
 ];
@@ -97,9 +96,9 @@ export default function SuperAdminLayout() {
             <Tabs.Screen name="index" />
             <Tabs.Screen name="officers" />
             <Tabs.Screen name="jobs" />
-            <Tabs.Screen name="role-requests" />
             <Tabs.Screen name="broadcast" />
             <Tabs.Screen name="reports" />
+            <Tabs.Screen name="role-requests" options={{ href: null }} />
             <Tabs.Screen name="settings" options={{ href: null }} />
             <Tabs.Screen name="access" options={{ href: null }} />
           </Tabs>
