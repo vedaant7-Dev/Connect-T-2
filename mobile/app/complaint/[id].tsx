@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"; import { ActivityIndicator, Animated, Image, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
+import ComplaintMediaViewer from "@/components/ComplaintMediaViewer";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ComplaintStatus } from "@/context/ComplaintContext";
@@ -295,7 +296,7 @@ export default function ComplaintDetailScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 8) + 40 }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshComplaint} colors={[ORANGE]} tintColor={ORANGE} />}>
-        {complaint.photoUri ? <View style={styles.photoCard}><Image source={{ uri: complaint.photoUri }} style={styles.photo} /><View style={styles.photoLabel}><Feather name="camera" size={12} color="#64748B" /><Text style={styles.photoLabelText}>{t("problemPhoto")}</Text></View></View> : null}
+        {complaint.photoUri ? <ComplaintMediaViewer uri={complaint.photoUri} title={complaint.title} label="Complaint evidence" /> : null}
 
         {isOfficer && complaint.userName ? (
           <View style={styles.complainantCard}>
