@@ -1,0 +1,1 @@
+Trigger the complaint media viewer workflow after workflow registration.
