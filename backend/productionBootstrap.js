@@ -29,6 +29,7 @@ const PRODUCTION_PATCHES = [
   "./jobPortalOnboardingPatch.js",
   "./jobPortalMessagePatch.js",
   "./jobPortalProfilePatch.js",
+  "./jobPortalDirectCivicBypassPatch.js",
 ];
 
 for (const patch of PRODUCTION_PATCHES) require(patch);
