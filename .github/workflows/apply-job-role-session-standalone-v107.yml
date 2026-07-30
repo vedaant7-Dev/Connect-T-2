@@ -80,8 +80,7 @@ jobs:
         working-directory: mobile
         run: |
           npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
-          node --test test/job-role-session-standalone-v107.test.mjs
-          npm test
+          node --test test/*.test.mjs
           npx tsc --noEmit
 
       - name: Set up Java
