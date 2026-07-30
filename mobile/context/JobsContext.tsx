@@ -269,11 +269,14 @@ export function JobsProvider({ children }: { children: ReactNode }) {
 
       const jobsResult = await apiGet<{ success: boolean; jobs: any[] }>(`/api/job-portal/jobs?${jobParams.toString()}`);
       let nextApplications: JobApplication[] = [];
-      if (jobsUser?.id) {
+      if (isSuperAdmin || jobsUser?.id) {
         try {
           const appParams = new URLSearchParams();
-          appParams.set(jobsUser.role === "employer" ? "employerId" : "seekerId", jobsUser.id);
-          const applicationResult = await apiGet<{ success: boolean; applications: any[] }>(`/api/job-portal/applications?${appParams.toString()}`);
+          if (!isSuperAdmin && jobsUser?.id) {
+            appParams.set(jobsUser.role === "employer" ? "employerId" : "seekerId", jobsUser.id);
+          }
+          const query = appParams.toString();
+          const applicationResult = await apiGet<{ success: boolean; applications: any[] }>(`/api/job-portal/applications${query ? `?${query}` : ""}`);
           nextApplications = (applicationResult.applications || []).map(normalizeApplication);
         } catch (applicationError) {
           setError(getUserErrorMessage(applicationError, "Jobs loaded, but application updates could not be refreshed."));
