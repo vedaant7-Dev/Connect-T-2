@@ -167,12 +167,12 @@ function JobDetail({ job, onBack }: { job: Job; onBack: () => void }) {
 
 type CardType = "totalJobs" | "activeJobs" | "expiredJobs" | "employers" | "seekers" | "applications" | "hired" | "placement";
 
+// JOBS_SINGLE_OVERVIEW_V110
 export default function JobsAdminScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { jobs, deleteJob, toggleJobActive, refreshJobs } = useJobs();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "employers" | "analytics">("overview");
   const [modal, setModal] = useState<{ type: CardType; title: string; sub: string } | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
@@ -260,22 +260,9 @@ export default function JobsAdminScreen() {
         </View>
       </LinearGradient>
 
-      <View style={{ flexDirection: "row", backgroundColor: "white", paddingHorizontal: 16, paddingVertical: 8, gap: 8, borderBottomWidth: 1, borderBottomColor: "#E2E8F0" }}>
-        {(["overview", "analytics", "employers"] as const).map((tab) => (
-          <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}
-            style={{ flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: activeTab === tab ? "#16A34A" : "#F1F5F9", alignItems: "center" }}
-            activeOpacity={0.8}
-          >
-            <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: activeTab === tab ? "white" : "#64748B", textTransform: "capitalize" }}>
-              {tab === "overview" ? "Overview" : tab === "analytics" ? "Analytics" : "Employers"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
 
       <AppScrollView onAppRefresh={refreshJobs} style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-        {activeTab === "overview" && (
-          <>
+        <>
             <SectionHeader title="Job Portal Overview" sub="Tap any card to view full data" />
             <View style={{ gap: 8 }}>
               <View style={{ flexDirection: "row", gap: 8 }}>
@@ -292,11 +279,7 @@ export default function JobsAdminScreen() {
               </View>
             </View>
 
-          </>
-        )}
 
-        {activeTab === "analytics" && (
-          <>
             <SectionHeader title="Job Success Analytics" sub="Hiring outcomes and placement data" />
             <View style={{ backgroundColor: "white", borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
               <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
@@ -340,47 +323,7 @@ export default function JobsAdminScreen() {
                 })
               )}
             </View>
-          </>
-        )}
-
-        {activeTab === "employers" && (
-          <>
-            <SectionHeader title="Employer Management" sub="Verify, manage and monitor employers" />
-            {employerBreakdown.length === 0 ? (
-              <View style={{ backgroundColor: "white", borderRadius: 16, padding: 24, alignItems: "center" }}>
-                <Feather name="users" size={32} color="#CBD5E1" />
-                <Text style={{ fontSize: 14, fontFamily: "Inter_500Medium", color: "#94A3B8", marginTop: 12 }}>No employers yet</Text>
-              </View>
-            ) : (
-              employerBreakdown.map((employer) => (
-                <View key={employer.id} style={{ backgroundColor: "white", borderRadius: 14, padding: 16, marginBottom: 8, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-                    <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
-                      <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#3B82F6" }}>{employer.company?.charAt(0)?.toUpperCase() || "E"}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{employer.company}</Text>
-                      <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "#64748B" }}>{employer.name}</Text>
-                    </View>
-                    <View style={{ backgroundColor: "#D1FAE5", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                      <Text style={{ fontSize: 10, fontFamily: "Inter_600SemiBold", color: "#059669" }}>Verified</Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    {[{ label: "Jobs", value: employer.jobs, color: "#3B82F6", bg: "#DBEAFE" },
-                      { label: "Applications", value: employer.applications, color: "#D97706", bg: "#FEF3C7" },
-                      { label: "Hired", value: employer.hired, color: "#059669", bg: "#D1FAE5" }].map((s) => (
-                      <View key={s.label} style={{ flex: 1, backgroundColor: s.bg, borderRadius: 8, padding: 8, alignItems: "center" }}>
-                        <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: s.color }}>{s.value}</Text>
-                        <Text style={{ fontSize: 9, fontFamily: "Inter_400Regular", color: s.color + "AA" }}>{s.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ))
-            )}
-          </>
-        )}
+        </>
       </AppScrollView>
 
       <Modal visible={!!modal} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
