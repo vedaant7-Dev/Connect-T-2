@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, memo } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Platform, Dimensions, Modal, FlatList, TextInput, Image, RefreshControl } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Platform, Dimensions, Modal, FlatList, Image, RefreshControl } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -198,6 +198,7 @@ function ComplaintDetail({ c, onBack, officers }: { c: Complaint; onBack: () => 
 
 type CardType = "total" | "pending" | "inProgress" | "resolved" | "rejected" | "resolution" | "officers" | "wards" | "category";
 
+// DASHBOARD_CLEANUP_V109
 export default function SuperAdminDashboard() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -220,7 +221,6 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   const [modal, setModal] = useState<{ type: CardType; title: string; sub: string } | null>(null);
   const [selectedC, setSelectedC] = useState<Complaint | null>(null);
-  const [complaintSearch, setComplaintSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -266,26 +266,15 @@ export default function SuperAdminDashboard() {
     Object.entries(complaints.reduce((acc: Record<string, number>, c) => { acc[c.category] = (acc[c.category] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])
   ), [complaints]);
 
-  const searchableComplaints = useMemo(() => {
-    const q = complaintSearch.trim().toLowerCase();
-    if (!q) return complaints;
-    return complaints.filter((c) => {
-      const officer = allOfficers.find((n) => n.ward === c.ward);
-      return [c.id, c.title, c.description, c.ward, c.category, c.status, c.userName, c.userMobile, officer?.name, officer?.id, officer?.mobile]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(q));
-    });
-  }, [complaints, complaintSearch, allOfficers]);
 
   const recentComplaints = useMemo(() => (
-    [...searchableComplaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
-  ), [searchableComplaints]);
+    [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
+  ), [complaints]);
 
   const wardOfficers = useMemo(() => allOfficers.filter((n) => n.ward), [allOfficers]);
 
   const getFilteredComplaints = useCallback((type: CardType) => {
-    const source = complaintSearch.trim() ? searchableComplaints : complaints;
-    const sorted = [...source].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const sorted = [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     switch (type) {
       case "total": return sorted;
       case "pending": return sorted.filter((c) => c.status === "submitted");
@@ -295,7 +284,7 @@ export default function SuperAdminDashboard() {
       case "category": return selectedCategory ? sorted.filter((c) => c.category === selectedCategory) : sorted;
       default: return sorted;
     }
-  }, [complaints, searchableComplaints, complaintSearch, selectedCategory]);
+  }, [complaints, selectedCategory]);
 
   const openModal = useCallback((type: CardType, title: string, sub: string) => {
     setSelectedC(null);
@@ -345,18 +334,7 @@ export default function SuperAdminDashboard() {
       </LinearGradient>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshDashboard} colors={["#16A34A"]} tintColor="#16A34A" />}>
-        <SectionHeader title="Complaint Control Center" sub="Search by Complaint ID, citizen, Nagarsevak, ward or category" />
-        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 }}>
-          <Feather name="search" size={16} color="#94A3B8" />
-          <TextInput
-            value={complaintSearch}
-            onChangeText={setComplaintSearch}
-            placeholder="Search complaints, ID, ward officer..."
-            placeholderTextColor="#CBD5E1"
-            style={{ flex: 1, marginLeft: 10, fontSize: 14, fontFamily: "Inter_400Regular", color: "#0F172A", outlineWidth: 0 } as any}
-          />
-          {complaintSearch.length > 0 && <TouchableOpacity onPress={() => setComplaintSearch("")}><Feather name="x" size={16} color="#94A3B8" /></TouchableOpacity>}
-        </View>
+        <SectionHeader title="Complaint Control Center" sub="Review complaints by status and category" />
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <StatCard icon="file-text" label="Total Complaints" value={stats.total} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("total", "All Complaints", `${stats.total} complaints`)} />

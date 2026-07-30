@@ -5,7 +5,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobs, Job } from "@/context/JobsContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
@@ -176,13 +175,6 @@ export default function JobsAdminScreen() {
   const [activeTab, setActiveTab] = useState<"overview" | "employers" | "analytics">("overview");
   const [modal, setModal] = useState<{ type: CardType; title: string; sub: string } | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [totalCitizens, setTotalCitizens] = useState<number>(0);
-
-  React.useEffect(() => {
-    AsyncStorage.getItem("janseva_users").then((raw) => {
-      if (raw) { try { const u = JSON.parse(raw); setTotalCitizens(u.filter((u: any) => u.role === "citizen").length); } catch {} }
-    });
-  }, []);
 
   const stats = useMemo(() => {
     const activeJobs = jobs.filter((j) => j.active);
@@ -300,23 +292,6 @@ export default function JobsAdminScreen() {
               </View>
             </View>
 
-            <View style={{ marginTop: 16 }}>
-              <SectionHeader title="Citizen Management" sub="Total registered users on the platform" />
-              <View style={{ backgroundColor: "white", borderRadius: 16, padding: 20, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
-                <View style={{ flexDirection: "row", gap: 12 }}>
-                  <View style={{ flex: 1, backgroundColor: "#DBEAFE", borderRadius: 12, padding: 14, alignItems: "center" }}>
-                    <Feather name="users" size={22} color="#3B82F6" />
-                    <Text style={{ fontSize: 24, fontFamily: "Inter_700Bold", color: "#1D4ED8", marginTop: 8 }}>{totalCitizens}</Text>
-                    <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#3B82F6" }}>Registered Citizens</Text>
-                  </View>
-                  <View style={{ flex: 1, backgroundColor: "#D1FAE5", borderRadius: 12, padding: 14, alignItems: "center" }}>
-                    <Feather name="user-check" size={22} color="#059669" />
-                    <Text style={{ fontSize: 24, fontFamily: "Inter_700Bold", color: "#065F46", marginTop: 8 }}>{stats.totalSeekers}</Text>
-                    <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#059669" }}>Active Job Seekers</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
           </>
         )}
 
