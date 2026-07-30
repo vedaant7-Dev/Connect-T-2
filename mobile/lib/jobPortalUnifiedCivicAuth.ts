@@ -31,6 +31,10 @@ function requestUrl(input: any): string {
   return String(input?.url || "");
 }
 
+function activeProfileUrl(url: string) {
+  return url.replace("/api/job-portal/session", "/api/job-portal/active-profile");
+}
+
 function withCivicToken(init: RequestInit | undefined, token: string): RequestInit {
   const headers = new Headers(init?.headers || {});
   headers.set("Authorization", `Bearer ${token}`);
@@ -55,9 +59,10 @@ function installUnifiedCivicJobAuth() {
     const url = requestUrl(input);
     if (!url.includes("/api/job-portal/")) return originalFetch(input, init);
 
+    const targetUrl = activeProfileUrl(url);
     const civicToken = await getSessionSecret(CIVIC_TOKEN_KEY).catch(() => null);
-    if (!civicToken) return originalFetch(input, init);
-    return originalFetch(input, withCivicToken(init, civicToken));
+    if (!civicToken) return originalFetch(targetUrl, init);
+    return originalFetch(targetUrl, withCivicToken(init, civicToken));
   };
 }
 
