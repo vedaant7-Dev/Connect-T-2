@@ -18,7 +18,7 @@ services:
     rootDir: mobile
     buildCommand: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund && npm run export:web
     staticPublishPath: dist
-    autoDeployTrigger: checksPass
+    autoDeployTrigger: commit
     pullRequestPreviewsEnabled: true
     envVars:
       - key: EXPO_PUBLIC_API_URL
