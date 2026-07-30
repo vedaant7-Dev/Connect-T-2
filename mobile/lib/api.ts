@@ -6,12 +6,11 @@ import { deleteSessionSecret, getSessionSecret, setSessionSecret } from "@/lib/s
 const REQUEST_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 180_000;
 const AUTH_TOKEN_KEY = "connect_t_auth_token_v1";
-const JOB_AUTH_TOKEN_KEY = "connect_t_job_auth_token_v1";
+const LEGACY_JOB_AUTH_TOKEN_KEY = "connect_t_job_auth_token_v1";
 const OTP_VERIFICATION_KEY = "connect_t_otp_verification_v1";
 
 const inFlightGets = new Map<string, Promise<unknown>>();
 let cacheGeneration = 0;
-let jobsRecoveryPromise: Promise<boolean> | null = null;
 
 export class ApiError extends Error {
   status?: number;
@@ -48,20 +47,19 @@ export async function clearAuthToken() {
   await Promise.all([
     deleteSessionSecret(AUTH_TOKEN_KEY),
     deleteSessionSecret(OTP_VERIFICATION_KEY),
+    deleteSessionSecret(LEGACY_JOB_AUTH_TOKEN_KEY),
   ]);
   clearGetCache();
 }
 
-export async function storeJobsAuthToken(token?: string | null) {
-  // keep the function for compatibility but prefer using the main civic token
-  if (!token) return;
-  await setSessionSecret(JOB_AUTH_TOKEN_KEY, token);
-  await deleteSessionSecret(OTP_VERIFICATION_KEY);
+// Compatibility exports only. A separate Job Portal token is no longer stored.
+export async function storeJobsAuthToken(_token?: string | null) {
+  await deleteSessionSecret(LEGACY_JOB_AUTH_TOKEN_KEY);
   clearGetCache();
 }
 
 export async function clearJobsAuthToken() {
-  await deleteSessionSecret(JOB_AUTH_TOKEN_KEY);
+  await deleteSessionSecret(LEGACY_JOB_AUTH_TOKEN_KEY);
   clearGetCache();
 }
 
@@ -87,11 +85,6 @@ function isUsableToken(token?: string | null) {
   return !!payload?.exp && Number(payload.exp) > Math.floor(Date.now() / 1000);
 }
 
-function isSuperAdminToken(token?: string | null) {
-  const payload = tokenPayload(token);
-  return payload?.role === "super_admin" || payload?.isSuperAdmin === true;
-}
-
 export async function getStoredAuthToken() {
   const token = await getSessionSecret(AUTH_TOKEN_KEY);
   if (isUsableToken(token)) return token;
@@ -100,35 +93,28 @@ export async function getStoredAuthToken() {
 }
 
 export async function getStoredJobsAuthToken() {
-  const token = await getSessionSecret(JOB_AUTH_TOKEN_KEY);
-  if (isUsableToken(token)) return token;
-  if (token) await deleteSessionSecret(JOB_AUTH_TOKEN_KEY);
+  await deleteSessionSecret(LEGACY_JOB_AUTH_TOKEN_KEY);
   return null;
 }
 
-// HARD-FIX: Simplify authentication so all job-portal requests use the single Civic
-// login token. This removes dependence on a separate Job Portal session token or
-// fragile OTP-only handoff. This implements "all work on one login" as requested.
-async function getAuthHeaders(path: string, body?: unknown, multipart = false) {
-  // Only prefer the main Civic token for every request. If it's expired or
-  // missing, no special Job Portal token will be used and requests will fail
-  // in the normal way (user will be asked to re-login).
-  const storedCivicToken = await getSessionSecret(AUTH_TOKEN_KEY);
+async function getAuthHeaders(_path: string, body?: unknown, multipart = false) {
+  const [storedCivicToken, otpVerification] = await Promise.all([
+    getSessionSecret(AUTH_TOKEN_KEY),
+    getSessionSecret(OTP_VERIFICATION_KEY),
+  ]);
   const civicToken = isUsableToken(storedCivicToken) ? storedCivicToken : null;
-
   if (storedCivicToken && !civicToken) void deleteSessionSecret(AUTH_TOKEN_KEY);
 
   const headers: Record<string, string> = {};
   if (body !== undefined && !multipart) headers["Content-Type"] = "application/json";
   if (civicToken) headers.Authorization = `Bearer ${civicToken}`;
-
+  if (otpVerification) headers["X-OTP-Verification"] = otpVerification;
   return Object.keys(headers).length ? headers : undefined;
 }
 
 async function readError(res: Response, fallback: string): Promise<{ message: string; code?: string }> {
   const text = await res.text().catch(() => "");
   if (!text) return { message: fallback };
-
   try {
     const parsed = JSON.parse(text);
     return {
@@ -155,7 +141,7 @@ function safeServerMessage(serverMessage: string) {
 
 export function friendlyStatusMessage(status: number, serverMessage: string) {
   const safeMessage = safeServerMessage(serverMessage);
-  if (status === 401) return "Your session could not be verified. Please log in again.";
+  if (status === 401) return safeMessage || "Your Connect-T login has expired. Please sign in again.";
   if (status === 403) return safeMessage || "You do not have permission to perform this action.";
   if (status === 404) return safeMessage || "The requested information was not found.";
   if (status === 408 || status === 429) return safeMessage || "Please wait a moment and try again.";
@@ -204,26 +190,6 @@ async function assertResponse(res: Response, method: string, path: string) {
   });
 }
 
-// With the simplified auth model we don't need complex recovery for a second
-// job-portal token. Keep recoverJobsSession for compatibility but it will no-op
-// if there's no civic token available.
-function isRecoverableJobsPath(path: string) { return path.startsWith("/api/job-portal/") && path !== "/api/job-portal/session" && path !== "/api/job-portal/onboarding"; }
-async function recoverJobsSession() {
-  if (jobsRecoveryPromise) return jobsRecoveryPromise;
-  jobsRecoveryPromise = (async () => {
-    const civicToken = await getStoredAuthToken(); if (!civicToken) return false;
-    try {
-      const res = await fetchWithTimeout(apiUrl("/api/job-portal/session"), { method: "POST", headers: { Authorization: `Bearer ${civicToken}`, "Content-Type": "application/json" }, body: "{}" });
-      if (!res.ok) return false;
-      const data = await parseSuccess<any>(res, "POST", "/api/job-portal/session");
-      if (!data?.token) return false; await storeJobsAuthToken(data.token); return true;
-    } catch {
-      return false;
-    }
-  })().catch(() => false).finally(() => { jobsRecoveryPromise = null; });
-  return jobsRecoveryPromise;
-}
-
 async function request<T = any>(
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
@@ -266,10 +232,6 @@ async function request<T = any>(
         "Your internet connection is slow. Keep the app open and try again.",
       );
       throw new ApiError(message, { code: "NETWORK_UNAVAILABLE", internalMessage });
-    }
-
-    if (res.status === 401 && isRecoverableJobsPath(path) && await recoverJobsSession()) {
-      res = await fetchWithTimeout(url, { method, headers: await getAuthHeaders(path, body), body: body === undefined ? undefined : JSON.stringify(body) });
     }
 
     await assertResponse(res, method, path);
