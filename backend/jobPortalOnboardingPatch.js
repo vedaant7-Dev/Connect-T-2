@@ -75,6 +75,36 @@ function getPool() {
   return pool;
 }
 
+
+async function resolveCivicUser(db, auth) {
+  if (!auth?.sub) return null;
+  if (auth.scope !== "job_portal") {
+    const [rows] = await db.query(
+      `SELECT id, name, mobile, dob, email, address, profile_photo, role
+       FROM users WHERE id = ? LIMIT 1`,
+      [auth.sub],
+    );
+    return rows[0] || null;
+  }
+
+  let phone = cleanPhone(auth.mobile);
+  if (phone.length !== 10) {
+    const [jobRows] = await db.query("SELECT phone FROM job_portal_users WHERE id = ? LIMIT 1", [auth.sub]);
+    phone = cleanPhone(jobRows[0]?.phone);
+  }
+  if (phone.length !== 10) return null;
+
+  const [rows] = await db.query(
+    `SELECT id, name, mobile, dob, email, address, profile_photo, role
+     FROM users
+     WHERE role = 'citizen'
+       AND RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(mobile, ''), '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', ''), 10) = ?
+     ORDER BY created_at ASC LIMIT 1`,
+    [phone],
+  );
+  return rows[0] || null;
+}
+
 async function ensureSchema(db) {
   await db.query(`CREATE TABLE IF NOT EXISTS job_portal_users (
     id VARCHAR(64) PRIMARY KEY,
@@ -117,21 +147,14 @@ async function onboarding(req, res) {
     await ensureSchema(db);
 
     const auth = verifyRequestToken(req);
-    if (!auth?.sub || auth.scope === "job_portal") {
+    if (!auth?.sub) {
       return sendJson(res, 401, {
         success: false,
         message: "Please log in to Connect T first.",
       });
     }
 
-    const [civicRows] = await db.query(
-      `SELECT id, name, mobile, dob, email, address, profile_photo, role
-       FROM users
-       WHERE id = ?
-       LIMIT 1`,
-      [auth.sub],
-    );
-    const civicUser = civicRows[0];
+    const civicUser = await resolveCivicUser(db, auth);
 
     if (!civicUser || civicUser.role !== "citizen") {
       return sendJson(res, 403, {
@@ -331,4 +354,4 @@ try {
   console.warn("[JobPortalOnboardingPatch] express patch disabled:", err.message);
 }
 
-module.exports = {};
+module.exports = { onboarding, resolveCivicUser };

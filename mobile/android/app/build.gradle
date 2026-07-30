@@ -46,8 +46,8 @@ android {
         applicationId 'com.connectt.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
-        versionName "1.0.3"
+        versionCode 5
+        versionName "1.0.4"
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
 
@@ -92,6 +92,14 @@ android {
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
             crunchPngs enablePngCrunchInRelease.toBoolean()
         }
+        standalone {
+            initWith release
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+            minifyEnabled true
+            shrinkResources true
+            crunchPngs true
+        }
     }
 
     packagingOptions {
@@ -112,7 +120,7 @@ gradle.taskGraph.whenReady { graph ->
         def name = task.name.toLowerCase()
         return name.contains("release") && (name.startsWith("assemble") || name.startsWith("bundle") || name.startsWith("package"))
     }
-    if (releaseRequested && !hasReleaseSigning) {
+    if (releaseRequested && !hasReleaseSigning && !gradle.startParameter.taskNames.any { it.toLowerCase().contains("standalone") }) {
         throw new GradleException("Connect-T release signing is not configured. Provide CONNECT_T_RELEASE_STORE_FILE, CONNECT_T_RELEASE_STORE_PASSWORD, CONNECT_T_RELEASE_KEY_ALIAS and CONNECT_T_RELEASE_KEY_PASSWORD. Use assembleDebug for a test APK.")
     }
 }

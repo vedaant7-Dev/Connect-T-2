@@ -10,10 +10,11 @@ const auth = await readFile(new URL("../context/JobsAuthContext.tsx", import.met
 const layout = await readFile(new URL("../app/jobs/_layout.tsx", import.meta.url), "utf8");
 const adminLayout = await readFile(new URL("../app/super-admin/_layout.tsx", import.meta.url), "utf8");
 
-test("first-time Job Portal users confirm a role before profile creation", () => {
+test("first-time Job Portal users select a role directly before profile creation", () => {
   assert.match(setupRoute, /LocalizedJobProfileSetupScreen/);
-  assert.match(setup, /c\("confirmRole"\)/);
+  assert.match(setup, /setRole\(nextRole\)/);
   assert.match(setup, /roleConfirmed/);
+  assert.doesNotMatch(setup, /showConfirm|pendingRole|c\("confirmRole"\)/);
   assert.match(setup, /\/api\/job-portal\/onboarding/);
 });
 

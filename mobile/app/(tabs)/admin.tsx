@@ -212,11 +212,10 @@ export default function AdminScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const { user } = useAuth();
-  const { complaints, updateStatus, refreshComplaints } = useComplaints();
+  const { complaints, refreshComplaints } = useComplaints();
   const router = useRouter();
   const { t } = useLanguage();
   const [filter, setFilter] = useState<ComplaintStatus | "all">("all");
-  const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
   const [assignedWard, setAssignedWard] = useState(user?.ward || "");
   const [assignedWardCode, setAssignedWardCode] = useState(String(user?.wardCode || ""));
   const [utilityType, setUtilityType] = useState<UtilityType>("water");
@@ -264,12 +263,6 @@ export default function AdminScreen() {
         return assignedWard ? wardMatchesNagarsevak(complaint.ward, assignedWard) : false;
       })
     : [];
-  const filteredComplaints = filter === "all"
-    ? wardComplaints
-    : wardComplaints.filter((complaint) => {
-        if (filter === "in_progress") return complaint.status === "in_progress" || complaint.status === "assigned";
-        return complaint.status === filter;
-      });
   const pendingCount = wardComplaints.filter((complaint) => complaint.status === "submitted").length;
   const activeCount = wardComplaints.filter((complaint) => complaint.status === "in_progress" || complaint.status === "assigned").length;
   const resolvedCount = wardComplaints.filter((complaint) => complaint.status === "resolved").length;
@@ -438,25 +431,8 @@ export default function AdminScreen() {
 
         <UtilityStatusManager ward={assignedWard} wardCode={assignedWardCode} />
 
-        <View style={styles.listSection}>
-          {filteredComplaints.length === 0 ? (
-            <View style={styles.empty}><Feather name="check-circle" size={34} color="#CBD5E1" /><Text style={styles.emptyText}>{t("noComplaintsInCategory")}</Text></View>
-          ) : filteredComplaints.map((item) => <ComplaintCard key={item.id} complaint={item} onAction={() => setActiveComplaint(item)} />)}
-        </View>
       </AppScrollView>
 
-      {activeComplaint ? (
-        <Modal transparent animationType="slide" visible onRequestClose={() => setActiveComplaint(null)}>
-          <ActionModal
-            complaint={activeComplaint}
-            onClose={() => setActiveComplaint(null)}
-            onUpdate={(status, note) => {
-              if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              updateStatus(activeComplaint.id, status, note, user.name || "Nagarsevak");
-            }}
-          />
-        </Modal>
-      ) : null}
     </View>
   );
 }
