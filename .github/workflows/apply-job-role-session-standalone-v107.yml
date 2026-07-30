@@ -130,6 +130,22 @@ jobs:
       - name: Build bundled standalone Android APK
         working-directory: mobile/android
         run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('app/build.gradle')
+          text = path.read_text(encoding='utf-8')
+          old = '''    def releaseRequested = graph.allTasks.any { task ->
+              def name = task.name.toLowerCase()
+              return name.contains("release") && (name.startsWith("assemble") || name.startsWith("bundle") || name.startsWith("package"))
+          }'''
+          new = '''    def releaseRequested = graph.allTasks.any { task ->
+              def name = task.name.toLowerCase()
+              return name == "assemblerelease" || name == "bundlerelease" || name == "packagerelease"
+          }'''
+          if old not in text:
+              raise SystemExit('Release signing guard source was not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
           chmod +x gradlew
           ./gradlew clean assembleStandalone --no-daemon --stacktrace
           APK_PATH="$(find app/build/outputs/apk -type f -name '*.apk' | head -n 1)"
