@@ -1,0 +1,242 @@
+name: Apply Calendar Broadcast Resume Fixes
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.ref == 'build/production-artifacts-20260730-ui'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply requested fixes directly to main
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          picker = r'''import { Feather } from "@expo/vector-icons";
+          import React, { useMemo, useState } from "react";
+          import { Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+          const GREEN = "#16A34A";
+          const ORANGE = "#EA580C";
+          const SLOT_MINUTES = 30;
+          const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+          export type AppDateTimePickerProps = {
+            value?: string;
+            onChange: (value: string) => void;
+            placeholder?: string;
+            minimumDate?: Date;
+            accessibilityLabel?: string;
+          };
+
+          function pad(value: number) { return String(value).padStart(2, "0"); }
+          function toLocalInputValue(date: Date) { return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`; }
+          function parseValue(value?: string) {
+            if (!value) return null;
+            const date = new Date(value.includes("T") ? value : value.replace(" ", "T"));
+            return Number.isNaN(date.getTime()) ? null : date;
+          }
+          function startOfDay(date: Date) { const next = new Date(date); next.setHours(0, 0, 0, 0); return next; }
+          function startOfMonth(date: Date) { const next = new Date(date.getFullYear(), date.getMonth(), 1); next.setHours(0, 0, 0, 0); return next; }
+          function roundUpToSlot(date: Date) {
+            const next = new Date(date); next.setSeconds(0, 0);
+            const remainder = next.getMinutes() % SLOT_MINUTES;
+            if (remainder) next.setMinutes(next.getMinutes() + SLOT_MINUTES - remainder);
+            return next;
+          }
+          function sameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+          function sameTime(a: Date, b: Date) { return a.getHours() === b.getHours() && a.getMinutes() === b.getMinutes(); }
+          function formatDisplay(value?: string) {
+            const date = parseValue(value); if (!date) return "";
+            return date.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+          }
+          function formatDate(date: Date) { return date.toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }); }
+          function formatTime(date: Date) { return date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true }); }
+
+          export default function AppDateTimePicker({ value, onChange, placeholder = "Select date and time", minimumDate, accessibilityLabel = "Select date and time" }: AppDateTimePickerProps) {
+            const minimumTime = minimumDate?.getTime() || Date.now();
+            const fallback = roundUpToSlot(new Date(Math.max(Date.now() + 5 * 60 * 1000, minimumTime)));
+            const [visible, setVisible] = useState(false);
+            const [activePanel, setActivePanel] = useState<"date" | "time">("date");
+            const [draft, setDraft] = useState<Date>(() => parseValue(value) || fallback);
+            const [month, setMonth] = useState<Date>(() => startOfMonth(parseValue(value) || fallback));
+            const minimumDay = useMemo(() => startOfDay(minimumDate || new Date()), [minimumTime]);
+
+            const calendarCells = useMemo(() => {
+              const first = startOfMonth(month);
+              const leading = first.getDay();
+              const lastDate = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+              return Array.from({ length: 42 }, (_, index) => {
+                const day = index - leading + 1;
+                return day >= 1 && day <= lastDate ? new Date(month.getFullYear(), month.getMonth(), day) : null;
+              });
+            }, [month.getFullYear(), month.getMonth()]);
+
+            const timeSlots = useMemo(() => Array.from({ length: 48 }, (_, index) => {
+              const slot = new Date(draft); slot.setHours(Math.floor(index / 2), index % 2 ? 30 : 0, 0, 0); return slot;
+            }), [draft.getFullYear(), draft.getMonth(), draft.getDate()]);
+
+            const open = () => {
+              const selected = parseValue(value);
+              const next = selected && selected.getTime() >= minimumTime ? selected : fallback;
+              const rounded = roundUpToSlot(next);
+              setDraft(rounded); setMonth(startOfMonth(rounded)); setActivePanel("date"); setVisible(true);
+            };
+            const chooseDate = (date: Date) => {
+              const next = new Date(date); next.setHours(draft.getHours(), draft.getMinutes(), 0, 0);
+              const valid = next.getTime() < minimumTime ? roundUpToSlot(new Date(minimumTime)) : next;
+              setDraft(valid); setActivePanel("time");
+            };
+            const chooseTime = (slot: Date) => { if (slot.getTime() >= minimumTime) setDraft(slot); };
+            const apply = () => { if (draft.getTime() >= minimumTime) { onChange(toLocalInputValue(draft)); setVisible(false); } };
+            const previousMonthDisabled = startOfMonth(month).getTime() <= startOfMonth(minimumDay).getTime();
+
+            return <>
+              <TouchableOpacity style={styles.field} onPress={open} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
+                <View style={styles.fieldIcon}><Feather name="calendar" size={16} color={ORANGE} /></View>
+                <View style={styles.fieldCopy}><Text style={styles.fieldLabel}>DATE & TIME</Text><Text style={[styles.fieldText, !value && styles.placeholder]} numberOfLines={1}>{formatDisplay(value) || placeholder}</Text></View>
+                {value ? <TouchableOpacity style={styles.clearButton} onPress={(event) => { event.stopPropagation(); onChange(""); }}><Feather name="x" size={16} color="#64748B" /></TouchableOpacity> : <Feather name="chevron-down" size={17} color="#64748B" />}
+              </TouchableOpacity>
+
+              <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setVisible(false)}>
+                <View style={styles.overlay}><View style={styles.dialog}>
+                  <View style={styles.header}><View style={styles.headerCopy}><Text style={styles.title}>Select date and time</Text><Text style={styles.subtitle}>{formatDate(draft)} · {formatTime(draft)}</Text></View><TouchableOpacity style={styles.close} onPress={() => setVisible(false)}><Feather name="x" size={20} color="#475569" /></TouchableOpacity></View>
+                  <View style={styles.selectorRow}>
+                    <TouchableOpacity style={[styles.selector, activePanel === "date" && styles.selectorActive]} onPress={() => setActivePanel("date")}><Text style={styles.selectorLabel}>DATE</Text><View style={styles.selectorValueRow}><Feather name="calendar" size={15} color={activePanel === "date" ? ORANGE : "#64748B"} /><Text style={[styles.selectorValue, activePanel === "date" && styles.selectorValueActive]} numberOfLines={1}>{draft.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</Text><Feather name={activePanel === "date" ? "chevron-up" : "chevron-down"} size={15} color="#64748B" /></View></TouchableOpacity>
+                    <TouchableOpacity style={[styles.selector, activePanel === "time" && styles.selectorActive]} onPress={() => setActivePanel("time")}><Text style={styles.selectorLabel}>TIME</Text><View style={styles.selectorValueRow}><Feather name="clock" size={15} color={activePanel === "time" ? ORANGE : "#64748B"} /><Text style={[styles.selectorValue, activePanel === "time" && styles.selectorValueActive]}>{formatTime(draft)}</Text><Feather name={activePanel === "time" ? "chevron-up" : "chevron-down"} size={15} color="#64748B" /></View></TouchableOpacity>
+                  </View>
+
+                  {activePanel === "date" ? <View style={styles.panel}>
+                    <View style={styles.monthHeader}><TouchableOpacity style={[styles.monthButton, previousMonthDisabled && styles.monthButtonDisabled]} disabled={previousMonthDisabled} onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><Feather name="chevron-left" size={19} color={previousMonthDisabled ? "#CBD5E1" : "#334155"} /></TouchableOpacity><Text style={styles.monthTitle}>{month.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</Text><TouchableOpacity style={styles.monthButton} onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><Feather name="chevron-right" size={19} color="#334155" /></TouchableOpacity></View>
+                    <View style={styles.weekRow}>{WEEKDAYS.map((day) => <Text key={day} style={styles.weekText}>{day}</Text>)}</View>
+                    <View style={styles.calendarGrid}>{calendarCells.map((date, index) => {
+                      if (!date) return <View key={`empty-${index}`} style={styles.dayCell} />;
+                      const disabled = startOfDay(date).getTime() < minimumDay.getTime();
+                      const active = sameDay(date, draft);
+                      const today = sameDay(date, new Date());
+                      return <TouchableOpacity key={date.toISOString()} style={[styles.dayCell, active && styles.dayCellActive, today && !active && styles.todayCell]} disabled={disabled} onPress={() => chooseDate(date)}><Text style={[styles.dayCellText, active && styles.activeText, disabled && styles.disabledText]}>{date.getDate()}</Text></TouchableOpacity>;
+                    })}</View>
+                  </View> : <View style={styles.panel}><Text style={styles.panelTitle}>Choose a time</Text><Text style={styles.panelHint}>Available in 30-minute slots.</Text><ScrollView style={styles.timeMenu} contentContainerStyle={styles.timeMenuContent} showsVerticalScrollIndicator={false}>{timeSlots.map((slot) => { const active = sameTime(slot, draft); const disabled = slot.getTime() < minimumTime; return <TouchableOpacity key={`${slot.getHours()}-${slot.getMinutes()}`} style={[styles.timeOption, active && styles.timeOptionActive, disabled && styles.timeOptionDisabled]} disabled={disabled} onPress={() => chooseTime(slot)}><Text style={[styles.timeOptionText, active && styles.activeText, disabled && styles.disabledText]}>{formatTime(slot)}</Text>{active ? <Feather name="check" size={17} color={ORANGE} /> : null}</TouchableOpacity>; })}</ScrollView></View>}
+
+                  <View style={styles.actions}><TouchableOpacity style={styles.cancel} onPress={() => setVisible(false)}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.apply} onPress={apply}><Feather name="check" size={17} color="white" /><Text style={styles.applyText}>Apply</Text></TouchableOpacity></View>
+                </View></View>
+              </Modal>
+            </>;
+          }
+
+          const styles = StyleSheet.create({
+            field: { minHeight: 54, borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "white", paddingLeft: 10, paddingRight: 9, flexDirection: "row", alignItems: "center", gap: 10 },
+            fieldIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center" }, fieldCopy: { flex: 1, minWidth: 0 }, fieldLabel: { color: "#94A3B8", fontSize: 8.5, letterSpacing: 0.8, fontFamily: "Inter_700Bold" }, fieldText: { marginTop: 2, color: "#0F172A", fontSize: 12.5, fontFamily: "Inter_600SemiBold" }, placeholder: { color: "#94A3B8", fontFamily: "Inter_400Regular" }, clearButton: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#F1F5F9" },
+            overlay: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16, backgroundColor: "rgba(15,23,42,0.62)" }, dialog: { width: "100%", maxWidth: 520, maxHeight: Platform.OS === "web" ? 650 : "90%", borderRadius: 24, backgroundColor: "white", overflow: "hidden", elevation: 12, shadowColor: "#020617", shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.2, shadowRadius: 28 },
+            header: { minHeight: 74, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: "#E2E8F0" }, headerCopy: { flex: 1 }, title: { color: "#0F172A", fontSize: 18, fontFamily: "Inter_700Bold" }, subtitle: { marginTop: 3, color: "#64748B", fontSize: 10.5, fontFamily: "Inter_500Medium" }, close: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
+            selectorRow: { flexDirection: "row", gap: 10, padding: 16, paddingBottom: 10 }, selector: { flex: 1, borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 14, padding: 11, backgroundColor: "#F8FAFC" }, selectorActive: { borderColor: ORANGE, backgroundColor: "#FFF7ED" }, selectorLabel: { color: "#94A3B8", fontSize: 8.5, letterSpacing: 0.8, fontFamily: "Inter_700Bold" }, selectorValueRow: { marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6 }, selectorValue: { flex: 1, color: "#334155", fontSize: 11.5, fontFamily: "Inter_700Bold" }, selectorValueActive: { color: ORANGE },
+            panel: { paddingHorizontal: 16, paddingBottom: 8 }, monthHeader: { minHeight: 46, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, monthTitle: { color: "#0F172A", fontSize: 15, fontFamily: "Inter_700Bold" }, monthButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" }, monthButtonDisabled: { opacity: 0.45 }, weekRow: { flexDirection: "row", marginTop: 4 }, weekText: { width: "14.2857%", textAlign: "center", color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_700Bold" }, calendarGrid: { marginTop: 6, flexDirection: "row", flexWrap: "wrap" }, dayCell: { width: "14.2857%", aspectRatio: 1, alignItems: "center", justifyContent: "center", borderRadius: 12 }, dayCellActive: { backgroundColor: ORANGE }, todayCell: { borderWidth: 1, borderColor: ORANGE }, dayCellText: { color: "#334155", fontSize: 12, fontFamily: "Inter_600SemiBold" }, activeText: { color: ORANGE }, disabledText: { color: "#CBD5E1" },
+            panelTitle: { color: "#0F172A", fontSize: 15, fontFamily: "Inter_700Bold" }, panelHint: { marginTop: 3, color: "#94A3B8", fontSize: 10, fontFamily: "Inter_400Regular" }, timeMenu: { marginTop: 10, maxHeight: 300 }, timeMenuContent: { gap: 6, paddingBottom: 6 }, timeOption: { minHeight: 46, borderRadius: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC" }, timeOptionActive: { borderColor: ORANGE, backgroundColor: "#FFF7ED" }, timeOptionDisabled: { opacity: 0.48 }, timeOptionText: { color: "#334155", fontSize: 12.5, fontFamily: "Inter_600SemiBold" },
+            actions: { padding: 16, flexDirection: "row", gap: 10, borderTopWidth: 1, borderTopColor: "#E2E8F0" }, cancel: { flex: 1, minHeight: 50, borderRadius: 14, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" }, cancelText: { color: "#475569", fontSize: 13, fontFamily: "Inter_700Bold" }, apply: { flex: 1, minHeight: 50, borderRadius: 14, backgroundColor: GREEN, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }, applyText: { color: "white", fontSize: 13, fontFamily: "Inter_700Bold" },
+          });
+          '''
+          # Remove indentation introduced by YAML/Python nesting.
+          picker = '\n'.join(line[10:] if line.startswith('          ') else line for line in picker.splitlines()) + '\n'
+          (root / 'mobile/components/AppDateTimePicker.tsx').write_text(picker, encoding='utf-8')
+
+          # Broadcast categories and normalization.
+          context = root / 'mobile/context/BroadcastContext.tsx'
+          text = context.read_text(encoding='utf-8')
+          text = text.replace('"announcement" | "emergency" | "information" | "notice"', '"announcement" | "news" | "emergency" | "information" | "notice"')
+          text = text.replace('["emergency", "information", "notice"].includes(raw.category)', '["news", "emergency", "information", "notice"].includes(raw.category)')
+          context.write_text(text, encoding='utf-8')
+
+          screen = root / 'mobile/screens/BroadcastCenterMediaScreen.tsx'
+          text = screen.read_text(encoding='utf-8')
+          announcement = '{ key: "announcement", label: "Announcement", icon: "radio", color: "#B45309", bg: "#FEF3C7" },'
+          if 'key: "news"' not in text:
+              text = text.replace(announcement, announcement + '\n  { key: "news", label: "News", icon: "file-text", color: "#2563EB", bg: "#DBEAFE" },')
+          text = text.replace('const active = broadcasts;', 'const active = isSuperAdmin ? broadcasts : broadcasts.filter((item) => String(item.createdBy) === String(user?.id || ""));')
+          text = text.replace('router.replace("/super-admin" as any)', 'router.replace((isSuperAdmin ? "/super-admin" : "/(tabs)/admin") as any)')
+          text = text.replace('<Text style={styles.headerTitle}>Broadcast Center</Text>', '<Text style={styles.headerTitle}>{isSuperAdmin ? "Broadcast Center" : "Ward Broadcast Center"}</Text>')
+          screen.write_text(text, encoding='utf-8')
+
+          # Nagarsevak News tab now uses the same full media Broadcast Center.
+          (root / 'mobile/app/(tabs)/news.tsx').write_text('export { default } from "@/screens/BroadcastCenterMediaScreen";\n', encoding='utf-8')
+
+          # Backend accepts the News broadcast category. Ward-only enforcement already exists for Nagarsevaks.
+          for path in (root / 'backend').glob('*.js'):
+              text = path.read_text(encoding='utf-8')
+              updated = text.replace('["announcement", "emergency", "information", "notice"]', '["announcement", "news", "emergency", "information", "notice"]')
+              updated = updated.replace("['announcement', 'emergency', 'information', 'notice']", "['announcement', 'news', 'emergency', 'information', 'notice']")
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+          # Replace non-working data-URL print flow with a real generated PDF file.
+          resume = root / 'mobile/app/jobs/resume.tsx'
+          text = resume.read_text(encoding='utf-8')
+          text = text.replace('import { Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";', 'import { Image, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";\nimport * as FileSystem from "expo-file-system/legacy";\nimport * as Sharing from "expo-sharing";')
+
+          marker = 'function HeaderAvatar({ user, dark = false }:'
+          if 'function createResumePdfDocument' not in text:
+              insert = r'''
+          function pdfSafe(value: unknown) {
+            return String(value || "").normalize("NFKD").replace(/[^\x20-\x7E]/g, " ").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)").replace(/\s+/g, " ").trim();
+          }
+          function wrapPdfText(value: unknown, max = 82) {
+            const words = pdfSafe(value).split(" ").filter(Boolean); const lines: string[] = []; let line = "";
+            for (const word of words) { const next = line ? `${line} ${word}` : word; if (next.length > max && line) { lines.push(line); line = word; } else line = next; }
+            if (line) lines.push(line); return lines.length ? lines : ["-"];
+          }
+          function asciiBase64(value: string) {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"; let output = "";
+            for (let index = 0; index < value.length; index += 3) { const a = value.charCodeAt(index) & 255; const b = index + 1 < value.length ? value.charCodeAt(index + 1) & 255 : 0; const c = index + 2 < value.length ? value.charCodeAt(index + 2) & 255 : 0; const triple = (a << 16) | (b << 8) | c; output += chars[(triple >> 18) & 63] + chars[(triple >> 12) & 63] + (index + 1 < value.length ? chars[(triple >> 6) & 63] : "=") + (index + 2 < value.length ? chars[triple & 63] : "="); }
+            return output;
+          }
+          function createResumePdfDocument(user: any) {
+            const rows: Array<{ text: string; bold?: boolean; size?: number; gap?: number }> = [];
+            rows.push({ text: pdfSafe(user.name || "Connect-T Candidate"), bold: true, size: 22, gap: 8 });
+            rows.push({ text: pdfSafe(user.currentRole || user.qualification || "Job Seeker"), bold: true, size: 13, gap: 5 });
+            rows.push({ text: pdfSafe(`+91 ${user.phone || ""}${user.email ? ` | ${user.email}` : ""}${user.location ? ` | ${user.location}` : ""}`), size: 9, gap: 18 });
+            const section = (title: string, value: unknown) => { rows.push({ text: title, bold: true, size: 12, gap: 7 }); wrapPdfText(value).forEach((line) => rows.push({ text: line, size: 10, gap: 4 })); rows.push({ text: "", size: 6, gap: 9 }); };
+            if (user.about) section("CAREER OBJECTIVE", user.about);
+            section("EDUCATION", [user.qualification, user.collegeName, user.fieldOfStudy].filter(Boolean).join(" | "));
+            section("WORK EXPERIENCE", [user.experience ? `Total Experience: ${user.experience}` : "", user.currentCompany ? `${user.currentRole || "Employee"} - ${user.currentCompany} (Current)` : "", user.previousCompany ? `${user.previousRole || "Employee"} - ${user.previousCompany} (Previous)` : ""].filter(Boolean).join("; ") || "-");
+            section("SKILLS", user.skills || "-");
+            if (user.languages) section("LANGUAGES", user.languages);
+
+            let y = 790; const commands: string[] = ["BT"];
+            for (const row of rows) { if (y < 55) break; commands.push(`/${row.bold ? "F2" : "F1"} ${row.size || 10} Tf`, `1 0 0 1 50 ${y} Tm`, `(${row.text}) Tj`); y -= (row.size || 10) + (row.gap || 4); }
+            commands.push("ET"); const stream = commands.join("\n");
+            const objects = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>", `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`];
+            let pdf = "%PDF-1.4\n"; const offsets = [0]; objects.forEach((object, index) => { offsets.push(pdf.length); pdf += `${index + 1} 0 obj\n${object}\nendobj\n`; }); const xref = pdf.length; pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`; for (let i = 1; i <= objects.length; i++) pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`; pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+            return pdf;
+          }
+          '''
+              insert = '\n'.join(line[10:] if line.startswith('          ') else line for line in insert.splitlines()) + '\n'
+              text = text.replace(marker, insert + '\n' + marker)
+
+          old = '''  const openPrintableResume = async () => {\n    const html = createResumeHtml(jobsUser, selected);\n    const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;\n    try {\n      await Linking.openURL(url);\n      setNotice({ visible: true, title: "Resume opened", message: "Use browser print/share option and choose Save as PDF." });\n    } catch {\n      setNotice({ visible: true, title: "Resume ready", message: "The resume preview is ready. Take screenshot/share now; native PDF export can be added with expo-print after final APK QA." });\n    }\n  };'''
+          new = '''  const openPrintableResume = async () => {\n    try {\n      const pdf = createResumePdfDocument(jobsUser);\n      const safeName = String(jobsUser.name || "Connect-T-Resume").replace(/[^a-zA-Z0-9_-]+/g, "-");\n      const fileName = `${safeName}-Resume.pdf`;\n      if (Platform.OS === "web") {\n        const blob = new Blob([pdf], { type: "application/pdf" });\n        const url = URL.createObjectURL(blob);\n        const anchor = document.createElement("a"); anchor.href = url; anchor.download = fileName; document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);\n        setNotice({ visible: true, title: "PDF downloaded", message: "Your resume PDF has been downloaded." });\n        return;\n      }\n      const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;\n      if (!directory) throw new Error("Storage is unavailable on this device.");\n      const uri = `${directory}${fileName}`;\n      await FileSystem.writeAsStringAsync(uri, asciiBase64(pdf), { encoding: FileSystem.EncodingType.Base64 });\n      if (await Sharing.isAvailableAsync()) {\n        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Save or share resume PDF", UTI: "com.adobe.pdf" });\n      } else {\n        setNotice({ visible: true, title: "PDF created", message: `Resume saved at ${uri}` });\n      }\n    } catch (error) {\n      setNotice({ visible: true, title: "PDF export failed", message: error instanceof Error ? error.message : "The resume PDF could not be created. Please try again." });\n    }\n  };'''
+          if old not in text:
+              raise SystemExit('resume export block not found')
+          text = text.replace(old, new)
+          resume.write_text(text, encoding='utf-8')
+          PY
+
+          git config user.name "connect-t-build-bot"
+          git config user.email "connect-t-build-bot@users.noreply.github.com"
+          git add mobile backend
+          git commit -m "Add calendar picker, ward media broadcasts and resume PDF export [skip ci]"
+          git push origin HEAD:main
