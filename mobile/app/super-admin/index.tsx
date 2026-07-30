@@ -30,7 +30,7 @@ const STATUS_BG: Record<string, string> = {
   submitted: "#FEF3C7", assigned: "#EDE9FE", in_progress: "#E0F2FE", resolved: "#D1FAE5", rejected: "#FEE2E2",
 };
 const STATUS_LABEL: Record<string, string> = {
-  submitted: "Pending", assigned: "Assigned", in_progress: "In Progress", resolved: "Resolved", rejected: "Rejected",
+  submitted: "New Complaints", assigned: "Assigned", in_progress: "In Progress", resolved: "Resolved", rejected: "Rejected",
 };
 
 function timeAgo(d: string) {
@@ -331,8 +331,8 @@ export default function SuperAdminDashboard() {
         <View style={{ flexDirection: "row", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 16, padding: 14 }}>
           {[
             { label: "Total", value: stats.total, color: "#93C5FD" },
-            { label: "Pending", value: stats.pending, color: "#FDE68A" },
-            { label: "Active", value: stats.inProgress, color: "#C4B5FD" },
+            { label: "New Complaints", value: stats.pending, color: "#FDE68A" },
+            { label: "In Progress", value: stats.inProgress, color: "#C4B5FD" },
             { label: "Resolved", value: stats.resolved, color: "#6EE7B7" },
           ].map((s, i) => (
             <View key={s.label} style={{ flex: 1, alignItems: "center" }}>
@@ -360,7 +360,7 @@ export default function SuperAdminDashboard() {
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <StatCard icon="file-text" label="Total Complaints" value={stats.total} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("total", "All Complaints", `${stats.total} complaints`)} />
-            <StatCard icon="clock" label="Pending" value={stats.pending} color="#D97706" bg="#FEF3C7" onPress={() => openModal("pending", "Pending Complaints", `${stats.pending} awaiting action`)} />
+            <StatCard icon="clock" label="New Complaints" value={stats.pending} color="#D97706" bg="#FEF3C7" onPress={() => openModal("pending", "New Complaints", `${stats.pending} awaiting action`)} />
             <StatCard icon="tool" label="In Progress" value={stats.inProgress} color="#7C3AED" bg="#EDE9FE" onPress={() => openModal("inProgress", "In Progress", `${stats.inProgress} active`)} />
             <StatCard icon="check-circle" label="Resolved" value={stats.resolved} color="#059669" bg="#D1FAE5" onPress={() => openModal("resolved", "Resolved", `${stats.resolved} completed`)} />
           </View>

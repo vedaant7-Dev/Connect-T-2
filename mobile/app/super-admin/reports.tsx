@@ -135,7 +135,7 @@ export default function ReportsScreen() {
           {[
             { label: "Total", value: total, color: "#93C5FD" },
             { label: "Resolved", value: resolved, color: "#6EE7B7" },
-            { label: "Pending", value: pending, color: "#FDE68A" },
+            { label: "New Complaints", value: pending, color: "#FDE68A" },
             { label: "Rate", value: `${resolutionRate}%`, color: "#C4B5FD" },
           ].map((s, i) => (
             <View key={s.label} style={{ flex: 1, alignItems: "center" }}>

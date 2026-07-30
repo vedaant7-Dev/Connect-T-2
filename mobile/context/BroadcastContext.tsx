@@ -66,6 +66,7 @@ type BroadcastContextValue = {
   uploadProgress: number | null;
   refreshBroadcasts: () => Promise<void>;
   createBroadcast: (data: NewBroadcast) => Promise<AppBroadcast>;
+  updateBroadcast: (id: string, data: NewBroadcast) => Promise<AppBroadcast>;
   pauseBroadcast: (id: string) => Promise<void>;
   resumeBroadcast: (id: string) => Promise<void>;
   deleteBroadcast: (id: string) => Promise<void>;
@@ -219,6 +220,22 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateBroadcast = useCallback(async (id: string, data: NewBroadcast) => {
+    const result = await apiPatch<{ broadcast: any }>(`/api/broadcasts/${encodeURIComponent(id)}`, {
+      action: "edit",
+      title: data.title,
+      body: data.body,
+      category: data.category,
+      language: data.language,
+      audienceRole: data.audienceRole,
+      ward: data.ward,
+      scheduledAt: data.scheduledAt || null,
+    });
+    const updated = normalizeBroadcast(result.broadcast);
+    setBroadcasts((current) => current.map((item) => item.id === id ? updated : item));
+    return updated;
+  }, []);
+
   const runAction = useCallback(async (id: string, action: "pause" | "resume") => {
     const result = await apiPatch<{ broadcast?: any }>(`/api/broadcasts/${encodeURIComponent(id)}`, { action });
     setBroadcasts((current) => current.map((item) => item.id === id
@@ -243,9 +260,9 @@ export function BroadcastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(() => ({
-    broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast,
+    broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast, updateBroadcast,
     pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead,
-  }), [broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead]);
+  }), [broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast, updateBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead]);
 
   return <BroadcastContext.Provider value={value}>{children}</BroadcastContext.Provider>;
 }

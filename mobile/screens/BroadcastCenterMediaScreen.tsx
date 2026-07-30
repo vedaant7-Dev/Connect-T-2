@@ -18,6 +18,7 @@ import { getUserErrorMessage } from "@/lib/api";
 const GREEN = "#16A34A";
 const ORANGE = "#EA580C";
 const BG = "#EEF2F7";
+// SUPER_ADMIN_BROADCAST_EDIT_V107
 
 const CATEGORIES: Array<{ key: AppBroadcast["category"]; label: string; icon: keyof typeof Feather.glyphMap; color: string; bg: string }> = [
   { key: "announcement", label: "Announcement", icon: "radio", color: "#B45309", bg: "#FEF3C7" },
@@ -70,16 +71,18 @@ function statusMeta(status: AppBroadcast["status"]) {
 
 type CardProps = {
   item: AppBroadcast;
+  onEdit: () => void;
   onPause: () => void;
   onResume: () => void;
   onDelete: () => void;
 };
-function BroadcastCard({ item, onPause, onResume, onDelete }: CardProps) {
+function BroadcastCard({ item, onEdit, onPause, onResume, onDelete }: CardProps) {
   const category = CATEGORIES.find((entry) => entry.key === item.category) || CATEGORIES[0];
   const status = statusMeta(item.status);
   const adminActions = (
     <>
-      <TouchableOpacity style={[styles.actionButton, styles.shareButton]} onPress={() => void shareBroadcast(item)}><Feather name="share-2" size={14} color="#C2410C" /><Text style={styles.shareText}>Share</Text></TouchableOpacity>
+      <TouchableOpacity style={[styles.actionButton, styles.shareButton]} onPress={() => void shareBroadcast(item)}><Feather name="share-2" size={13} color="#C2410C" /><Text style={styles.shareText}>Share</Text></TouchableOpacity>
+      <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={onEdit}><Feather name="edit-2" size={13} color="#2563EB" /><Text style={styles.editText}>Edit</Text></TouchableOpacity>
       {item.status === "paused" ? (
         <TouchableOpacity style={[styles.actionButton, styles.resumeButton]} onPress={onResume}><Feather name="play" size={14} color="#166534" /><Text style={styles.resumeText}>Resume</Text></TouchableOpacity>
       ) : (
@@ -121,9 +124,10 @@ export default function BroadcastCenterMediaScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { broadcasts, loading, error, refreshBroadcasts, createBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast } = useBroadcasts();
+  const { broadcasts, loading, error, refreshBroadcasts, createBroadcast, updateBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast } = useBroadcasts();
   const isSuperAdmin = user?.role === "super_admin" || !!user?.isSuperAdmin;
   const [composeVisible, setComposeVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<AppBroadcast | null>(null);
   const [wardPickerVisible, setWardPickerVisible] = useState(false);
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState(""); const [body, setBody] = useState("");
@@ -145,6 +149,21 @@ export default function BroadcastCenterMediaScreen() {
   }), [active]);
 
   const resetForm = () => { setTitle(""); setBody(""); setCategory("announcement"); setAudienceRole("all"); setLanguage("en"); setWard("All Wards"); setScheduledAt(""); setMedia(null); setFormError(""); };
+  const closeComposer = () => { if (sending) return; setComposeVisible(false); setEditingItem(null); resetForm(); };
+  const openCreate = () => { setEditingItem(null); resetForm(); setComposeVisible(true); };
+  const openEdit = (item: AppBroadcast) => {
+    setEditingItem(item);
+    setTitle(item.title);
+    setBody(item.body);
+    setCategory(item.category);
+    setAudienceRole(item.audienceRole);
+    setLanguage(item.language);
+    setWard(item.ward || "All Wards");
+    setScheduledAt(item.status === "scheduled" && item.scheduledAt ? item.scheduledAt : "");
+    setMedia(null);
+    setFormError("");
+    setComposeVisible(true);
+  };
   const send = async () => {
     if (sending) return; setFormError("");
     if (title.trim().length < 3) return setFormError("Enter a clear broadcast title.");
@@ -152,11 +171,13 @@ export default function BroadcastCenterMediaScreen() {
     if (scheduledAt && Number.isNaN(new Date(scheduledAt).getTime())) return setFormError("Choose a valid future date and time.");
     setSending(true);
     try {
-      await createBroadcast({ title: title.trim(), body: body.trim(), category, audienceRole: isSuperAdmin ? audienceRole : "citizen", language,
+      const payload = { title: title.trim(), body: body.trim(), category, audienceRole: isSuperAdmin ? audienceRole : "citizen", language,
         ward: isSuperAdmin && ward === "All Wards" ? undefined : isSuperAdmin ? ward : user?.ward,
-        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined, idempotencyKey: makeIdempotencyKey(), media });
-      setComposeVisible(false); resetForm(); await refreshBroadcasts();
-    } catch (requestError) { setFormError(getUserErrorMessage(requestError, "Broadcast could not be created. Please try again.")); }
+        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined, idempotencyKey: makeIdempotencyKey(), media };
+      if (editingItem) await updateBroadcast(editingItem.id, { ...payload, media: null });
+      else await createBroadcast(payload);
+      setComposeVisible(false); setEditingItem(null); resetForm(); await refreshBroadcasts();
+    } catch (requestError) { setFormError(getUserErrorMessage(requestError, editingItem ? "Broadcast could not be updated. Please try again." : "Broadcast could not be created. Please try again.")); }
     finally { setSending(false); }
   };
 
@@ -181,7 +202,7 @@ export default function BroadcastCenterMediaScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient colors={["#052E16", "#166534", GREEN]} style={[styles.header, { paddingTop: (Platform.OS === "web" ? 54 : insets.top) + 10 }]}>
-        <View style={styles.headerRow}><TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace((isSuperAdmin ? "/super-admin" : "/(tabs)/admin") as any)}><Feather name="chevron-left" size={20} color="white" /><Text style={styles.backText}>Back</Text></TouchableOpacity><TouchableOpacity style={styles.createButton} onPress={() => setComposeVisible(true)}><Feather name="plus" size={15} color="#166534" /><Text style={styles.createText}>Create</Text></TouchableOpacity></View>
+        <View style={styles.headerRow}><TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace((isSuperAdmin ? "/super-admin" : "/(tabs)/admin") as any)}><Feather name="chevron-left" size={20} color="white" /><Text style={styles.backText}>Back</Text></TouchableOpacity><TouchableOpacity style={styles.createButton} onPress={openCreate}><Feather name="plus" size={15} color="#166534" /><Text style={styles.createText}>Create</Text></TouchableOpacity></View>
         <Text style={styles.headerTitle}>{isSuperAdmin ? "Broadcast Center" : "Ward Broadcast Center"}</Text>
         <View style={styles.statsRow}><Stat value={stats.sent} label="Sent" /><Stat value={stats.scheduled} label="Scheduled" /><Stat value={stats.paused} label="Paused" /><Stat value={stats.read} label="Read" /></View>
       </LinearGradient>
@@ -189,24 +210,24 @@ export default function BroadcastCenterMediaScreen() {
       <AppScrollView contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 12) + 28 }]} onAppRefresh={() => refreshBroadcasts()}>
         {loading && !active.length ? <View style={styles.center}><ActivityIndicator size="large" color={GREEN} /><Text style={styles.centerText}>Loading broadcasts...</Text></View> : null}
         {!loading && !active.length ? <View style={styles.empty}><Feather name="radio" size={34} color={GREEN} /><Text style={styles.emptyTitle}>No broadcasts yet</Text></View> : null}
-        {active.map((item) => <BroadcastCard key={item.id} item={item} onPause={() => setPendingAction({ kind: "pause", item })} onResume={() => setPendingAction({ kind: "resume", item })} onDelete={() => setPendingAction({ kind: "delete", item })} />)}
+        {active.map((item) => <BroadcastCard key={item.id} item={item} onEdit={() => openEdit(item)} onPause={() => setPendingAction({ kind: "pause", item })} onResume={() => setPendingAction({ kind: "resume", item })} onDelete={() => setPendingAction({ kind: "delete", item })} />)}
       </AppScrollView>
 
       <ConfirmActionModal visible={!!pendingAction} title={actionTitle} message={actionMessage} confirmLabel={pendingAction?.kind === "delete" ? "Delete" : pendingAction?.kind === "pause" ? "Pause" : "Resume"} confirmIcon={pendingAction?.kind === "delete" ? "trash-2" : pendingAction?.kind === "pause" ? "pause" : "play"} tone={pendingAction?.kind === "delete" ? "danger" : "primary"} busy={actionBusy} errorMessage={actionError} onCancel={() => { if (!actionBusy) { setPendingAction(null); setActionError(""); } }} onConfirm={runPendingAction} />
 
-      <Modal visible={composeVisible} transparent animationType="slide" onRequestClose={() => !sending && setComposeVisible(false)}>
+      <Modal visible={composeVisible} transparent animationType="slide" onRequestClose={closeComposer}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={styles.sheet}><View style={styles.handle} /><View style={styles.sheetHeader}><View style={styles.sheetHeaderCopy}><Text style={styles.sheetTitle}>Create Broadcast</Text></View><TouchableOpacity style={styles.closeButton} onPress={() => setComposeVisible(false)} disabled={sending}><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View>
+          <View style={styles.sheet}><View style={styles.handle} /><View style={styles.sheetHeader}><View style={styles.sheetHeaderCopy}><Text style={styles.sheetTitle}>{editingItem ? "Edit Broadcast" : "Create Broadcast"}</Text></View><TouchableOpacity style={styles.closeButton} onPress={closeComposer} disabled={sending}><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View>
             <AppScrollView style={styles.formScroll} contentContainerStyle={styles.formContent} automaticallyAdjustKeyboardInsets={Platform.OS === "ios"} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}>
               <Label text="CATEGORY" /><View style={styles.choiceWrap}>{CATEGORIES.map((item) => <TouchableOpacity key={item.key} style={[styles.choice, category === item.key && { backgroundColor: item.bg, borderColor: item.color }]} onPress={() => setCategory(item.key)}><Feather name={item.icon} size={14} color={category === item.key ? item.color : "#64748B"} /><Text style={[styles.choiceText, category === item.key && { color: item.color }]}>{item.label}</Text></TouchableOpacity>)}</View>
               <Label text="TITLE *" /><TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Clear public title" placeholderTextColor="#94A3B8" returnKeyType="next" />
               <Label text="MESSAGE *" /><TextInput style={[styles.input, styles.textArea]} value={body} onChangeText={setBody} placeholder="Write the complete public message" placeholderTextColor="#94A3B8" multiline textAlignVertical="top" />
-              <Label text="ATTACHMENT (OPTIONAL)" /><BroadcastMediaPicker value={media} onChange={setMedia} onError={setFormError} disabled={sending} />
+              {editingItem ? <><Label text="ATTACHMENT" /><Text style={styles.help}>The existing image or video remains attached. Create a new post to replace the media.</Text></> : <><Label text="ATTACHMENT (OPTIONAL)" /><BroadcastMediaPicker value={media} onChange={setMedia} onError={setFormError} disabled={sending} /></>}
               <Label text="CONTENT LANGUAGE" /><View style={styles.choiceWrap}>{LANGUAGES.map((item) => <TouchableOpacity key={item.key} style={[styles.choice, language === item.key && styles.choiceActive]} onPress={() => setLanguage(item.key)}><Text style={[styles.choiceText, language === item.key && styles.choiceTextActive]}>{item.label}</Text></TouchableOpacity>)}</View>
               {isSuperAdmin ? <><Label text="AUDIENCE" /><View style={styles.choiceWrap}>{AUDIENCES.map((item) => <TouchableOpacity key={item.key} style={[styles.choice, audienceRole === item.key && styles.choiceActive]} onPress={() => setAudienceRole(item.key)}><Text style={[styles.choiceText, audienceRole === item.key && styles.choiceTextActive]}>{item.label}</Text></TouchableOpacity>)}</View><Label text="WARD" /><TouchableOpacity style={[styles.input, styles.picker]} onPress={() => setWardPickerVisible(true)}><Text style={styles.pickerText}>{ward}</Text><Feather name="chevron-down" size={16} color="#64748B" /></TouchableOpacity></> : null}
               <Label text="SCHEDULE (OPTIONAL)" /><AppDateTimePicker value={scheduledAt} onChange={setScheduledAt} placeholder="Select date and time" minimumDate={new Date(Date.now() + 60_000)} accessibilityLabel="Schedule date and time" />
               {formError ? <Text style={styles.formError} accessibilityLiveRegion="assertive">{formError}</Text> : null}
-              <TouchableOpacity style={[styles.sendButton, sending && styles.disabled]} onPress={send} disabled={sending}>{sending ? <ActivityIndicator color="white" /> : <Feather name={scheduledAt ? "clock" : "send"} size={17} color="white" />}<Text style={styles.sendText}>{sending ? (media ? "Uploading..." : "Saving...") : scheduledAt ? "Schedule broadcast" : "Send in-app broadcast"}</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.sendButton, sending && styles.disabled]} onPress={send} disabled={sending}>{sending ? <ActivityIndicator color="white" /> : <Feather name={scheduledAt ? "clock" : "send"} size={17} color="white" />}<Text style={styles.sendText}>{sending ? (media ? "Uploading..." : "Saving...") : editingItem ? "Update broadcast" : scheduledAt ? "Schedule broadcast" : "Send in-app broadcast"}</Text></TouchableOpacity>
             </AppScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -226,7 +247,7 @@ const styles = StyleSheet.create({
   empty: { padding: 30, alignItems: "center", borderRadius: 20, backgroundColor: "white", borderWidth: 1, borderColor: "#E2E8F0" }, emptyTitle: { marginTop: 10, color: "#0F172A", fontSize: 16, fontFamily: "Inter_700Bold" }, emptyText: { marginTop: 5, color: "#64748B", fontSize: 11.5, textAlign: "center", fontFamily: "Inter_400Regular" },
   card: { padding: 14, borderRadius: 18, backgroundColor: "white", borderWidth: 1, borderColor: "#E2E8F0" }, cardTop: { flexDirection: "row", alignItems: "center", gap: 10 }, categoryIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, cardCopy: { flex: 1, minWidth: 0 }, cardTitle: { color: "#0F172A", fontSize: 14, fontFamily: "Inter_700Bold" }, cardMeta: { marginTop: 2, color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" }, statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 }, statusText: { fontSize: 8.8, fontFamily: "Inter_700Bold" }, cardBody: { marginTop: 10, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" }, cardImage: { marginTop: 10, width: "100%", height: 180, borderRadius: 14, backgroundColor: "#F1F5F9" },
   videoRow: { marginTop: 10, minHeight: 64, borderRadius: 14, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 10 }, videoCopy: { flex: 1 }, videoTitle: { color: "#9A3412", fontSize: 11.5, fontFamily: "Inter_700Bold" }, videoMeta: { marginTop: 2, color: "#C2410C", fontSize: 9.5, fontFamily: "Inter_400Regular" }, metrics: { marginTop: 12, flexDirection: "row", gap: 6 }, metric: { flex: 1, minHeight: 52, borderRadius: 12, backgroundColor: "#F8FAFC", alignItems: "center", justifyContent: "center" }, metricValue: { color: "#0F172A", fontSize: 15, fontFamily: "Inter_700Bold" }, providerValue: { color: "#B45309", fontSize: 10.5 }, metricLabel: { marginTop: 2, color: "#94A3B8", fontSize: 8.2, fontFamily: "Inter_500Medium" },
-  cardFooter: { marginTop: 10, gap: 8 }, cardDate: { color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" }, actionRow: { flexDirection: "row", gap: 8, justifyContent: "flex-end" }, actionButton: { minHeight: 40, borderRadius: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1 }, shareButton: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }, shareText: { color: "#C2410C", fontSize: 10.5, fontFamily: "Inter_700Bold" }, pauseButton: { backgroundColor: "#F5F3FF", borderColor: "#DDD6FE" }, resumeButton: { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }, deleteButton: { backgroundColor: "#FEF2F2", borderColor: "#FECACA" }, pauseText: { color: "#7C3AED", fontSize: 10.5, fontFamily: "Inter_700Bold" }, resumeText: { color: "#166534", fontSize: 10.5, fontFamily: "Inter_700Bold" }, deleteText: { color: "#DC2626", fontSize: 10.5, fontFamily: "Inter_700Bold" },
+  cardFooter: { marginTop: 10, gap: 8 }, cardDate: { color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" }, actionRow: { flexDirection: "row", gap: 8, justifyContent: "flex-end" }, actionButton: { minHeight: 36, borderRadius: 11, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1 }, shareButton: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }, shareText: { color: "#C2410C", fontSize: 9.5, fontFamily: "Inter_700Bold" }, editButton: { backgroundColor: "#EFF6FF", borderColor: "#BFDBFE" }, editText: { color: "#2563EB", fontSize: 9.5, fontFamily: "Inter_700Bold" }, pauseButton: { backgroundColor: "#F5F3FF", borderColor: "#DDD6FE" }, resumeButton: { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }, deleteButton: { backgroundColor: "#FEF2F2", borderColor: "#FECACA" }, pauseText: { color: "#7C3AED", fontSize: 9.5, fontFamily: "Inter_700Bold" }, resumeText: { color: "#166534", fontSize: 9.5, fontFamily: "Inter_700Bold" }, deleteText: { color: "#DC2626", fontSize: 9.5, fontFamily: "Inter_700Bold" },
   modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,23,42,0.58)" }, sheet: { height: "94%", maxHeight: "94%", borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: "white", overflow: "hidden" }, handle: { alignSelf: "center", width: 42, height: 5, borderRadius: 999, backgroundColor: "#CBD5E1", marginTop: 10 }, sheetHeader: { minHeight: 64, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: "#E2E8F0" }, sheetHeaderCopy: { flex: 1, minWidth: 0 }, sheetTitle: { color: "#0F172A", fontSize: 18, fontFamily: "Inter_700Bold" }, sheetSub: { marginTop: 2, color: "#64748B", fontSize: 10.5, fontFamily: "Inter_400Regular" }, closeButton: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#F1F5F9" }, formScroll: { flex: 1 }, formContent: { padding: 18, paddingBottom: 38 }, label: { marginTop: 12, marginBottom: 6, color: "#64748B", fontSize: 9.8, letterSpacing: 1, fontFamily: "Inter_700Bold" },
   input: { minHeight: 50, borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", paddingHorizontal: 14, color: "#0F172A", fontSize: 13.5, fontFamily: "Inter_400Regular" }, textArea: { minHeight: 110, paddingTop: 13, paddingBottom: 13 }, choiceWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, choice: { minHeight: 40, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 11, borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC" }, choiceActive: { borderColor: "#FED7AA", backgroundColor: "#FFF7ED" }, choiceText: { color: "#64748B", fontSize: 10.5, fontFamily: "Inter_600SemiBold" }, choiceTextActive: { color: ORANGE }, picker: { flexDirection: "row", alignItems: "center" }, pickerText: { flex: 1, color: "#0F172A", fontSize: 13.5, fontFamily: "Inter_500Medium" }, scopeBanner: { marginTop: 12, flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, backgroundColor: "#DCFCE7" }, scopeText: { flex: 1, color: "#166534", fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_500Medium" }, help: { marginTop: 5, color: "#94A3B8", fontSize: 9.8, lineHeight: 14, fontFamily: "Inter_400Regular" }, preview: { marginTop: 16, borderRadius: 16, padding: 13, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" }, previewLabel: { color: "#C2410C", fontSize: 9, letterSpacing: 1, fontFamily: "Inter_700Bold" }, previewTitle: { marginTop: 8, color: "#0F172A", fontSize: 14, fontFamily: "Inter_700Bold" }, previewBody: { marginTop: 7, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" }, previewMeta: { marginTop: 8, color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_500Medium" }, formError: { marginTop: 12, color: "#DC2626", fontSize: 11.5, lineHeight: 17, textAlign: "center", fontFamily: "Inter_600SemiBold" }, sendButton: { marginTop: 16, minHeight: 50, borderRadius: 14, backgroundColor: GREEN, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, sendText: { color: "white", fontSize: 13, fontFamily: "Inter_700Bold" }, disabled: { opacity: 0.65 }, wardSheet: { maxHeight: "72%" }, wardList: { padding: 16 }, wardRow: { minHeight: 52, flexDirection: "row", alignItems: "center", borderRadius: 13, paddingHorizontal: 13, marginBottom: 6, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" }, wardActive: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }, wardText: { flex: 1, color: "#334155", fontSize: 13, fontFamily: "Inter_600SemiBold" },
 });

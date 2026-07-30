@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppScrollView } from "@/components/AppScrollView";
 import ConfirmActionModal from "@/components/ConfirmActionModal";
-import { useAuth } from "@/context/AuthContext";
 import { useAccountActions } from "@/hooks/useAccountActions";
 
 const GREEN = "#16A34A";
@@ -50,7 +49,6 @@ function StatusRow({ icon, title, status, tone, description }: { icon: keyof typ
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
   const accountActions = useAccountActions();
   const topPad = Platform.OS === "web" ? 58 : insets.top;
 
@@ -63,11 +61,6 @@ export default function SettingsScreen() {
       </LinearGradient>
 
       <AppScrollView style={styles.scroll} contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 12) + 34 }}>
-        <TouchableOpacity style={styles.profileCard} onPress={() => router.push("/super-admin/profile" as any)} activeOpacity={0.84}>
-          <View style={styles.avatar}><Text style={styles.avatarText}>{user?.name?.trim()?.charAt(0)?.toUpperCase() || "A"}</Text></View>
-          <View style={styles.profileText}><Text style={styles.profileName}>{user?.name || "Super Admin"}</Text><View style={styles.verifiedRow}><View style={styles.adminPill}><Feather name="shield" size={10} color="#166534" /><Text style={styles.adminPillText}>SUPER ADMIN</Text></View><Feather name="check-circle" size={12} color={GREEN} /><Text style={styles.mobileText}>+91 {String(user?.mobile || "").replace(/\D/g, "").slice(-10)}</Text></View><Text style={styles.profileHint}>View and edit profile details. Verified mobile remains read-only.</Text></View>
-          <Feather name="edit-2" size={18} color="#94A3B8" />
-        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>ADMINISTRATION</Text>
         <View style={styles.group}>

@@ -107,7 +107,7 @@ export default function NagarsevakWardScreen() {
         <View style={styles.statRow}>
           <Stat label="Members" value={wardMembers.length} icon="users" />
           <Stat label="Complaints" value={wardMembers.reduce((sum, item) => sum + item.complaintCount, 0)} icon="file-text" />
-          <Stat label="Pending" value={wardMembers.reduce((sum, item) => sum + item.pendingCount, 0)} icon="clock" />
+          <Stat label="New Complaints" value={wardMembers.reduce((sum, item) => sum + item.pendingCount, 0)} icon="clock" />
         </View>
       </LinearGradient>
 
@@ -161,7 +161,7 @@ export default function NagarsevakWardScreen() {
             <Text style={styles.detailSub}>+91 {cleanPhone(selected?.mobile)} · {selected?.ward || "Ward not set"}</Text>
             <View style={styles.detailStats}>
               <StatCard label="Total" value={selected?.complaintCount || 0} />
-              <StatCard label="Pending" value={selected?.pendingCount || 0} />
+              <StatCard label="New Complaints" value={selected?.pendingCount || 0} />
               <StatCard label="Resolved" value={selected?.resolvedCount || 0} />
             </View>
             <Detail icon="map-pin" label="Address" value={selected?.address || "Not added"} />
