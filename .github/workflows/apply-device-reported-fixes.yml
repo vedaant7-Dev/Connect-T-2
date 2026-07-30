@@ -14,25 +14,25 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ github.head_ref == 'fix/device-reported-flows-v105' }}
+    if: ${{ github.head_ref == 'fix/jobs-dashboard-finish-v111' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/device-reported-flows-v105
+          ref: fix/jobs-dashboard-finish-v111
           fetch-depth: 0
-      - name: Apply focused device fixes
+      - name: Finish Jobs dashboard
         shell: bash
         run: |
           set -euo pipefail
-          if grep -q 'DEVICE_REPORTED_FIXES_V105' mobile/components/ComplaintMediaViewer.tsx 2>/dev/null; then
-            echo "Device fixes already applied."
+          if grep -q 'JOBS_DASHBOARD_FINISH_V111' mobile/app/super-admin/jobs.tsx 2>/dev/null; then
+            echo "Jobs dashboard finish already applied."
             exit 0
           fi
-          python3 scripts/apply_device_reported_fixes.py
+          python3 scripts/apply_jobs_dashboard_finish_v111.py
           git diff --check
           git config user.name "Connect-T Automation"
           git config user.email "actions@users.noreply.github.com"
-          git add backend mobile
-          git commit -m "Fix device media, profiles, sessions and civic news"
-          git push origin HEAD:fix/device-reported-flows-v105
+          git add mobile
+          git commit -m "Finish Jobs dashboard layout and analytics"
+          git push origin HEAD:fix/jobs-dashboard-finish-v111
