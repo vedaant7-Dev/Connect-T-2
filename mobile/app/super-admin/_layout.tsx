@@ -13,6 +13,7 @@ const MUTED = "#94A3B8";
 const TABS = [
   { name: "index", icon: "grid", label: "Dashboard" },
   { name: "officers", icon: "users", label: "Officers" },
+  { name: "community", icon: "message-circle", label: "Community" },
   { name: "jobs", icon: "briefcase", label: "Jobs" },
   { name: "broadcast", icon: "radio", label: "Broadcast" },
   { name: "profile", icon: "user", label: "Profile" },
@@ -36,10 +37,10 @@ function SuperAdminTabBar({ state, navigation }: any) {
 
         return (
           <TouchableOpacity key={tab.name} onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 3, minWidth: 0 }} activeOpacity={0.72} accessibilityRole="button" accessibilityState={isFocused ? { selected: true } : {}}>
-            <View style={{ width: 34, height: 30, alignItems: "center", justifyContent: "center", backgroundColor: isFocused ? "rgba(22,163,74,0.12)" : "transparent", borderRadius: 15, borderWidth: isFocused ? 1 : 0, borderColor: "rgba(22,163,74,0.18)" }}>
-              <Feather name={tab.icon as any} size={17} color={isFocused ? GREEN : MUTED} />
+            <View style={{ width: 32, height: 29, alignItems: "center", justifyContent: "center", backgroundColor: isFocused ? "rgba(22,163,74,0.12)" : "transparent", borderRadius: 15, borderWidth: isFocused ? 1 : 0, borderColor: "rgba(22,163,74,0.18)" }}>
+              <Feather name={tab.icon as any} size={16} color={isFocused ? GREEN : MUTED} />
             </View>
-            <Text numberOfLines={1} style={{ fontSize: 8.2, fontFamily: isFocused ? "Inter_700Bold" : "Inter_600SemiBold", color: isFocused ? GREEN : MUTED, marginTop: 2, maxWidth: 58 }}>{tab.label}</Text>
+            <Text numberOfLines={1} style={{ fontSize: 7.5, fontFamily: isFocused ? "Inter_700Bold" : "Inter_600SemiBold", color: isFocused ? GREEN : MUTED, marginTop: 2, maxWidth: 55 }}>{tab.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -95,9 +96,11 @@ export default function SuperAdminLayout() {
           <Tabs backBehavior="history" tabBar={(props) => <SuperAdminTabBar {...props} />} screenOptions={{ headerShown: false }}>
             <Tabs.Screen name="index" />
             <Tabs.Screen name="officers" />
+            <Tabs.Screen name="community" />
             <Tabs.Screen name="jobs" />
             <Tabs.Screen name="broadcast" />
             <Tabs.Screen name="profile" />
+            <Tabs.Screen name="users" options={{ href: null }} />
             <Tabs.Screen name="reports" options={{ href: null }} />
             <Tabs.Screen name="role-requests" options={{ href: null }} />
             <Tabs.Screen name="settings" options={{ href: null }} />
