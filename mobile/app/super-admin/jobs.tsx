@@ -6,7 +6,6 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobs, Job } from "@/context/JobsContext";
 import { useRouter } from "expo-router";
-import { apiGet } from "@/lib/api";
 
 const { width } = Dimensions.get("window");
 
@@ -168,7 +167,7 @@ function JobDetail({ job, onBack }: { job: Job; onBack: () => void }) {
 
 type CardType = "totalJobs" | "activeJobs" | "expiredJobs" | "employers" | "seekers" | "applications" | "hired" | "placement" | "category";
 
-// JOBS_DASHBOARD_FINISH_V111
+// ADMIN_USERS_COMMUNITY_V112
 export default function JobsAdminScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -177,13 +176,6 @@ export default function JobsAdminScreen() {
   const [modal, setModal] = useState<{ type: CardType; title: string; sub: string } | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedJobCategory, setSelectedJobCategory] = useState<string | null>(null);
-  const [citizens, setCitizens] = useState<any[]>([]);
-  const [citizenWards, setCitizenWards] = useState<any[]>([]);
-  const [citizenPage, setCitizenPage] = useState(1);
-  const [citizenPages, setCitizenPages] = useState(1);
-  const [citizenTotal, setCitizenTotal] = useState(0);
-  const [selectedCitizenWard, setSelectedCitizenWard] = useState("all");
-  const [citizensLoading, setCitizensLoading] = useState(false);
 
   const stats = useMemo(() => {
     const activeJobs = jobs.filter((job) => job.active);
@@ -245,26 +237,6 @@ export default function JobsAdminScreen() {
   }, []);
 
   const closeModal = useCallback(() => { setModal(null); setSelectedJob(null); setSelectedJobCategory(null); }, []);
-
-  const loadCitizens = useCallback(async (page = 1, ward = selectedCitizenWard) => {
-    setCitizensLoading(true);
-    try {
-      const params = new URLSearchParams({ page: String(page), limit: "10" });
-      if (ward && ward !== "all") params.set("ward", ward);
-      const result = await apiGet<any>(`/api/admin/citizens?${params.toString()}`);
-      setCitizens(result.citizens || []);
-      setCitizenWards(result.wards || []);
-      setCitizenPage(result.pagination?.page || page);
-      setCitizenPages(result.pagination?.totalPages || 1);
-      setCitizenTotal(result.pagination?.total || 0);
-    } finally {
-      setCitizensLoading(false);
-    }
-  }, [selectedCitizenWard]);
-
-  useEffect(() => {
-    void loadCitizens(1, selectedCitizenWard).catch(() => undefined);
-  }, [loadCitizens, selectedCitizenWard]);
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F0F4F8" }}>
@@ -346,80 +318,6 @@ export default function JobsAdminScreen() {
               <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "#94A3B8", marginTop: 6, textAlign: "right" }}>
                 {stats.totalHired} hired from {stats.totalApplications} applications
               </Text>
-            </View>
-
-            <SectionHeader title="Category Breakdown" sub="Job posts by category" />
-            <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4, marginBottom: 2 }}>
-              {Object.keys(JOB_CATEGORIES).map((cat) => {
-                const count = Number(categoryBreakdown.find(([key]) => key === cat)?.[1] || 0);
-                const cfg = CAT_COLORS[cat] || CAT_COLORS.other;
-                return (
-                  <TouchableOpacity
-                    key={cat}
-                    onPress={() => {
-                      setSelectedJobCategory(cat);
-                      openModal("category", JOB_CATEGORIES[cat] || cat, `${count} job post${count === 1 ? "" : "s"}`);
-                    }}
-                    activeOpacity={0.8}
-                    style={{ width: "25%", padding: 4 }}
-                  >
-                    <View style={{ minHeight: 94, borderRadius: 12, backgroundColor: "white", paddingHorizontal: 5, paddingVertical: 9, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 }}>
-                      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: cfg.bg, alignItems: "center", justifyContent: "center", marginBottom: 5 }}>
-                        <Feather name={cfg.icon as any} size={15} color={cfg.color} />
-                      </View>
-                      <Text style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{count}</Text>
-                      <Text numberOfLines={2} style={{ fontSize: 8.5, lineHeight: 11, fontFamily: "Inter_500Medium", color: "#64748B", textAlign: "center", marginTop: 2 }}>
-                        {JOB_CATEGORIES[cat] || cat}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <SectionHeader title="All Citizens" sub={`${citizenTotal} registered citizens · Ward-wise database directory`} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 10 }}>
-              {[{ ward: "all", count: citizenWards.reduce((sum, item) => sum + Number(item.count || 0), 0) }, ...citizenWards].map((item: any) => {
-                const value = item.ward || "Unassigned";
-                const active = selectedCitizenWard === value;
-                return (
-                  <TouchableOpacity key={`${value}-${item.wardCode || ""}`} onPress={() => { setSelectedCitizenWard(value); setCitizenPage(1); }}
-                    style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: active ? "#16A34A" : "white", borderWidth: 1, borderColor: active ? "#16A34A" : "#E2E8F0" }}>
-                    <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: active ? "white" : "#475569" }}>{value === "all" ? "All Wards" : value} ({item.count || 0})</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            <View style={{ backgroundColor: "white", borderRadius: 16, padding: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
-              {citizensLoading ? (
-                <Text style={{ paddingVertical: 24, textAlign: "center", color: "#64748B", fontFamily: "Inter_500Medium" }}>Loading citizens...</Text>
-              ) : citizens.length === 0 ? (
-                <Text style={{ paddingVertical: 24, textAlign: "center", color: "#94A3B8", fontFamily: "Inter_500Medium" }}>No citizens found for this ward.</Text>
-              ) : citizens.map((citizen, index) => (
-                <View key={citizen.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: index < citizens.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
-                  <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
-                    <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: "#15803D" }}>{String(citizen.name || "C").charAt(0).toUpperCase()}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }}>{citizen.name || "Citizen"}</Text>
-                    <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: "#64748B" }}>{citizen.mobile || "No mobile"} · {citizen.ward || citizen.ward_code || (citizen.ward_number ? `Ward ${citizen.ward_number}` : "Unassigned")}</Text>
-                    {citizen.address ? <Text numberOfLines={1} style={{ fontSize: 10, color: "#94A3B8", marginTop: 1 }}>{citizen.address}</Text> : null}
-                  </View>
-                  <Text style={{ fontSize: 10, fontFamily: "Inter_500Medium", color: "#94A3B8" }}>#{(citizenPage - 1) * 10 + index + 1}</Text>
-                </View>
-              ))}
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#F1F5F9" }}>
-                <TouchableOpacity disabled={citizenPage <= 1 || citizensLoading} onPress={() => void loadCitizens(citizenPage - 1)}
-                  style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: citizenPage <= 1 ? "#F1F5F9" : "#DCFCE7" }}>
-                  <Text style={{ color: citizenPage <= 1 ? "#94A3B8" : "#15803D", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>Previous</Text>
-                </TouchableOpacity>
-                <Text style={{ fontSize: 11, color: "#64748B", fontFamily: "Inter_500Medium" }}>Page {citizenPage} of {citizenPages}</Text>
-                <TouchableOpacity disabled={citizenPage >= citizenPages || citizensLoading} onPress={() => void loadCitizens(citizenPage + 1)}
-                  style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: citizenPage >= citizenPages ? "#F1F5F9" : "#DCFCE7" }}>
-                  <Text style={{ color: citizenPage >= citizenPages ? "#94A3B8" : "#15803D", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>Next</Text>
-                </TouchableOpacity>
-              </View>
             </View>
         </>
       </AppScrollView>

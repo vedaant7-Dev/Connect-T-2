@@ -429,7 +429,13 @@ export default function AdminScreen() {
           </TouchableOpacity>
         </View>
 
-        <UtilityStatusManager ward={assignedWard} wardCode={assignedWardCode} />
+
+      <TouchableOpacity onPress={() => router.push("/community" as any)} activeOpacity={0.84} style={{ marginHorizontal: 14, marginTop: 14, marginBottom: 4, minHeight: 76, borderRadius: 17, backgroundColor: "white", padding: 14, flexDirection: "row", alignItems: "center", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+        <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center" }}><Feather name="message-circle" size={22} color={GREEN} /></View>
+        <View style={{ flex: 1, marginLeft: 12 }}><Text style={{ color: "#0F172A", fontFamily: "Inter_700Bold", fontSize: 14 }}>Nagarsevak Community</Text><Text style={{ marginTop: 3, color: "#64748B", fontFamily: "Inter_400Regular", fontSize: 10, lineHeight: 14 }}>Messages, notices, information, images and videos for all officers</Text></View>
+        <Feather name="chevron-right" size={20} color={GREEN} />
+      </TouchableOpacity>
+      <UtilityStatusManager ward={assignedWard} wardCode={assignedWardCode} />
 
       </AppScrollView>
 

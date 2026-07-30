@@ -20,7 +20,15 @@ const categoryConfig: Record<string, { icon: string; color: string; label: strin
   drainage: { icon: "git-merge", color: "#0EA5E9", label: "Drainage" },
   streetlight: { icon: "sun", color: "#7C3AED", label: "Streetlight" },
   encroachment: { icon: "alert-triangle", color: "#DC2626", label: "Encroachment" },
-  other: { icon: "more-horizontal", color: "#475569", label: "Other" },
+  sanitation: { icon: "shield", color: "#0F766E", label: "Sanitation" },
+  sewage: { icon: "activity", color: "#0369A1", label: "Sewage" },
+  public_health: { icon: "heart", color: "#DC2626", label: "Public Health" },
+  parks: { icon: "sunrise", color: "#16A34A", label: "Parks" },
+  stray_animals: { icon: "github", color: "#7C3AED", label: "Stray Animals" },
+  traffic: { icon: "navigation", color: "#EA580C", label: "Traffic" },
+  building: { icon: "home", color: "#475569", label: "Building" },
+  certificates: { icon: "file-text", color: "#2563EB", label: "Certificates" },
+  other: { icon: "more-horizontal", color: "#64748B", label: "Other" },
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -198,7 +206,7 @@ function ComplaintDetail({ c, onBack, officers }: { c: Complaint; onBack: () => 
 
 type CardType = "total" | "pending" | "inProgress" | "resolved" | "rejected" | "resolution" | "officers" | "wards" | "category";
 
-// DASHBOARD_CLEANUP_V109
+// ADMIN_USERS_COMMUNITY_V112
 export default function SuperAdminDashboard() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -264,11 +272,6 @@ export default function SuperAdminDashboard() {
 
   const categoryAnalytics = useMemo(() => (
     Object.entries(complaints.reduce((acc: Record<string, number>, c) => { acc[c.category] = (acc[c.category] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])
-  ), [complaints]);
-
-
-  const recentComplaints = useMemo(() => (
-    [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
   ), [complaints]);
 
   const wardOfficers = useMemo(() => allOfficers.filter((n) => n.ward), [allOfficers]);
@@ -349,51 +352,47 @@ export default function SuperAdminDashboard() {
             <StatCard icon="map-pin" label="Wards Active" value={stats.totalWards} color="#16A34A" bg="#DCFCE7" onPress={() => openModal("wards", "Ward Breakdown", "All wards overview")} />
           </View>
         </View>
-
         <View style={{ marginTop: 16 }}>
-          <SectionHeader title="Category Breakdown" sub="Complaints by type" />
-          <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
-            {categoryAnalytics.length === 0 ? (
-              <Text style={{ color: "#94A3B8", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", paddingVertical: 16 }}>No complaints yet</Text>
-            ) : (
-              categoryAnalytics.map(([cat, count]) => {
-                const cfg = categoryConfig[cat] || categoryConfig.other;
-                const pct = stats.total > 0 ? (count / stats.total) * 100 : 0;
-                return (
-                  <TouchableOpacity key={cat} style={{ marginBottom: 12 }} activeOpacity={0.78} onPress={() => { setSelectedCategory(cat); openModal("category", `${cfg.label} Complaints`, `${count} complaints in this category`); }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: cfg.color + "18", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
-                        <Feather name={cfg.icon as any} size={14} color={cfg.color} />
-                      </View>
-                      <Text style={{ flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", color: "#334155" }}>{cfg.label}</Text>
-                      <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: cfg.color }}>{count}</Text>
+          <SectionHeader title="Civic Category Breakdown" sub="All civic complaint categories" />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 }}>
+            {Object.keys(categoryConfig).map((cat) => {
+              const cfg = categoryConfig[cat];
+              const count = Number(categoryAnalytics.find(([key]) => key === cat)?.[1] || 0);
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  activeOpacity={0.78}
+                  onPress={() => { setSelectedCategory(cat); openModal("category", `${cfg.label} Complaints`, `${count} complaints in this category`); }}
+                  style={{ width: "25%", padding: 4 }}
+                >
+                  <View style={{ minHeight: 94, borderRadius: 14, backgroundColor: "white", alignItems: "center", justifyContent: "center", paddingHorizontal: 5, paddingVertical: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: cfg.color + "18", alignItems: "center", justifyContent: "center", marginBottom: 5 }}>
+                      <Feather name={cfg.icon as any} size={15} color={cfg.color} />
                     </View>
-                    <View style={{ height: 6, backgroundColor: "#F1F5F9", borderRadius: 3, marginLeft: 38 }}>
-                      <View style={{ height: 6, width: `${pct}%`, backgroundColor: cfg.color, borderRadius: 3 }} />
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
+                    <Text style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: "#0F172A" }}>{count}</Text>
+                    <Text numberOfLines={2} style={{ fontSize: 8.5, lineHeight: 11, fontFamily: "Inter_500Medium", color: "#64748B", textAlign: "center", marginTop: 2 }}>{cfg.label}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         <View style={{ marginTop: 16 }}>
-          <SectionHeader title="Recent Complaints" sub="Latest 5 across all wards" />
-          <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
-            {recentComplaints.length === 0 ? (
-              <Text style={{ color: "#94A3B8", fontSize: 13, textAlign: "center", paddingVertical: 16, fontFamily: "Inter_400Regular" }}>No complaints yet</Text>
-            ) : (
-              recentComplaints.map((c, idx) => {
-                const cat = categoryConfig[c.category] || categoryConfig.other;
-                return (
-                  <TouchableOpacity key={c.id} onPress={() => { setModal({ type: "total", title: "Complaint Detail", sub: c.id }); setSelectedC(c); }} activeOpacity={0.8}
-                    style={{ paddingVertical: 10, borderBottomWidth: idx < recentComplaints.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}
-                  >
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: cat.color + "18", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
-                        <Feather name={cat.icon as any} size={13} color={cat.color} />
-                      </View>
+          <SectionHeader title="Administration" sub="Users and officer coordination" />
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <TouchableOpacity onPress={() => router.push("/super-admin/users" as any)} activeOpacity={0.82} style={{ flex: 1, minHeight: 110, borderRadius: 16, backgroundColor: "white", padding: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}><Feather name="users" size={19} color="#2563EB" /></View>
+              <Text style={{ marginTop: 10, fontSize: 14, fontFamily: "Inter_700Bold", color: "#0F172A" }}>App Users</Text>
+              <Text style={{ marginTop: 3, fontSize: 10, lineHeight: 14, fontFamily: "Inter_400Regular", color: "#64748B" }}>View database users with pagination</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/community" as any)} activeOpacity={0.82} style={{ flex: 1, minHeight: 110, borderRadius: 16, backgroundColor: "white", padding: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center" }}><Feather name="message-circle" size={19} color="#16A34A" /></View>
+              <Text style={{ marginTop: 10, fontSize: 14, fontFamily: "Inter_700Bold", color: "#0F172A" }}>Officer Community</Text>
+              <Text style={{ marginTop: 3, fontSize: 10, lineHeight: 14, fontFamily: "Inter_400Regular", color: "#64748B" }}>Administer Nagarsevak communication</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }} numberOfLines={1}>{c.title}</Text>
                         <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: "#16A34A" }}>ID: {c.id}</Text>

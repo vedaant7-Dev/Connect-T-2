@@ -1635,7 +1635,7 @@ app.delete("/api/alerts/:id", async (req, res) => {
 app.get("/api/admin/analytics", requireSuperAdmin, async (req, res) => {
   try {
     const [summary] = await db.query(
-      `SELECT 
+      `SELECT
         COUNT(*) AS total,
         SUM(status = 'submitted') AS submitted,
         SUM(status = 'assigned') AS assigned,
@@ -1646,7 +1646,7 @@ app.get("/api/admin/analytics", requireSuperAdmin, async (req, res) => {
     );
 
     const [wardStats] = await db.query(
-      `SELECT 
+      `SELECT
         ward_code,
         ward,
         COUNT(*) AS total,
@@ -1661,7 +1661,7 @@ app.get("/api/admin/analytics", requireSuperAdmin, async (req, res) => {
     );
 
     const [officerStats] = await db.query(
-      `SELECT 
+      `SELECT
         assigned_officer_id,
         COUNT(*) AS total,
         SUM(status = 'submitted') AS submitted,
@@ -1802,7 +1802,7 @@ app.post("/api/alerts", async (req, res) => {
 app.get("/api/feed/posts", async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT 
+      `SELECT
         p.*,
         COUNT(l.id) AS likes_count,
         COALESCE(GROUP_CONCAT(l.user_id ORDER BY l.created_at SEPARATOR ','), '') AS likes_csv
@@ -4720,6 +4720,10 @@ app.post("/api/admin/sms-settings", async (req, res) => {
 app.use((req, res) => {
   res.status(404).json(safeNotFoundPayload(res.locals.requestId));
 });
+
+
+// ADMIN_USERS_COMMUNITY_V112
+require("./nagarsevakCommunity")({ app, db, verifyToken, currentCivicUser, createId, uploadDir: UPLOAD_DIR });
 
 installSafeErrorHandler(app);
 
