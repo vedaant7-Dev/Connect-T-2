@@ -4333,7 +4333,7 @@ app.get("/api/admin/citizens", requireSuperAdmin, async (req, res) => {
 app.get("/api/admin/schema-health", requireSuperAdmin, async (_req, res) => {
   try {
     const requiredTables = [
-      "users", "complaints", "job_portal_users", "job_portal_jobs", "job_applications",
+      "users", "complaints", "job_portal_users", "job_portal_jobs", "job_portal_applications",
       "broadcasts", "notifications", "notification_devices", "role_assignments", "role_audit_logs"
     ];
     const [rows] = await db.query(
