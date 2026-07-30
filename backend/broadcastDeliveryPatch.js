@@ -221,7 +221,7 @@ async function createBroadcast(req, res) {
     if (!idempotencyKey || !/^[A-Za-z0-9_-]{12,100}$/.test(idempotencyKey)) {
       return sendJson(res, 400, { success: false, code: "INVALID_IDEMPOTENCY_KEY", message: "The broadcast request could not be verified. Please try again." });
     }
-    if (!["announcement", "emergency", "information", "notice"].includes(category)) {
+    if (!["announcement", "news", "emergency", "information", "notice"].includes(category)) {
       return sendJson(res, 400, { success: false, message: "Choose a valid broadcast category." });
     }
     if (!["en", "mr", "hi"].includes(language)) {

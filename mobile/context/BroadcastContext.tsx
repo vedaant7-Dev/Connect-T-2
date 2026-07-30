@@ -24,7 +24,7 @@ export type AppBroadcast = {
   id: string;
   title: string;
   body: string;
-  category: "announcement" | "emergency" | "information" | "notice";
+  category: "announcement" | "news" | "emergency" | "information" | "notice";
   language: BroadcastLanguage;
   audienceRole: BroadcastAudience;
   ward?: string;
@@ -85,7 +85,7 @@ function normalizeBroadcast(raw: any): AppBroadcast {
     id: String(raw.id),
     title: String(raw.title || "Broadcast"),
     body: String(raw.body || ""),
-    category: ["emergency", "information", "notice"].includes(raw.category) ? raw.category : "announcement",
+    category: ["news", "emergency", "information", "notice"].includes(raw.category) ? raw.category : "announcement",
     language: ["mr", "hi"].includes(raw.language) ? raw.language : "en",
     audienceRole: ["citizen", "nagarsevak", "seeker", "employer"].includes(raw.audienceRole || raw.audience_role)
       ? raw.audienceRole || raw.audience_role

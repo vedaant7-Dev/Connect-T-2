@@ -274,7 +274,7 @@ async function createBroadcast(req, res) {
 
     if (title.length < 3 || body.length < 5) return sendJson(res, 400, { success: false, message: "Enter a clear title and message." });
     if (!idempotencyKey || !/^[A-Za-z0-9_-]{12,100}$/.test(idempotencyKey)) return sendJson(res, 400, { success: false, code: "INVALID_IDEMPOTENCY_KEY", message: "The broadcast request could not be verified. Please try again." });
-    if (!["announcement", "emergency", "information", "notice"].includes(category)) return sendJson(res, 400, { success: false, message: "Choose a valid broadcast category." });
+    if (!["announcement", "news", "emergency", "information", "notice"].includes(category)) return sendJson(res, 400, { success: false, message: "Choose a valid broadcast category." });
     if (!["en", "mr", "hi"].includes(language)) return sendJson(res, 400, { success: false, message: "Choose English, Marathi or Hindi." });
     if (!["all", "citizen", "nagarsevak", "seeker", "employer"].includes(requestedAudience)) return sendJson(res, 400, { success: false, message: "Choose a valid audience." });
     if (schedule === undefined) return sendJson(res, 400, { success: false, message: "Enter a valid schedule date and time." });

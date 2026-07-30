@@ -1,6 +1,8 @@
 import { AppScrollView } from "@/components/AppScrollView";
 import React, { useState } from "react";
-import { Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,6 +31,40 @@ function createResumeHtml(user: any, selected: TemplateId) {
   const title = esc(user.currentRole || user.qualification || "Job Seeker");
   const theme = selected === "modern" ? "#0f172a" : selected === "minimal" ? "#92400e" : ORANGE;
   return `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${esc(user.name)} Resume</title><style>@page{size:A4;margin:16mm}body{font-family:Arial,sans-serif;margin:0;background:#f1f5f9;color:#0f172a}.page{max-width:820px;margin:0 auto;background:#fff;box-shadow:0 8px 30px rgba(15,23,42,.12)}.head{background:${theme};color:white;padding:28px}.name{font-size:30px;font-weight:800;margin:0}.role{font-size:16px;margin-top:5px;opacity:.9}.contact{font-size:12px;margin-top:12px;line-height:1.5}.body{padding:26px}.sec{margin-bottom:20px}.sec h2{font-size:14px;letter-spacing:1px;color:${theme};border-bottom:2px solid ${theme};padding-bottom:7px;margin:0 0 10px}.text{font-size:14px;line-height:1.55;color:#334155}.muted{font-size:13px;color:#64748b;margin-top:4px}.chip{display:inline-block;border:1px solid #fed7aa;background:#fff7ed;color:#ea580c;border-radius:999px;padding:6px 10px;margin:4px;font-size:12px;font-weight:700}.exp{border-left:3px solid #fed7aa;padding-left:12px;margin-top:8px}.print{position:fixed;right:18px;bottom:18px;background:${theme};color:white;border:0;border-radius:999px;padding:12px 18px;font-weight:800}@media print{body{background:white}.page{box-shadow:none}.print{display:none}}</style></head><body><div class="page"><div class="head"><h1 class="name">${esc(user.name)}</h1><div class="role">${title}</div><div class="contact">${contact}</div></div><div class="body">${user.about ? `<div class="sec"><h2>OBJECTIVE</h2><div class="text">${esc(user.about)}</div></div>` : ""}<div class="sec"><h2>EDUCATION</h2><div class="text">${esc(user.qualification || "—")}</div>${user.collegeName ? `<div class="muted">${esc(user.collegeName)}${user.fieldOfStudy ? ` · ${esc(user.fieldOfStudy)}` : ""}</div>` : ""}</div><div class="sec"><h2>WORK EXPERIENCE</h2><div class="text">${user.experience ? `Total Experience: ${esc(user.experience)}<br/>` : ""}${user.currentCompany ? `<div class="exp"><b>${esc(user.currentRole || "Employee")}</b><br/>${esc(user.currentCompany)} · Current</div>` : ""}${user.previousCompany ? `<div class="exp"><b>${esc(user.previousRole || "Employee")}</b><br/>${esc(user.previousCompany)} · Previous</div>` : ""}${!user.experience && !user.currentCompany && !user.previousCompany ? "—" : ""}</div></div><div class="sec"><h2>SKILLS</h2><div>${skills}</div></div>${user.languages ? `<div class="sec"><h2>LANGUAGES</h2><div class="text">${esc(user.languages)}</div></div>` : ""}</div></div><button class="print" onclick="window.print()">Save / Print PDF</button></body></html>`;
+}
+
+
+function pdfSafe(value: unknown) {
+  return String(value || "").normalize("NFKD").replace(/[^\x20-\x7E]/g, " ").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)").replace(/\s+/g, " ").trim();
+}
+function wrapPdfText(value: unknown, max = 82) {
+  const words = pdfSafe(value).split(" ").filter(Boolean); const lines: string[] = []; let line = "";
+  for (const word of words) { const next = line ? `${line} ${word}` : word; if (next.length > max && line) { lines.push(line); line = word; } else line = next; }
+  if (line) lines.push(line); return lines.length ? lines : ["-"];
+}
+function asciiBase64(value: string) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"; let output = "";
+  for (let index = 0; index < value.length; index += 3) { const a = value.charCodeAt(index) & 255; const b = index + 1 < value.length ? value.charCodeAt(index + 1) & 255 : 0; const c = index + 2 < value.length ? value.charCodeAt(index + 2) & 255 : 0; const triple = (a << 16) | (b << 8) | c; output += chars[(triple >> 18) & 63] + chars[(triple >> 12) & 63] + (index + 1 < value.length ? chars[(triple >> 6) & 63] : "=") + (index + 2 < value.length ? chars[triple & 63] : "="); }
+  return output;
+}
+function createResumePdfDocument(user: any) {
+  const rows: Array<{ text: string; bold?: boolean; size?: number; gap?: number }> = [];
+  rows.push({ text: pdfSafe(user.name || "Connect-T Candidate"), bold: true, size: 22, gap: 8 });
+  rows.push({ text: pdfSafe(user.currentRole || user.qualification || "Job Seeker"), bold: true, size: 13, gap: 5 });
+  rows.push({ text: pdfSafe(`+91 ${user.phone || ""}${user.email ? ` | ${user.email}` : ""}${user.location ? ` | ${user.location}` : ""}`), size: 9, gap: 18 });
+  const section = (title: string, value: unknown) => { rows.push({ text: title, bold: true, size: 12, gap: 7 }); wrapPdfText(value).forEach((line) => rows.push({ text: line, size: 10, gap: 4 })); rows.push({ text: "", size: 6, gap: 9 }); };
+  if (user.about) section("CAREER OBJECTIVE", user.about);
+  section("EDUCATION", [user.qualification, user.collegeName, user.fieldOfStudy].filter(Boolean).join(" | "));
+  section("WORK EXPERIENCE", [user.experience ? `Total Experience: ${user.experience}` : "", user.currentCompany ? `${user.currentRole || "Employee"} - ${user.currentCompany} (Current)` : "", user.previousCompany ? `${user.previousRole || "Employee"} - ${user.previousCompany} (Previous)` : ""].filter(Boolean).join("; ") || "-");
+  section("SKILLS", user.skills || "-");
+  if (user.languages) section("LANGUAGES", user.languages);
+
+  let y = 790; const commands: string[] = ["BT"];
+  for (const row of rows) { if (y < 55) break; commands.push(`/${row.bold ? "F2" : "F1"} ${row.size || 10} Tf`, `1 0 0 1 50 ${y} Tm`, `(${row.text}) Tj`); y -= (row.size || 10) + (row.gap || 4); }
+  commands.push("ET"); const stream = commands.join("\n");
+  const objects = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>", `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`];
+  let pdf = "%PDF-1.4\n"; const offsets = [0]; objects.forEach((object, index) => { offsets.push(pdf.length); pdf += `${index + 1} 0 obj\n${object}\nendobj\n`; }); const xref = pdf.length; pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`; for (let i = 1; i <= objects.length; i++) pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`; pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return pdf;
 }
 
 function HeaderAvatar({ user, dark = false }: { user: any; dark?: boolean }) {
@@ -68,13 +104,28 @@ export default function ResumeScreen() {
   if (!jobsUser) return null;
 
   const openPrintableResume = async () => {
-    const html = createResumeHtml(jobsUser, selected);
-    const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
     try {
-      await Linking.openURL(url);
-      setNotice({ visible: true, title: "Resume opened", message: "Use browser print/share option and choose Save as PDF." });
-    } catch {
-      setNotice({ visible: true, title: "Resume ready", message: "The resume preview is ready. Take screenshot/share now; native PDF export can be added with expo-print after final APK QA." });
+      const pdf = createResumePdfDocument(jobsUser);
+      const safeName = String(jobsUser.name || "Connect-T-Resume").replace(/[^a-zA-Z0-9_-]+/g, "-");
+      const fileName = `${safeName}-Resume.pdf`;
+      if (Platform.OS === "web") {
+        const blob = new Blob([pdf], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a"); anchor.href = url; anchor.download = fileName; document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+        setNotice({ visible: true, title: "PDF downloaded", message: "Your resume PDF has been downloaded." });
+        return;
+      }
+      const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      if (!directory) throw new Error("Storage is unavailable on this device.");
+      const uri = `${directory}${fileName}`;
+      await FileSystem.writeAsStringAsync(uri, asciiBase64(pdf), { encoding: FileSystem.EncodingType.Base64 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Save or share resume PDF", UTI: "com.adobe.pdf" });
+      } else {
+        setNotice({ visible: true, title: "PDF created", message: `Resume saved at ${uri}` });
+      }
+    } catch (error) {
+      setNotice({ visible: true, title: "PDF export failed", message: error instanceof Error ? error.message : "The resume PDF could not be created. Please try again." });
     }
   };
 

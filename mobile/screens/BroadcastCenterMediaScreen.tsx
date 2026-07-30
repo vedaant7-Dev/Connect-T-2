@@ -21,6 +21,7 @@ const BG = "#EEF2F7";
 
 const CATEGORIES: Array<{ key: AppBroadcast["category"]; label: string; icon: keyof typeof Feather.glyphMap; color: string; bg: string }> = [
   { key: "announcement", label: "Announcement", icon: "radio", color: "#B45309", bg: "#FEF3C7" },
+  { key: "news", label: "News", icon: "file-text", color: "#2563EB", bg: "#DBEAFE" },
   { key: "emergency", label: "Emergency", icon: "alert-triangle", color: "#DC2626", bg: "#FEE2E2" },
   { key: "information", label: "Information", icon: "info", color: "#2563EB", bg: "#DBEAFE" },
   { key: "notice", label: "Notice", icon: "file-text", color: "#7C3AED", bg: "#EDE9FE" },
@@ -110,7 +111,7 @@ export default function BroadcastCenterMediaScreen() {
   const [actionBusy, setActionBusy] = useState(false); const [actionError, setActionError] = useState("");
 
   useFocusEffect(useCallback(() => { void refreshBroadcasts().catch(() => undefined); }, [refreshBroadcasts]));
-  const active = broadcasts;
+  const active = isSuperAdmin ? broadcasts : broadcasts.filter((item) => String(item.createdBy) === String(user?.id || ""));
   const stats = useMemo(() => ({
     sent: active.filter((item) => item.status === "sent").length,
     scheduled: active.filter((item) => item.status === "scheduled").length,
@@ -155,8 +156,8 @@ export default function BroadcastCenterMediaScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient colors={["#052E16", "#166534", GREEN]} style={[styles.header, { paddingTop: (Platform.OS === "web" ? 54 : insets.top) + 10 }]}>
-        <View style={styles.headerRow}><TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace("/super-admin" as any)}><Feather name="chevron-left" size={20} color="white" /><Text style={styles.backText}>Back</Text></TouchableOpacity><TouchableOpacity style={styles.createButton} onPress={() => setComposeVisible(true)}><Feather name="plus" size={15} color="#166534" /><Text style={styles.createText}>Create</Text></TouchableOpacity></View>
-        <Text style={styles.headerTitle}>Broadcast Center</Text>
+        <View style={styles.headerRow}><TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace((isSuperAdmin ? "/super-admin" : "/(tabs)/admin") as any)}><Feather name="chevron-left" size={20} color="white" /><Text style={styles.backText}>Back</Text></TouchableOpacity><TouchableOpacity style={styles.createButton} onPress={() => setComposeVisible(true)}><Feather name="plus" size={15} color="#166534" /><Text style={styles.createText}>Create</Text></TouchableOpacity></View>
+        <Text style={styles.headerTitle}>{isSuperAdmin ? "Broadcast Center" : "Ward Broadcast Center"}</Text>
         <View style={styles.statsRow}><Stat value={stats.sent} label="Sent" /><Stat value={stats.scheduled} label="Scheduled" /><Stat value={stats.paused} label="Paused" /><Stat value={stats.read} label="Read" /></View>
       </LinearGradient>
       {error ? <TouchableOpacity style={styles.errorBanner} onPress={() => void refreshBroadcasts().catch(() => undefined)}><Feather name="alert-triangle" size={15} color="#B45309" /><Text style={styles.errorText}>{error}</Text><Text style={styles.retryText}>Retry</Text></TouchableOpacity> : null}
