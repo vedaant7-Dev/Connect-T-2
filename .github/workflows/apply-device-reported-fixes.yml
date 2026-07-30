@@ -14,25 +14,25 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ github.head_ref == 'feature/civic-users-community-v112' }}
+    if: ${{ github.head_ref == 'fix/device-reported-flows-v105' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feature/civic-users-community-v112
+          ref: fix/device-reported-flows-v105
           fetch-depth: 0
-      - name: Apply Civic users and community update
+      - name: Apply focused device fixes
         shell: bash
         run: |
           set -euo pipefail
-          if grep -q 'CIVIC_USERS_COMMUNITY_V112' mobile/app/super-admin/index.tsx 2>/dev/null; then
-            echo "Civic users and community update already applied."
+          if grep -q 'DEVICE_REPORTED_FIXES_V105' mobile/components/ComplaintMediaViewer.tsx 2>/dev/null; then
+            echo "Device fixes already applied."
             exit 0
           fi
-          python3 scripts/apply_civic_users_community_v112.py
+          python3 scripts/apply_device_reported_fixes.py
           git diff --check
           git config user.name "Connect-T Automation"
           git config user.email "actions@users.noreply.github.com"
-          git add mobile
-          git commit -m "Restructure Civic dashboard and add Nagarsevak Community"
-          git push origin HEAD:feature/civic-users-community-v112
+          git add backend mobile
+          git commit -m "Fix device media, profiles, sessions and civic news"
+          git push origin HEAD:fix/device-reported-flows-v105
