@@ -16,9 +16,8 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library/legacy";
 import * as Sharing from "expo-sharing";
-import { buildApiUrl } from "@/constants/api";
 
-// DEVICE_REPORTED_FIXES_V105
+import { buildApiUrl } from "@/constants/api";
 
 type MediaKind = "image" | "video";
 
@@ -86,7 +85,7 @@ function mediaMimeType(uri: string, kind: MediaKind) {
 function mediaFileName(uri: string, kind: MediaKind) {
   const raw = decodeURIComponent(uri.split("?")[0].split("#")[0]).split("/").pop() || "";
   const extension = mediaExtension(uri, kind);
-  const stem = raw.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 50) || "complaint-evidence";
+  const stem = raw.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 50) || "connect-t-media";
   return `${stem}.${extension}`;
 }
 
@@ -129,7 +128,6 @@ function FullScreenVideo({ uri }: { uri: string }) {
   return <VideoView player={player} style={styles.fullMedia} nativeControls contentFit="contain" />;
 }
 
-
 function InlineFeedVideo({ uri, active }: { uri: string; active: boolean }) {
   const source = useMemo(() => ({ uri, useCaching: true }), [uri]);
   const [pausedByUser, setPausedByUser] = useState(false);
@@ -158,16 +156,44 @@ function InlineFeedVideo({ uri, active }: { uri: string; active: boolean }) {
         <Feather name={paused ? "play" : "pause"} size={17} color="white" />
         <Text style={styles.inlineVideoControlText}>{paused ? "Play" : "Pause"}</Text>
       </View>
-      <View style={styles.mutedBadge}><Feather name="volume-x" size={13} color="white" /><Text style={styles.mutedText}>Muted</Text></View>
+      <View style={styles.mutedBadge}>
+        <Feather name="volume-x" size={13} color="white" />
+        <Text style={styles.mutedText}>Muted</Text>
+      </View>
     </TouchableOpacity>
   );
 }
 
-function ActionButton({ icon, label, onPress, busy, accentColor }: { icon: any; label: string; onPress: () => void; busy?: boolean; accentColor: string }) {
+function ActionButton({
+  icon,
+  label,
+  onPress,
+  busy,
+  accentColor,
+  compact = false,
+}: {
+  icon: any;
+  label: string;
+  onPress: () => void;
+  busy?: boolean;
+  accentColor: string;
+  compact?: boolean;
+}) {
   return (
-    <TouchableOpacity style={styles.actionButton} onPress={onPress} disabled={busy} activeOpacity={0.82} accessibilityRole="button" accessibilityLabel={label}>
-      {busy ? <ActivityIndicator size="small" color={accentColor} /> : <Feather name={icon} size={17} color={accentColor} />}
-      <Text style={[styles.actionText, { color: accentColor }]}>{label}</Text>
+    <TouchableOpacity
+      style={[styles.actionButton, compact && styles.actionButtonCompact]}
+      onPress={onPress}
+      disabled={busy}
+      activeOpacity={0.82}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={accentColor} />
+      ) : (
+        <Feather name={icon} size={compact ? 15 : 17} color={accentColor} />
+      )}
+      <Text style={[styles.actionText, compact && styles.actionTextCompact, { color: accentColor }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -186,6 +212,7 @@ export default function ComplaintMediaViewer({
   const kind = inferComplaintMediaKind(safeUri);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [busyAction, setBusyAction] = useState<"save" | "share" | null>(null);
+  const compactActionRow = !!rightActions;
 
   if (!safeUri) return null;
 
@@ -197,7 +224,7 @@ export default function ComplaintMediaViewer({
         downloadOnWeb(safeUri, kind);
       } else {
         const permission = await MediaLibrary.requestPermissionsAsync();
-        if (!permission.granted) throw new Error("Allow photo and video access to save complaint evidence.");
+        if (!permission.granted) throw new Error("Allow photo and video access to save this media.");
         const localUri = await localMediaUri(safeUri, kind);
         await MediaLibrary.saveToLibraryAsync(localUri);
       }
@@ -238,7 +265,13 @@ export default function ComplaintMediaViewer({
       {kind === "video" && autoPlay ? (
         <InlineFeedVideo uri={safeUri} active={active} />
       ) : (
-        <TouchableOpacity style={styles.previewButton} onPress={() => setViewerOpen(true)} activeOpacity={0.9} accessibilityRole="button" accessibilityLabel={`View full ${kind}`}>
+        <TouchableOpacity
+          style={styles.previewButton}
+          onPress={() => setViewerOpen(true)}
+          activeOpacity={0.9}
+          accessibilityRole="button"
+          accessibilityLabel={`View full ${kind}`}
+        >
           {kind === "video" ? (
             <View style={styles.videoPreview}>
               <View style={styles.playCircle}><Feather name="play" size={30} color="white" /></View>
@@ -260,13 +293,15 @@ export default function ComplaintMediaViewer({
           <Feather name={kind === "video" ? "video" : "image"} size={15} color="#64748B" />
           <Text style={styles.captionText} numberOfLines={1}>{label}</Text>
         </View>
-        <View style={styles.actionBar}>
-          <View style={styles.inlineActions}>
-            {showInlineViewAction ? <ActionButton icon="eye" label="View" onPress={() => setViewerOpen(true)} accentColor={accentColor} /> : null}
-            <ActionButton icon="download" label="Save" onPress={saveMedia} busy={busyAction === "save"} accentColor={accentColor} />
-            <ActionButton icon="share-2" label="Share" onPress={shareMedia} busy={busyAction === "share"} accentColor={accentColor} />
+        <View style={[styles.actionBar, compactActionRow && styles.actionBarCompact]}>
+          <View style={[styles.inlineActions, compactActionRow && styles.actionGroupCompact]}>
+            {showInlineViewAction ? (
+              <ActionButton icon="eye" label="View" onPress={() => setViewerOpen(true)} accentColor={accentColor} compact={compactActionRow} />
+            ) : null}
+            <ActionButton icon="download" label="Save" onPress={saveMedia} busy={busyAction === "save"} accentColor={accentColor} compact={compactActionRow} />
+            <ActionButton icon="share-2" label="Share" onPress={shareMedia} busy={busyAction === "share"} accentColor={accentColor} compact={compactActionRow} />
           </View>
-          {rightActions ? <View style={styles.rightActions}>{rightActions}</View> : null}
+          {rightActions ? <View style={[styles.rightActions, compactActionRow && styles.rightActionsCompact]}>{rightActions}</View> : null}
         </View>
       </View>
 
@@ -275,7 +310,7 @@ export default function ComplaintMediaViewer({
           <View style={styles.modalHeader}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.modalTitle} numberOfLines={1}>{title}</Text>
-              <Text style={styles.modalSubtitle}>{kind === "video" ? "Complaint video" : "Complaint image"}</Text>
+              <Text style={styles.modalSubtitle}>{kind === "video" ? "Video" : "Image"}</Text>
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={() => setViewerOpen(false)} accessibilityRole="button" accessibilityLabel="Close full media viewer">
               <Feather name="x" size={24} color="white" />
@@ -314,10 +349,15 @@ const styles = StyleSheet.create({
   captionTextWrap: { flexDirection: "row", alignItems: "center", gap: 7 },
   captionText: { flex: 1, fontSize: 12, color: "#475569", fontFamily: "Inter_600SemiBold" },
   actionBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  actionBarCompact: { width: "100%", gap: 6 },
   inlineActions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-start", gap: 6 },
+  actionGroupCompact: { flex: 1, minWidth: 0, gap: 5 },
   rightActions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 6 },
+  rightActionsCompact: { flexShrink: 1, minWidth: 0, gap: 5 },
   actionButton: { minHeight: 42, minWidth: 70, paddingHorizontal: 10, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "rgba(148,163,184,0.1)" },
+  actionButtonCompact: { flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 7, borderRadius: 10, gap: 4 },
   actionText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  actionTextCompact: { fontSize: 10 },
   modalRoot: { flex: 1, backgroundColor: "#020617" },
   modalHeader: { paddingTop: Platform.OS === "android" ? 42 : 54, paddingHorizontal: 16, paddingBottom: 12, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(2,6,23,0.96)" },
   modalTitle: { color: "white", fontSize: 16, fontFamily: "Inter_700Bold" },
