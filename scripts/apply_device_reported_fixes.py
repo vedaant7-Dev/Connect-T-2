@@ -1,172 +1,314 @@
 from pathlib import Path
-import re, json
-R=Path(__file__).resolve().parents[1]
-def rd(p): return (R/p).read_text()
-def wr(p,s): (R/p).write_text(s)
-def one(s,a,b,n):
- c=s.count(a)
- if c!=1: raise RuntimeError(f'{n}: {c}')
- return s.replace(a,b,1)
-def sub(s,p,r,n):
- s,c=re.subn(p,r,s,count=1,flags=re.S)
- if c!=1: raise RuntimeError(f'{n}: {c}')
- return s
+import re
 
-# complaint viewer: SDK56 save API + absolute upload URL
-p='mobile/components/ComplaintMediaViewer.tsx'; s=rd(p)
-s=one(s,'import * as MediaLibrary from "expo-media-library";','import * as MediaLibrary from "expo-media-library/legacy";','media legacy')
-s=one(s,'import * as Sharing from "expo-sharing";\n','import * as Sharing from "expo-sharing";\nimport { buildApiUrl } from "@/constants/api";\n\n// DEVICE_REPORTED_FIXES_V105\n','api url')
-s=one(s,'export function inferComplaintMediaKind(uri?: string | null): MediaKind {','''export function resolveComplaintMediaUri(uri?: string | null) {
-  const value = String(uri || "").trim();
-  if (!value) return "";
-  if (/^(?:https?:|data:|file:|content:)/i.test(value)) return value;
-  return buildApiUrl(value.startsWith("/") ? value : `/${value}`);
-}
+ROOT = Path(__file__).resolve().parents[1]
 
-export function inferComplaintMediaKind(uri?: string | null): MediaKind {''','resolver')
-s=one(s,'  const safeUri = String(uri || "").trim();','  const safeUri = resolveComplaintMediaUri(uri);','resolved uri'); wr(p,s)
 
-# civic home: remove alert/live section; broadcasts stay in News
-p='mobile/app/(tabs)/index.tsx'; s=rd(p)
-s=sub(s,r'\nfunction InlineVideo\(\{ uri, style \}: \{ uri: string; style: any \}\) \{.*?\n\}\n','\n','home video')
-s=sub(s,r'\n\s*const alertItems: AppAlert\[\] = broadcasts.*?\n\s*const newsItems =','\n  const newsItems =','home projection')
-s=sub(s,r'\n\s*\{\/\* ALERTS & NEWS \*\/\}.*?\n\s*\{\/\* REPORT A PROBLEM CTA \*\/\}','\n\n        {/* REPORT A PROBLEM CTA */}','home alerts'); wr(p,s)
+def read(path: str) -> str:
+    return (ROOT / path).read_text()
 
-# citizen News: all official media opens inside app with View/Save/Share
-p='mobile/app/(tabs)/feed.tsx'; s=rd(p)
-s=one(s,'import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, Image, Share, TextInput, Linking } from "react-native";','import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, Image, Share, TextInput } from "react-native";','feed import')
-s=one(s,'import TopShade from "@/components/TopShade";\n','import TopShade from "@/components/TopShade";\nimport ComplaintMediaViewer from "@/components/ComplaintMediaViewer";\n','feed viewer')
-s=sub(s,r'\nfunction InlineVideo\(\{ uri \}: \{ uri: string \}\) \{.*?\}\n','\n','feed inline video')
-s=one(s,'{item.media?.type === "image" ? <Image source={{ uri: item.media.uri }} style={styles.postImage} resizeMode="contain" /> : item.media?.type === "video" ? <InlineVideo uri={item.media.uri} /> : null}','{item.media?.uri ? <ComplaintMediaViewer uri={item.media.uri} title={item.title} label={item.media.type === "video" ? "Official video" : "Official image"} /> : null}','alert viewer')
-s=one(s,'  const router = useRouter(); const meta = broadcastMeta(item.category);','  const meta = broadcastMeta(item.category);','remove router')
-s=one(s,'return <TouchableOpacity style={[styles.card, styles.officialCard, highlighted && styles.highlightedCard]} onPress={() => router.push({ pathname: "/(tabs)/feed", params: { broadcastId: item.id } } as any)} activeOpacity={0.9}>','return <View style={[styles.card, styles.officialCard, highlighted && styles.highlightedCard]}>','card open')
-s=one(s,'{item.mediaType === "image" && item.mediaUri ? <Image source={{ uri: item.mediaUri }} style={styles.postImage} resizeMode="contain" /> : item.mediaType === "video" && item.mediaUri ? <InlineVideo uri={item.mediaUri} /> : null}','{item.mediaUri ? <ComplaintMediaViewer uri={item.mediaUri} title={item.title} label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"} /> : null}','broadcast viewer')
-s=one(s,'<View style={styles.broadcastFooter}><View style={styles.newsInfoChip}><Feather name="map-pin" size={11} color="#64748B" /><Text style={styles.newsInfoText}>{item.ward || "All wards"}</Text></View><Text style={styles.openText}>Open update</Text><Feather name="chevron-right" size={16} color="#EA580C" /></View></TouchableOpacity>;','<View style={styles.broadcastFooter}><View style={styles.newsInfoChip}><Feather name="map-pin" size={11} color="#64748B" /><Text style={styles.newsInfoText}>{item.ward || "All wards"}</Text></View><Text style={styles.openText}>Official update</Text></View></View>;','card close'); wr(p,s)
 
-# Broadcast Center: in-app viewer + stable Android keyboard sheet
-p='mobile/screens/BroadcastCenterMediaScreen.tsx'; s=rd(p)
-s=one(s,'import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";','import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";','broadcast imports')
-s=one(s,'import ConfirmActionModal from "@/components/ConfirmActionModal";\n','import ConfirmActionModal from "@/components/ConfirmActionModal";\nimport ComplaintMediaViewer from "@/components/ComplaintMediaViewer";\n','broadcast viewer')
-s=sub(s,r'\s*\{item\.mediaUri \? item\.mediaType === "image" \? <Image.*?\) : null\}','\n      {item.mediaUri ? <ComplaintMediaViewer uri={item.mediaUri} title={item.title} label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"} accentColor={ORANGE} /> : null}','broadcast card media')
-s=one(s,'<KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : "height"}>','<KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>','broadcast keyboard')
-s=one(s,'<AppScrollView contentContainerStyle={styles.formContent} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">','<AppScrollView style={styles.formScroll} contentContainerStyle={styles.formContent} automaticallyAdjustKeyboardInsets={Platform.OS === "ios"} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}>','broadcast scroll')
-s=one(s,'sheet: { maxHeight: "94%", borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: "white", overflow: "hidden" }','sheet: { height: "94%", maxHeight: "94%", borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: "white", overflow: "hidden" }','sheet height')
-s=one(s,'formContent: { padding: 18, paddingBottom: 38 }','formScroll: { flex: 1 }, formContent: { padding: 18, paddingBottom: 38 }','scroll style'); wr(p,s)
+def write(path: str, text: str) -> None:
+    (ROOT / path).write_text(text)
 
-# Add Camera and Gallery choices to Civic + Job profiles
-def photos(s, setter, translated, civic):
- perm='c("photoPermissionBody")' if translated else '"Allow photo access to choose a profile image."'
- bad='c("unsupportedImageBody")' if translated else '"Choose a JPEG, PNG or WebP profile image."'
- big='c("imageTooLargeBody")' if translated else '"Choose a profile image smaller than 8MB."'
- block=f'''  const acceptProfilePhoto = (asset?: ImagePicker.ImagePickerAsset | null) => {{
-    if (!asset) return;
-    const mime = String(asset.mimeType || "").toLowerCase();
-    if (mime && !["image/jpeg", "image/png", "image/webp"].includes(mime)) return setFormError({bad});
-    if (asset.fileSize && asset.fileSize > MAX_PROFILE_PHOTO_BYTES) return setFormError({big});
-    {setter}
-  }};
-  const pickPhotoFromGallery = async () => {{
-    setFormError("");
-    if (Platform.OS !== "web") {{ const permission = await ImagePicker.requestMediaLibraryPermissionsAsync(); if (!permission.granted) return setFormError({perm}); }}
-    const result = await ImagePicker.launchImageLibraryAsync({{ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1,1], quality: 0.55 }});
-    acceptProfilePhoto(result.canceled ? null : result.assets[0]);
-  }};
-  const pickPhotoFromCamera = async () => {{
-    setFormError("");
-    if (Platform.OS === "web") return pickPhotoFromGallery();
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) return setFormError("Allow camera access to take a profile photo.");
-    const result = await ImagePicker.launchCameraAsync({{ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1,1], quality: 0.55 }});
-    acceptProfilePhoto(result.canceled ? null : result.assets[0]);
-  }};
+
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise RuntimeError(f"{label}: expected 1 source block, found {count}")
+    return text.replace(old, new, 1)
+
+
+# 1) Broadcast context: expose edit/update action.
+path = "mobile/context/BroadcastContext.tsx"
+text = read(path)
+text = replace_once(
+    text,
+    "  createBroadcast: (data: NewBroadcast) => Promise<AppBroadcast>;\n  pauseBroadcast: (id: string) => Promise<void>;",
+    "  createBroadcast: (data: NewBroadcast) => Promise<AppBroadcast>;\n  updateBroadcast: (id: string, data: NewBroadcast) => Promise<AppBroadcast>;\n  pauseBroadcast: (id: string) => Promise<void>;",
+    "broadcast context type",
+)
+insert = '''  const updateBroadcast = useCallback(async (id: string, data: NewBroadcast) => {
+    const result = await apiPatch<{ broadcast: any }>(`/api/broadcasts/${encodeURIComponent(id)}`, {
+      action: "edit",
+      title: data.title,
+      body: data.body,
+      category: data.category,
+      language: data.language,
+      audienceRole: data.audienceRole,
+      ward: data.ward,
+      scheduledAt: data.scheduledAt || null,
+    });
+    const updated = normalizeBroadcast(result.broadcast);
+    setBroadcasts((current) => current.map((item) => item.id === id ? updated : item));
+    return updated;
+  }, []);
 
 '''
- s=sub(s,r'  const pickPhoto = async \(\) => \{.*?\n  \};\n\n  const saveProfile = async \(\) => \{',block+'  const saveProfile = async () => {','photo functions')
- old='onPress={pickPhoto} accessibilityLabel={c("editPhoto")}' if civic else 'onPress={pickPhoto} accessibilityLabel={c("changePhoto")}'
- new='onPress={pickPhotoFromGallery} accessibilityLabel={c("editPhoto")}' if civic else 'onPress={pickPhotoFromGallery} accessibilityLabel={c("changePhoto")}'
- s=one(s,old,new,'photo avatar')
- key='editPhoto' if civic else 'changePhoto'
- remove='setForm((current) => current ? { ...current, profilePhoto: null } : current)' if civic else 'setField("profilePhoto", null)'
- old=f'<View style={{{{ flex: 1 }}}}><Text style={{styles.actionTitle}}>{{c("{key}")}}</Text><TouchableOpacity onPress={{() => {remove}}}><Text style={{styles.removePhotoText}}>{{c("removePhoto")}}</Text></TouchableOpacity></View>'
- new=f'<View style={{{{ flex: 1 }}}}><Text style={{styles.actionTitle}}>{{c("{key}")}}</Text><View style={{styles.photoSourceRow}}><TouchableOpacity style={{styles.photoSourceButton}} onPress={{pickPhotoFromCamera}}><Feather name="camera" size={{14}} color={{ORANGE}} /><Text style={{styles.photoSourceText}}>Camera</Text></TouchableOpacity><TouchableOpacity style={{styles.photoSourceButton}} onPress={{pickPhotoFromGallery}}><Feather name="image" size={{14}} color={{ORANGE}} /><Text style={{styles.photoSourceText}}>Gallery</Text></TouchableOpacity></View><TouchableOpacity onPress={{() => {remove}}}><Text style={{styles.removePhotoText}}>{{c("removePhoto")}}</Text></TouchableOpacity></View>'
- s=one(s,old,new,'photo buttons')
- s=one(s,'  removePhotoText: {','  photoSourceRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 7 },\n  photoSourceButton: { minHeight: 36, paddingHorizontal: 10, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" },\n  photoSourceText: { color: ORANGE, fontSize: 11, fontFamily: "Inter_600SemiBold" },\n  removePhotoText: {','photo styles')
- return s
-p='mobile/screens/CivicProfileScreen.tsx'; wr(p,photos(rd(p),'setForm((current) => current ? { ...current, profilePhoto: asset.uri } : current);',False,True))
-p='mobile/screens/LocalizedJobPortalProfileScreen.tsx'; wr(p,photos(rd(p),'setField("profilePhoto", asset.uri);',True,False))
+text = replace_once(text, "  const runAction = useCallback", insert + "  const runAction = useCallback", "broadcast update callback")
+text = replace_once(
+    text,
+    "    broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast,\n    pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead,",
+    "    broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast, updateBroadcast,\n    pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead,",
+    "broadcast context value",
+)
+text = replace_once(
+    text,
+    "  }), [broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead]);",
+    "  }), [broadcasts, loading, error, uploadProgress, refreshBroadcasts, createBroadcast, updateBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast, markBroadcastRead]);",
+    "broadcast context dependencies",
+)
+write(path, text)
 
-# Job onboarding/session: continue directly from the valid Civic login
-p='mobile/context/JobsAuthContext.tsx'; s=rd(p)
-s=one(s,'  activateJobs: (role: JobsUserRole, data?: Partial<JobsUser>) => Promise<void>;\n','  activateJobs: (role: JobsUserRole, data?: Partial<JobsUser>) => Promise<void>;\n  activateJobsFromOnboarding: (user: unknown, token?: string | null) => Promise<void>;\n','context type')
-s=one(s,'  const activateJobs = async (role: JobsUserRole, data: Partial<JobsUser> = {}) => {\n    await openUnifiedSession(role, data);\n  };\n','''  const activateJobs = async (role: JobsUserRole, data: Partial<JobsUser> = {}) => { await openUnifiedSession(role, data); };
-  const activateJobsFromOnboarding = async (rawUser: unknown, token?: string | null) => {
-    if (token) await storeJobsAuthToken(token);
-    await persist(normalizeUser(rawUser || {}));
-  };
-''','direct activation')
-s=one(s,'    if (Object.prototype.hasOwnProperty.call(data, "profilePhoto")) {\n      payload.profilePhoto = await toUploadableMediaUri(data.profilePhoto);\n    }\n','''    const photoChanged = Object.prototype.hasOwnProperty.call(data, "profilePhoto") && (data.profilePhoto ?? null) !== (jobsUser.profilePhoto ?? null);
-    if (photoChanged) payload.profilePhoto = await toUploadableMediaUri(data.profilePhoto); else delete payload.profilePhoto;
-''','unchanged job photo')
-s=one(s,'<JobsContext.Provider value={{ jobsUser, loading, activateJobs, logoutJobs, updateJobsUser, addCompany, updateCompany }}>','<JobsContext.Provider value={{ jobsUser, loading, activateJobs, activateJobsFromOnboarding, logoutJobs, updateJobsUser, addCompany, updateCompany }}>','provider'); wr(p,s)
 
-p='mobile/screens/LocalizedJobProfileSetupScreen.tsx'; s=rd(p)
-s=one(s,'  const { activateJobs } = useJobsAuth();','  const { activateJobsFromOnboarding } = useJobsAuth();','setup auth')
-s=one(s,'  const [hiringCategories, setHiringCategories] = useState("");\n','','employer category state')
-s=one(s,'      if (hiringCategories.trim().length < 2) return c("validationHiring");\n','','employer category validation')
-s=one(s,'        about: hiringCategories.trim(),\n','','employer category payload')
-s=one(s,'      await apiPost("/api/job-portal/onboarding", role === "seeker" ? {','      const response = await apiPost<any>("/api/job-portal/onboarding", role === "seeker" ? {','onboarding response')
-s=one(s,'      await activateJobs(role);\n      router.replace("/jobs/(tabs)" as any);','      await activateJobsFromOnboarding(response.user || response.data || response, response.token);\n      router.replace("/jobs/(tabs)" as any);','continue setup')
-s=one(s,'                    <Field label={`${c("hiringCategories")} *`} value={hiringCategories} onChangeText={setHiringCategories} placeholder={c("hiringCategoriesPlaceholder")} multiline />\n','','employer category UI'); wr(p,s)
+# 2) Backend: securely edit broadcasts owned by the creator, or any broadcast for Super Admin.
+path = "backend/broadcastActionsPatch.js"
+text = read(path)
+text = replace_once(
+    text,
+    'const [rows] = await pool.query("SELECT id, mobile, role, is_super_admin FROM users WHERE id = ? LIMIT 1", [auth.sub]);',
+    'const [rows] = await pool.query("SELECT id, mobile, role, ward, ward_code, ward_number, is_super_admin FROM users WHERE id = ? LIMIT 1", [auth.sub]);',
+    "broadcast manager ward fields",
+)
+new_update = r'''async function updateAction(req, res, next) {
+  const action = cleanText(req.body?.action, 30).toLowerCase();
+  if (action === "archive") return sendJson(res, 410, { success: false, code: "BROADCAST_ARCHIVE_REMOVED", message: "Archive has been replaced by Pause and Delete." });
+  if (!["pause", "resume", "edit"].includes(action)) return next();
+  try {
+    if (!pool) throw new Error("Database pool unavailable");
+    const user = await currentUser(req); if (!user) return sendJson(res, 401, { success: false, code: "SESSION_INVALID", message: "Please log in again." });
+    const id = cleanText(req.params?.id, 80); const existing = await loadBroadcast(id);
+    if (!existing) return sendJson(res, 404, { success: false, message: "Broadcast not found." });
+    if (!canManage(user, existing)) return sendJson(res, 403, { success: false, message: "You can manage only broadcasts created from your account." });
 
-# Auto-recover a stale Job token once using the valid Civic session
-p='mobile/lib/api.ts'; s=rd(p)
-s=one(s,'let cacheGeneration = 0;\n','let cacheGeneration = 0;\nlet jobsRecoveryPromise: Promise<boolean> | null = null;\n','recovery state')
-s=one(s,'async function request<T = any>(\n','''function isRecoverableJobsPath(path: string) { return path.startsWith("/api/job-portal/") && path !== "/api/job-portal/session" && path !== "/api/job-portal/onboarding"; }
-async function recoverJobsSession() {
-  if (jobsRecoveryPromise) return jobsRecoveryPromise;
-  jobsRecoveryPromise = (async () => {
-    const civicToken = await getStoredAuthToken(); if (!civicToken) return false;
-    const res = await fetchWithTimeout(apiUrl("/api/job-portal/session"), { method: "POST", headers: { Authorization: `Bearer ${civicToken}`, "Content-Type": "application/json" }, body: "{}" });
-    if (!res.ok) return false;
-    const data = await parseSuccess<any>(res, "POST", "/api/job-portal/session");
-    if (!data?.token) return false; await storeJobsAuthToken(data.token); return true;
-  })().catch(() => false).finally(() => { jobsRecoveryPromise = null; });
-  return jobsRecoveryPromise;
-}
+    if (action === "edit") {
+      const title = cleanText(req.body?.title, 180);
+      const body = cleanText(req.body?.body, 5000);
+      if (title.length < 3 || body.length < 5) return sendJson(res, 400, { success: false, message: "A clear title and complete message are required." });
 
-async function request<T = any>(
-''','recovery helper')
-s=one(s,'    await assertResponse(res, method, path);\n    return parseSuccess<T>(res, method, path);','''    if (res.status === 401 && isRecoverableJobsPath(path) && await recoverJobsSession()) {
-      res = await fetchWithTimeout(url, { method, headers: await getAuthHeaders(path, body), body: body === undefined ? undefined : JSON.stringify(body) });
+      const allowedCategories = new Set(["announcement", "news", "emergency", "information", "notice"]);
+      const allowedLanguages = new Set(["en", "mr", "hi"]);
+      const allowedAudiences = new Set(["all", "citizen", "nagarsevak", "seeker", "employer"]);
+      const category = allowedCategories.has(String(req.body?.category || "")) ? String(req.body.category) : String(existing.category || "announcement");
+      const language = allowedLanguages.has(String(req.body?.language || "")) ? String(req.body.language) : String(existing.language || "en");
+      let audienceRole = allowedAudiences.has(String(req.body?.audienceRole || "")) ? String(req.body.audienceRole) : String(existing.audience_role || "all");
+      let ward = cleanText(req.body?.ward, 120) || existing.ward || null;
+
+      if (!isSuperAdmin(user)) {
+        audienceRole = "citizen";
+        ward = user.ward || (user.ward_code ? `Ward ${user.ward_code}` : user.ward_number ? `Ward ${user.ward_number}` : existing.ward || null);
+      }
+
+      const scheduledRaw = req.body?.scheduledAt;
+      let scheduledAt = null;
+      if (scheduledRaw) {
+        const parsed = new Date(scheduledRaw);
+        if (!Number.isFinite(parsed.getTime())) return sendJson(res, 400, { success: false, message: "Choose a valid schedule date and time." });
+        scheduledAt = parsed;
+      }
+      const nextStatus = existing.status === "paused" ? "paused" : scheduledAt && scheduledAt.getTime() > Date.now() ? "scheduled" : "sent";
+      await pool.query(
+        `UPDATE broadcasts
+            SET title = ?, body = ?, category = ?, language = ?, audience_role = ?, ward = ?,
+                scheduled_at = ?, status = ?,
+                sent_at = CASE WHEN ? = 'sent' THEN COALESCE(sent_at, NOW()) ELSE sent_at END
+          WHERE id = ?`,
+        [title, body, category, language, audienceRole, ward, scheduledAt, nextStatus, nextStatus, id],
+      );
+      return sendJson(res, 200, { success: true, broadcast: await loadBroadcast(id) });
     }
-    await assertResponse(res, method, path);
-    return parseSuccess<T>(res, method, path);''','retry recovered session'); wr(p,s)
 
-# Backend employer setup no longer requires category
-p='backend/jobPortalOnboardingPatch.js'; s=rd(p)
-s=sub(s,r'\n\s*if \(role === "employer" && about\.length < 2\) \{.*?\n\s*\}\n','\n','backend employer category')
-s=one(s,'        about || null,','        role === "seeker" ? about || null : null,','seeker category only'); wr(p,s)
-
-# Profile persistence compatibility for older live schemas
-p='backend/server.js'; s=rd(p)
-s=one(s,'});\n\nconst createId = (prefix) =>','''});
-
-let userProfileSchemaReady = null;
-async function ensureUserProfileSchema() {
-  if (userProfileSchemaReady) return userProfileSchemaReady;
-  userProfileSchemaReady = (async () => {
-    const defs = { ward_changed: "TINYINT(1) NOT NULL DEFAULT 0", profile_photo: "LONGTEXT NULL", notify_email: "TINYINT(1) NOT NULL DEFAULT 0", notify_whatsapp: "TINYINT(1) NOT NULL DEFAULT 0", office_address: "TEXT NULL", residence_address: "TEXT NULL", office_timings: "VARCHAR(190) NULL", contact_name: "VARCHAR(160) NULL", contact_number: "VARCHAR(20) NULL" };
-    const [rows] = await db.query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'");
-    const existing = new Set(rows.map((row) => String(row.COLUMN_NAME)));
-    for (const [column, definition] of Object.entries(defs)) if (!existing.has(column)) await db.query(`ALTER TABLE users ADD COLUMN \\`${column}\\` ${definition}`);
-  })().catch((error) => { userProfileSchemaReady = null; throw error; });
-  return userProfileSchemaReady;
+    if (action === "pause") {
+      if (existing.status === "paused") return sendJson(res, 200, { success: true, broadcast: existing });
+      if (!["sent", "scheduled"].includes(String(existing.status))) return sendJson(res, 409, { success: false, message: "Only sent or scheduled broadcasts can be paused." });
+      await pool.query("UPDATE broadcasts SET status = 'paused' WHERE id = ?", [id]);
+    } else {
+      if (existing.status !== "paused") return sendJson(res, 409, { success: false, message: "Only paused broadcasts can be resumed." });
+      const scheduledAt = existing.scheduled_at ? new Date(existing.scheduled_at) : null;
+      const nextStatus = scheduledAt && Number.isFinite(scheduledAt.getTime()) && scheduledAt.getTime() > Date.now() ? "scheduled" : "sent";
+      await pool.query("UPDATE broadcasts SET status = ?, sent_at = CASE WHEN ? = 'sent' THEN COALESCE(sent_at, NOW()) ELSE sent_at END WHERE id = ?", [nextStatus, nextStatus, id]);
+    }
+    return sendJson(res, 200, { success: true, broadcast: await loadBroadcast(id) });
+  } catch (error) {
+    console.warn("[BroadcastActionsPatch] update failed", error?.code || error?.name || "broadcast_action_error");
+    return sendJson(res, 500, { success: false, message: "The broadcast could not be changed right now." });
+  }
 }
+'''
+text, count = re.subn(r"async function updateAction\(req, res, next\) \{.*?\n\}\nasync function deleteBroadcast", new_update + "async function deleteBroadcast", text, count=1, flags=re.S)
+if count != 1:
+    raise RuntimeError(f"broadcast backend edit handler: {count}")
+text = text.replace("pause, resume and delete actions active", "edit, pause, resume and delete actions active")
+write(path, text)
 
-const createId = (prefix) =>''','profile schema helper')
-s=one(s,'async function currentCivicUser(auth) {\n  if (!auth?.sub) return null;','async function currentCivicUser(auth) {\n  if (!auth?.sub) return null;\n  await ensureUserProfileSchema();','session schema')
-s=one(s,'            profile_photo, nagarsevak_id, last_login_at, created_at','            profile_photo, nagarsevak_id, ward_changed, notify_email, notify_whatsapp,\n            office_address, residence_address, office_timings, contact_name, contact_number,\n            last_login_at, created_at','profile hydrate')
-s=one(s,'app.post("/api/users", async (req, res) => {\n  try {\n    await ensureRoleAuthorizationSchema(db);','app.post("/api/users", async (req, res) => {\n  try {\n    await ensureRoleAuthorizationSchema(db);\n    await ensureUserProfileSchema();','profile save schema'); wr(p,s)
 
-# Version bump
-p='mobile/app.json'; data=json.loads(rd(p)); data['expo']['version']='1.0.5'; data['expo']['android']['versionCode']=6; wr(p,json.dumps(data,indent=2)+'\n')
+# 3) Broadcast Center UI: edit button and shared create/edit form for Super Admin and Nagarsevak.
+path = "mobile/screens/BroadcastCenterMediaScreen.tsx"
+text = read(path)
+text = replace_once(text, 'const BG = "#EEF2F7";\n', 'const BG = "#EEF2F7";\n// SUPER_ADMIN_BROADCAST_EDIT_V107\n', "broadcast marker")
+text = replace_once(text, "  onPause: () => void;\n", "  onEdit: () => void;\n  onPause: () => void;\n", "broadcast card edit prop")
+text = replace_once(text, "function BroadcastCard({ item, onPause, onResume, onDelete }: CardProps)", "function BroadcastCard({ item, onEdit, onPause, onResume, onDelete }: CardProps)", "broadcast card signature")
+text = replace_once(
+    text,
+    '<TouchableOpacity style={[styles.actionButton, styles.shareButton]} onPress={() => void shareBroadcast(item)}><Feather name="share-2" size={14} color="#C2410C" /><Text style={styles.shareText}>Share</Text></TouchableOpacity>',
+    '<TouchableOpacity style={[styles.actionButton, styles.shareButton]} onPress={() => void shareBroadcast(item)}><Feather name="share-2" size={13} color="#C2410C" /><Text style={styles.shareText}>Share</Text></TouchableOpacity>\n      <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={onEdit}><Feather name="edit-2" size={13} color="#2563EB" /><Text style={styles.editText}>Edit</Text></TouchableOpacity>',
+    "broadcast edit action",
+)
+text = replace_once(
+    text,
+    "  const { broadcasts, loading, error, refreshBroadcasts, createBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast } = useBroadcasts();",
+    "  const { broadcasts, loading, error, refreshBroadcasts, createBroadcast, updateBroadcast, pauseBroadcast, resumeBroadcast, deleteBroadcast } = useBroadcasts();",
+    "broadcast context destructure",
+)
+text = replace_once(text, "  const [composeVisible, setComposeVisible] = useState(false);\n", "  const [composeVisible, setComposeVisible] = useState(false);\n  const [editingItem, setEditingItem] = useState<AppBroadcast | null>(null);\n", "broadcast editing state")
+old_reset = '  const resetForm = () => { setTitle(""); setBody(""); setCategory("announcement"); setAudienceRole("all"); setLanguage("en"); setWard("All Wards"); setScheduledAt(""); setMedia(null); setFormError(""); };\n'
+new_reset = '''  const resetForm = () => { setTitle(""); setBody(""); setCategory("announcement"); setAudienceRole("all"); setLanguage("en"); setWard("All Wards"); setScheduledAt(""); setMedia(null); setFormError(""); };
+  const closeComposer = () => { if (sending) return; setComposeVisible(false); setEditingItem(null); resetForm(); };
+  const openCreate = () => { setEditingItem(null); resetForm(); setComposeVisible(true); };
+  const openEdit = (item: AppBroadcast) => {
+    setEditingItem(item);
+    setTitle(item.title);
+    setBody(item.body);
+    setCategory(item.category);
+    setAudienceRole(item.audienceRole);
+    setLanguage(item.language);
+    setWard(item.ward || "All Wards");
+    setScheduledAt(item.status === "scheduled" && item.scheduledAt ? item.scheduledAt : "");
+    setMedia(null);
+    setFormError("");
+    setComposeVisible(true);
+  };
+'''
+text = replace_once(text, old_reset, new_reset, "broadcast form helpers")
+old_send = '''      await createBroadcast({ title: title.trim(), body: body.trim(), category, audienceRole: isSuperAdmin ? audienceRole : "citizen", language,
+        ward: isSuperAdmin && ward === "All Wards" ? undefined : isSuperAdmin ? ward : user?.ward,
+        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined, idempotencyKey: makeIdempotencyKey(), media });
+      setComposeVisible(false); resetForm(); await refreshBroadcasts();
+    } catch (requestError) { setFormError(getUserErrorMessage(requestError, "Broadcast could not be created. Please try again.")); }'''
+new_send = '''      const payload = { title: title.trim(), body: body.trim(), category, audienceRole: isSuperAdmin ? audienceRole : "citizen", language,
+        ward: isSuperAdmin && ward === "All Wards" ? undefined : isSuperAdmin ? ward : user?.ward,
+        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined, idempotencyKey: makeIdempotencyKey(), media };
+      if (editingItem) await updateBroadcast(editingItem.id, { ...payload, media: null });
+      else await createBroadcast(payload);
+      setComposeVisible(false); setEditingItem(null); resetForm(); await refreshBroadcasts();
+    } catch (requestError) { setFormError(getUserErrorMessage(requestError, editingItem ? "Broadcast could not be updated. Please try again." : "Broadcast could not be created. Please try again.")); }'''
+text = replace_once(text, old_send, new_send, "broadcast send or update")
+text = replace_once(text, 'onPress={() => setComposeVisible(true)}', 'onPress={openCreate}', "broadcast create button")
+text = replace_once(
+    text,
+    '{active.map((item) => <BroadcastCard key={item.id} item={item} onPause={() => setPendingAction({ kind: "pause", item })}',
+    '{active.map((item) => <BroadcastCard key={item.id} item={item} onEdit={() => openEdit(item)} onPause={() => setPendingAction({ kind: "pause", item })}',
+    "broadcast card map edit",
+)
+text = replace_once(text, 'onRequestClose={() => !sending && setComposeVisible(false)}', 'onRequestClose={closeComposer}', "broadcast modal close")
+text = replace_once(text, '<Text style={styles.sheetTitle}>Create Broadcast</Text>', '<Text style={styles.sheetTitle}>{editingItem ? "Edit Broadcast" : "Create Broadcast"}</Text>', "broadcast modal title")
+text = replace_once(text, 'onPress={() => setComposeVisible(false)} disabled={sending}', 'onPress={closeComposer} disabled={sending}', "broadcast close button")
+text = replace_once(
+    text,
+    '<Label text="ATTACHMENT (OPTIONAL)" /><BroadcastMediaPicker value={media} onChange={setMedia} onError={setFormError} disabled={sending} />',
+    '{editingItem ? <><Label text="ATTACHMENT" /><Text style={styles.help}>The existing image or video remains attached. Create a new post to replace the media.</Text></> : <><Label text="ATTACHMENT (OPTIONAL)" /><BroadcastMediaPicker value={media} onChange={setMedia} onError={setFormError} disabled={sending} /></>}',
+    "broadcast edit attachment",
+)
+text = replace_once(
+    text,
+    '<Text style={styles.sendText}>{sending ? (media ? "Uploading..." : "Saving...") : scheduledAt ? "Schedule broadcast" : "Send in-app broadcast"}</Text>',
+    '<Text style={styles.sendText}>{sending ? (media ? "Uploading..." : "Saving...") : editingItem ? "Update broadcast" : scheduledAt ? "Schedule broadcast" : "Send in-app broadcast"}</Text>',
+    "broadcast submit label",
+)
+text = replace_once(
+    text,
+    'shareButton: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }, shareText: { color: "#C2410C", fontSize: 10.5, fontFamily: "Inter_700Bold" }, pauseButton:',
+    'shareButton: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }, shareText: { color: "#C2410C", fontSize: 9.5, fontFamily: "Inter_700Bold" }, editButton: { backgroundColor: "#EFF6FF", borderColor: "#BFDBFE" }, editText: { color: "#2563EB", fontSize: 9.5, fontFamily: "Inter_700Bold" }, pauseButton:',
+    "broadcast edit styles",
+)
+text = text.replace('actionButton: { minHeight: 40, borderRadius: 12, paddingHorizontal: 12,', 'actionButton: { minHeight: 36, borderRadius: 11, paddingHorizontal: 8,', 1)
+text = text.replace('pauseText: { color: "#7C3AED", fontSize: 10.5', 'pauseText: { color: "#7C3AED", fontSize: 9.5', 1)
+text = text.replace('resumeText: { color: "#166534", fontSize: 10.5', 'resumeText: { color: "#166534", fontSize: 9.5', 1)
+text = text.replace('deleteText: { color: "#DC2626", fontSize: 10.5', 'deleteText: { color: "#DC2626", fontSize: 9.5', 1)
+write(path, text)
+
+
+# 4) Super Admin navigation: Reports becomes Profile; Settings remains available via dashboard gear.
+path = "mobile/app/super-admin/_layout.tsx"
+text = read(path)
+text = replace_once(text, '{ name: "reports", icon: "bar-chart-2", label: "Reports" },', '{ name: "profile", icon: "user", label: "Profile" },', "super admin profile tab")
+text = replace_once(text, '            <Tabs.Screen name="reports" />\n', '            <Tabs.Screen name="profile" />\n            <Tabs.Screen name="reports" options={{ href: null }} />\n', "super admin profile route")
+write(path, text)
+
+
+# 5) Remove the editable Super Admin profile card from Settings.
+path = "mobile/app/super-admin/settings.tsx"
+text = read(path)
+text, count = re.subn(r'\n\s*<TouchableOpacity style=\{styles\.profileCard\}.*?</TouchableOpacity>\n', '\n', text, count=1, flags=re.S)
+if count != 1:
+    raise RuntimeError(f"remove settings profile card: {count}")
+text = text.replace('import { useAuth } from "@/context/AuthContext";\n', '')
+text = text.replace('  const { user } = useAuth();\n', '')
+write(path, text)
+
+
+# 6) Complaint status wording across dashboards, cards and translations.
+path = "mobile/context/LanguageContext.tsx"
+text = read(path)
+replacements = {
+    'active: "Active"': 'active: "In Progress"',
+    'pending: "Pending"': 'pending: "New Complaints"',
+    'submitted: "Submitted"': 'submitted: "New Complaint"',
+    'noActiveComplaints: "No Active Complaints"': 'noActiveComplaints: "No In Progress Complaints"',
+    'active: "सक्रिय"': 'active: "प्रगति में"',
+    'pending: "लंबित"': 'pending: "नई शिकायतें"',
+    'submitted: "जमा किया"': 'submitted: "नई शिकायत"',
+    'noActiveComplaints: "कोई सक्रिय शिकायत नहीं"': 'noActiveComplaints: "कोई प्रगति में शिकायत नहीं"',
+    'active: "सक्रिय"': 'active: "प्रगतीत"',
+    'pending: "प्रलंबित"': 'pending: "नवीन तक्रारी"',
+    'submitted: "सबमिट केले"': 'submitted: "नवीन तक्रार"',
+    'noActiveComplaints: "कोणतीही सक्रिय तक्रार नाही"': 'noActiveComplaints: "प्रगतीत तक्रार नाही"',
+}
+# Handle duplicate Hindi/Marathi source values deterministically by section.
+text = text.replace('active: "Active"', 'active: "In Progress"', 1)
+text = text.replace('pending: "Pending"', 'pending: "New Complaints"', 1)
+text = text.replace('submitted: "Submitted"', 'submitted: "New Complaint"', 1)
+text = text.replace('noActiveComplaints: "No Active Complaints"', 'noActiveComplaints: "No In Progress Complaints"', 1)
+text = text.replace('active: "सक्रिय"', 'active: "प्रगति में"', 1)
+text = text.replace('pending: "लंबित"', 'pending: "नई शिकायतें"', 1)
+text = text.replace('submitted: "जमा किया"', 'submitted: "नई शिकायत"', 1)
+text = text.replace('noActiveComplaints: "कोई सक्रिय शिकायत नहीं"', 'noActiveComplaints: "कोई प्रगति में शिकायत नहीं"', 1)
+text = text.replace('active: "सक्रिय"', 'active: "प्रगतीत"', 1)
+text = text.replace('pending: "प्रलंबित"', 'pending: "नवीन तक्रारी"', 1)
+text = text.replace('submitted: "सबमिट केले"', 'submitted: "नवीन तक्रार"', 1)
+text = text.replace('noActiveComplaints: "कोणतीही सक्रिय तक्रार नाही"', 'noActiveComplaints: "प्रगतीत तक्रार नाही"', 1)
+write(path, text)
+
+path = "mobile/app/super-admin/index.tsx"
+text = read(path)
+text = text.replace('submitted: "Pending"', 'submitted: "New Complaints"')
+text = text.replace('{ label: "Pending", value: stats.pending', '{ label: "New Complaints", value: stats.pending')
+text = text.replace('{ label: "Active", value: stats.inProgress', '{ label: "In Progress", value: stats.inProgress')
+text = text.replace('label="Pending" value={stats.pending}', 'label="New Complaints" value={stats.pending}')
+text = text.replace('openModal("pending", "Pending Complaints"', 'openModal("pending", "New Complaints"')
+write(path, text)
+
+path = "mobile/app/(tabs)/admin.tsx"
+text = read(path)
+text = text.replace('{ filter: "submitted", label: t("complaints")', '{ filter: "submitted", label: t("pending")')
+write(path, text)
+
+# Safe UI-only replacements in complaint-related mobile files. Backend enum/status values remain unchanged.
+for file in (ROOT / "mobile").rglob("*.tsx"):
+    if file.as_posix().endswith("super-admin/index.tsx") or file.as_posix().endswith("(tabs)/admin.tsx"):
+        continue
+    content = file.read_text()
+    if "complaint" not in content.lower():
+        continue
+    updated = content
+    updated = updated.replace('label: "Pending"', 'label: "New Complaints"')
+    updated = updated.replace('label="Pending"', 'label="New Complaints"')
+    updated = updated.replace('>Pending</Text>', '>New Complaints</Text>')
+    updated = updated.replace('"Pending Complaints"', '"New Complaints"')
+    updated = updated.replace('label: "Active"', 'label: "In Progress"')
+    updated = updated.replace('label="Active"', 'label="In Progress"')
+    updated = updated.replace('>Active</Text>', '>In Progress</Text>')
+    if updated != content:
+        file.write_text(updated)
+
+print("Focused broadcast edit, profile navigation and complaint wording fixes applied.")
