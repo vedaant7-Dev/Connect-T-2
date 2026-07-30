@@ -74,7 +74,7 @@ export default function SettingsScreen() {
         <View style={styles.group}>
           <StatusRow icon="git-branch" title="Complaint ward routing" status="Active" tone="active" description="Complaints are assigned using the verified citizen ward and approved officer mapping." />
           <StatusRow icon="smartphone" title="In-app broadcasts" status="Active" tone="active" description="Audience, ward, scheduling, delivery and read history are stored in MySQL." />
-          <StatusRow icon="bell-off" title="External push notifications" status="Not configured" tone="warning" description="No device-token registration or push provider is configured. The app does not report fake push success." />
+          <StatusRow icon="bell" title="Device notifications" status="Active" tone="active" description="Ward complaints, complaint progress, official news, broadcasts and utility updates are delivered through secure device tokens." />
           <StatusRow icon="tool" title="Maintenance mode" status="Not enabled" tone="info" description="The previous switch changed only local UI state and has been removed until a backend access policy is implemented." />
         </View>
 

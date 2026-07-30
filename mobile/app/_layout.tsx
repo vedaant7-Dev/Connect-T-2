@@ -19,6 +19,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplash, SplashPortal } from "@/components/AppSplash";
 import CivicBroadcastExperience from "@/components/CivicBroadcastExperience";
 import NetworkStatusBanner from "@/components/NetworkStatusBanner";
+import NotificationManager from "@/components/NotificationManager";
 import { ComplaintProvider } from "@/context/ComplaintContext";
 import { AlertProvider } from "@/context/AlertContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -185,6 +186,7 @@ export default function RootLayout() {
           <LanguageProvider>
             <AuthProvider>
               <ProtectedCacheResetter />
+              <NotificationManager />
               <AlertProvider>
                 <BroadcastProvider>
                   <ComplaintProvider>
