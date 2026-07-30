@@ -37,10 +37,36 @@ jobs:
 
       - name: Apply device-reported fixes
         run: |
+          sed -i 's/if new in text:/if new and new in text:/g' scripts/apply_job_role_session_standalone_v107.py
           sed -i 's/थेट बदल बंद आहे/थेट भूमिका बदल बंद आहे/g' scripts/apply_job_role_session_standalone_v107.py
           sed -i 's/सीधा बदलाव बंद है/सीधा भूमिका बदलाव बंद है/g' scripts/apply_job_role_session_standalone_v107.py
           sed -i 's/नौकरियों, आवेदनों और सत्यापित पहचान की सुरक्षा के लिए सीधा भूमिका बदलाव बंद है।/नौकरियाँ, आवेदन और सत्यापित पहचान सुरक्षित रखने के लिए सीधा भूमिका बदलाव बंद है।/g' scripts/apply_job_role_session_standalone_v107.py
           python3 scripts/apply_job_role_session_standalone_v107.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('mobile/i18n/jobsCopy.ts')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              'reasonWarning: "Super Admin approval is required. Existing records remain protected."': 'reasonWarning: "Your existing jobs, applications and profile remain saved when you switch roles."',
+              'submitRequest: "Submit request"': 'submitRequest: "Switch role"',
+              'requestSubmitted: "Request submitted"': 'requestSubmitted: "Role switched"',
+              'requestSubmittedBody: "Your request was sent to the Super Admin."': 'requestSubmittedBody: "Your selected Job Portal role is now active."',
+              'requestNotSubmitted: "Request not submitted"': 'requestNotSubmitted: "Role not switched"',
+              'reasonWarning: "सुपर ॲडमिनची मंजुरी आवश्यक आहे. विद्यमान नोंदी सुरक्षित राहतील."': 'reasonWarning: "भूमिका बदलल्यावर विद्यमान नोकऱ्या, अर्ज आणि प्रोफाइल माहिती सुरक्षित राहील."',
+              'submitRequest: "विनंती पाठवा"': 'submitRequest: "भूमिका बदला"',
+              'requestSubmitted: "विनंती पाठवली"': 'requestSubmitted: "भूमिका बदलली"',
+              'requestSubmittedBody: "तुमची विनंती सुपर ॲडमिनकडे पाठवली आहे."': 'requestSubmittedBody: "तुमची निवडलेली नोकरी पोर्टल भूमिका आता सक्रिय आहे."',
+              'requestNotSubmitted: "विनंती पाठवली नाही"': 'requestNotSubmitted: "भूमिका बदलली नाही"',
+              'reasonWarning: "सुपर एडमिन की मंजूरी आवश्यक है। मौजूदा रिकॉर्ड सुरक्षित रहेंगे।"': 'reasonWarning: "भूमिका बदलने पर मौजूदा नौकरियाँ, आवेदन और प्रोफ़ाइल सुरक्षित रहेंगे।"',
+              'submitRequest: "अनुरोध भेजें"': 'submitRequest: "भूमिका बदलें"',
+              'requestSubmitted: "अनुरोध भेजा गया"': 'requestSubmitted: "भूमिका बदली गई"',
+              'requestSubmittedBody: "आपका अनुरोध सुपर एडमिन को भेजा गया है।"': 'requestSubmittedBody: "आपकी चुनी गई जॉब पोर्टल भूमिका अब सक्रिय है।"',
+              'requestNotSubmitted: "अनुरोध नहीं भेजा गया"': 'requestNotSubmitted: "भूमिका नहीं बदली"',
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
           git diff --check
 
       - name: Install and test backend
