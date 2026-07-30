@@ -24,7 +24,7 @@ const PRODUCTION_PATCHES = [
   "./communityPreflightPatch.js",
   "./communityFeedPatch.js",
   "./jobPortalUnifiedCivicAuthPatch.js",
-  "./jobPortalSessionRecoveryPatch.js",
+  "./jobPortalUnifiedRolePatch.js",
   "./jobPortalLegacyAuthBlockPatch.js",
   "./jobPortalAuthPatch.js",
   "./jobPortalOnboardingPatch.js",
