@@ -1,0 +1,119 @@
+name: Build Latest Production Deliverables
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build APK and backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      EXPO_PUBLIC_API_URL: https://newapp.e-bjp.in
+      CONNECT_T_KEYSTORE_BASE64: ${{ secrets.CONNECT_T_RELEASE_KEYSTORE_BASE64 || secrets.ANDROID_KEYSTORE_BASE64 }}
+      CONNECT_T_STORE_PASSWORD: ${{ secrets.CONNECT_T_RELEASE_STORE_PASSWORD || secrets.ANDROID_STORE_PASSWORD }}
+      CONNECT_T_KEY_ALIAS: ${{ secrets.CONNECT_T_RELEASE_KEY_ALIAS || secrets.ANDROID_KEY_ALIAS }}
+      CONNECT_T_KEY_PASSWORD: ${{ secrets.CONNECT_T_RELEASE_KEY_PASSWORD || secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Checkout latest source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+
+      - name: Build optimized APK
+        shell: bash
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          chmod +x android/gradlew
+          mkdir -p ../artifacts
+
+          if [ -n "${CONNECT_T_KEYSTORE_BASE64:-}" ] \
+            && [ -n "${CONNECT_T_STORE_PASSWORD:-}" ] \
+            && [ -n "${CONNECT_T_KEY_ALIAS:-}" ] \
+            && [ -n "${CONNECT_T_KEY_PASSWORD:-}" ]; then
+            echo "$CONNECT_T_KEYSTORE_BASE64" | base64 --decode > android/app/connect-t-release.jks
+            export CONNECT_T_RELEASE_STORE_FILE="$GITHUB_WORKSPACE/mobile/android/app/connect-t-release.jks"
+            export CONNECT_T_RELEASE_STORE_PASSWORD="$CONNECT_T_STORE_PASSWORD"
+            export CONNECT_T_RELEASE_KEY_ALIAS="$CONNECT_T_KEY_ALIAS"
+            export CONNECT_T_RELEASE_KEY_PASSWORD="$CONNECT_T_KEY_PASSWORD"
+            cd android
+            ./gradlew clean :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+            cd ..
+            echo "production-signed" > ../artifacts/APK-SIGNING-MODE.txt
+          else
+            export CONNECT_T_RELEASE_STORE_FILE="$GITHUB_WORKSPACE/mobile/android/app/debug.keystore"
+            export CONNECT_T_RELEASE_STORE_PASSWORD="android"
+            export CONNECT_T_RELEASE_KEY_ALIAS="androiddebugkey"
+            export CONNECT_T_RELEASE_KEY_PASSWORD="android"
+            cd android
+            ./gradlew clean :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+            cd ..
+            echo "release-mode-debug-signed" > ../artifacts/APK-SIGNING-MODE.txt
+          fi
+
+          apk=$(find android/app/build/outputs/apk/release -name '*.apk' -type f | head -n 1)
+          test -n "$apk"
+          unzip -l "$apk" | grep 'assets/index.android.bundle' >/dev/null
+          cp "$apk" ../artifacts/Connect-T-v1.0.4-Latest-Release.apk
+          test -s ../artifacts/Connect-T-v1.0.4-Latest-Release.apk
+          git rev-parse HEAD > ../artifacts/SOURCE-COMMIT.txt
+
+      - name: Package latest backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/backend-package
+          rsync -a backend/ artifacts/backend-package/backend/ \
+            --exclude node_modules \
+            --exclude uploads \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude '*.log'
+          printf '%s\n' 'Deploy this backend while preserving the production .env file and existing uploads directory.' > artifacts/backend-package/DEPLOYMENT-NOTE.txt
+          printf '%s\n' "Source commit: $(git rev-parse HEAD)" >> artifacts/backend-package/DEPLOYMENT-NOTE.txt
+          cd artifacts/backend-package
+          zip -qr ../Connect-T-Backend-v1.0.4-Latest.zip .
+          cd ../..
+          test -s artifacts/Connect-T-Backend-v1.0.4-Latest.zip
+
+      - name: Upload latest APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Connect-T-Latest-Release-APK
+          path: |
+            artifacts/Connect-T-v1.0.4-Latest-Release.apk
+            artifacts/APK-SIGNING-MODE.txt
+            artifacts/SOURCE-COMMIT.txt
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload latest backend
+        uses: actions/upload-artifact@v4
+        with:
+          name: Connect-T-Latest-Backend
+          path: artifacts/Connect-T-Backend-v1.0.4-Latest.zip
+          if-no-files-found: error
+          retention-days: 7
