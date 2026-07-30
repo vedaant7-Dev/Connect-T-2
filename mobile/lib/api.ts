@@ -1,7 +1,7 @@
 import { apiUrl } from "@/constants/api";
 import { safeUserMessage } from "@/lib/errorSafety";
 import { connectivityErrorMessage } from "@/lib/networkStatus";
-import { deleteSessionSecret, getSessionSecret, setSessionSecret, JOB_PORTAL_IDENTITY_KEY } from "@/lib/secureSessionStorage";
+import { deleteSessionSecret, getSessionSecret, setSessionSecret } from "@/lib/secureSessionStorage";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 180_000;
@@ -53,6 +53,7 @@ export async function clearAuthToken() {
 }
 
 export async function storeJobsAuthToken(token?: string | null) {
+  // keep the function for compatibility but prefer using the main civic token
   if (!token) return;
   await setSessionSecret(JOB_AUTH_TOKEN_KEY, token);
   await deleteSessionSecret(OTP_VERIFICATION_KEY);
@@ -105,30 +106,21 @@ export async function getStoredJobsAuthToken() {
   return null;
 }
 
+// HARD-FIX: Simplify authentication so all job-portal requests use the single Civic
+// login token. This removes dependence on a separate Job Portal session token or
+// fragile OTP-only handoff. This implements "all work on one login" as requested.
 async function getAuthHeaders(path: string, body?: unknown, multipart = false) {
-  const [storedCivicToken, storedJobsToken, otpVerification] = await Promise.all([
-    getSessionSecret(AUTH_TOKEN_KEY),
-    getSessionSecret(JOB_AUTH_TOKEN_KEY),
-    getSessionSecret(OTP_VERIFICATION_KEY),
-  ]);
+  // Only prefer the main Civic token for every request. If it's expired or
+  // missing, no special Job Portal token will be used and requests will fail
+  // in the normal way (user will be asked to re-login).
+  const storedCivicToken = await getSessionSecret(AUTH_TOKEN_KEY);
   const civicToken = isUsableToken(storedCivicToken) ? storedCivicToken : null;
-  const jobsToken = isUsableToken(storedJobsToken) ? storedJobsToken : null;
 
   if (storedCivicToken && !civicToken) void deleteSessionSecret(AUTH_TOKEN_KEY);
-  if (storedJobsToken && !jobsToken) void deleteSessionSecret(JOB_AUTH_TOKEN_KEY);
-  const usesCivicOrJobsSession = path === "/api/job-portal/session" || path === "/api/job-portal/onboarding" || path === "/api/job-portal/switch-role";
-  const token = path.startsWith("/api/job-portal/") && !usesCivicOrJobsSession
-    ? isSuperAdminToken(civicToken)
-      ? civicToken
-      : jobsToken || civicToken
-    : usesCivicOrJobsSession
-      ? civicToken || jobsToken
-      : civicToken;
-  const headers: Record<string, string> = {};
 
+  const headers: Record<string, string> = {};
   if (body !== undefined && !multipart) headers["Content-Type"] = "application/json";
-  if (token) headers.Authorization = `Bearer ${token}`;
-  if (otpVerification) headers["X-OTP-Verification"] = otpVerification;
+  if (civicToken) headers.Authorization = `Bearer ${civicToken}`;
 
   return Object.keys(headers).length ? headers : undefined;
 }
@@ -212,15 +204,22 @@ async function assertResponse(res: Response, method: string, path: string) {
   });
 }
 
+// With the simplified auth model we don't need complex recovery for a second
+// job-portal token. Keep recoverJobsSession for compatibility but it will no-op
+// if there's no civic token available.
 function isRecoverableJobsPath(path: string) { return path.startsWith("/api/job-portal/") && path !== "/api/job-portal/session" && path !== "/api/job-portal/onboarding"; }
 async function recoverJobsSession() {
   if (jobsRecoveryPromise) return jobsRecoveryPromise;
   jobsRecoveryPromise = (async () => {
     const civicToken = await getStoredAuthToken(); if (!civicToken) return false;
-    const res = await fetchWithTimeout(apiUrl("/api/job-portal/session"), { method: "POST", headers: { Authorization: `Bearer ${civicToken}`, "Content-Type": "application/json" }, body: "{}" });
-    if (!res.ok) return false;
-    const data = await parseSuccess<any>(res, "POST", "/api/job-portal/session");
-    if (!data?.token) return false; await storeJobsAuthToken(data.token); return true;
+    try {
+      const res = await fetchWithTimeout(apiUrl("/api/job-portal/session"), { method: "POST", headers: { Authorization: `Bearer ${civicToken}`, "Content-Type": "application/json" }, body: "{}" });
+      if (!res.ok) return false;
+      const data = await parseSuccess<any>(res, "POST", "/api/job-portal/session");
+      if (!data?.token) return false; await storeJobsAuthToken(data.token); return true;
+    } catch {
+      return false;
+    }
   })().catch(() => false).finally(() => { jobsRecoveryPromise = null; });
   return jobsRecoveryPromise;
 }
@@ -269,24 +268,8 @@ async function request<T = any>(
       throw new ApiError(message, { code: "NETWORK_UNAVAILABLE", internalMessage });
     }
 
-    // If we got a 401 on a recoverable jobs path, attempt automatic session recovery
     if (res.status === 401 && isRecoverableJobsPath(path) && await recoverJobsSession()) {
       res = await fetchWithTimeout(url, { method, headers: await getAuthHeaders(path, body), body: body === undefined ? undefined : JSON.stringify(body) });
-    }
-
-    // If switch-role still returned 401 and we have a stored OTP-verified identity, retry with explicit X-OTP-Verification header.
-    // This helps when there is no backend token (you mentioned you don't have backend) but the client has the signed OTP identity.
-    if (res.status === 401 && path === "/api/job-portal/switch-role") {
-      try {
-        const verified = await getSessionSecret(JOB_PORTAL_IDENTITY_KEY);
-        if (verified) {
-          const baseHeaders = (await getAuthHeaders(path, body)) || {};
-          const headers = { ...baseHeaders, "X-OTP-Verification": verified } as Record<string, string>;
-          res = await fetchWithTimeout(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-        }
-      } catch {
-        // ignore and fall through to standard error handling
-      }
     }
 
     await assertResponse(res, method, path);
