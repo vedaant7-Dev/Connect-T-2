@@ -8,10 +8,38 @@ const BRIDGE_PATHS = [
   "/api/job-portal/switch-role",
 ];
 const INSTALL_FLAG = "__connectTJobPortalSessionBridgeInstalled";
+const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+function decodeBase64(value: string): string {
+  const input = String(value || "").replace(/\s+/g, "").replace(/=+$/g, "");
+  let output = "";
+  let buffer = 0;
+  let bits = 0;
+
+  for (const character of input) {
+    const index = BASE64_ALPHABET.indexOf(character);
+    if (index < 0) continue;
+    buffer = (buffer << 6) | index;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      output += String.fromCharCode((buffer >> bits) & 0xff);
+    }
+  }
+
+  return output;
+}
+
+function installNativeAtobFallback() {
+  const runtime = globalThis as any;
+  if (typeof runtime.atob !== "function") {
+    runtime.atob = (value: string) => decodeBase64(value);
+  }
+}
 
 function requestUrl(input: any): string {
   if (typeof input === "string") return input;
-  if (input instanceof URL) return input.toString();
+  if (typeof URL !== "undefined" && input instanceof URL) return input.toString();
   return String(input?.url || "");
 }
 
@@ -91,9 +119,6 @@ function installJobPortalSessionBridge() {
       if (response.status !== 401) return response;
     }
 
-    // A stale Civic token can coexist with a valid authenticated app session.
-    // Ask the backend to issue a fresh Job Portal token, then retry profile setup
-    // without making the citizen repeat OTP or lose the completed form.
     if (path !== "/api/job-portal/session" && civicToken) {
       const sessionUrl = sessionUrlFrom(url);
       if (sessionUrl) {
@@ -114,8 +139,7 @@ function installJobPortalSessionBridge() {
             }
           }
         } catch {
-          // Return the original server response so the normal safe error handling
-          // remains in control when automatic recovery is not possible.
+          // Return the original response so the normal safe error handler remains active.
         }
       }
     }
@@ -124,6 +148,7 @@ function installJobPortalSessionBridge() {
   };
 }
 
+installNativeAtobFallback();
 installJobPortalSessionBridge();
 
 export {};
