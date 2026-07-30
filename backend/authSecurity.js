@@ -102,7 +102,7 @@ function issueOtpProof(mobile, purpose) {
       purpose: String(purpose || "login"),
       jti: crypto.randomBytes(12).toString("hex"),
     },
-    10 * 60,
+    24 * 60 * 60,
   );
 }
 
