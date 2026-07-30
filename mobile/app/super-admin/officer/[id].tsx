@@ -167,8 +167,8 @@ export default function OfficerDetailScreen() {
 
         <View style={{ flexDirection: "row", gap: 7, marginTop: 16 }}>
           <StatCard label="Total" value={total} color="#2563EB" bg="#DBEAFE" />
-          <StatCard label="Pending" value={pending} color="#D97706" bg="#FEF3C7" />
-          <StatCard label="Active" value={active} color="#7C3AED" bg="#EDE9FE" />
+          <StatCard label="New Complaints" value={pending} color="#D97706" bg="#FEF3C7" />
+          <StatCard label="In Progress" value={active} color="#7C3AED" bg="#EDE9FE" />
           <StatCard label="Resolved" value={resolved} color="#059669" bg="#D1FAE5" />
         </View>
       </LinearGradient>

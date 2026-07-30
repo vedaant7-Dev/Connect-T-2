@@ -272,7 +272,7 @@ export default function AdminScreen() {
   const canPostUtility = !!assignedWard && !!utilityStartTime && !!utilityEndTime && !!utilityDescription.trim() && !utilitySaving;
 
   const dashboardFilters: { filter: ComplaintStatus; label: string; count: number; icon: string; color: string; bg: string }[] = [
-    { filter: "submitted", label: t("complaints"), count: pendingCount, icon: "file-text", color: "#C2410C", bg: "#FFEDD5" },
+    { filter: "submitted", label: t("pending"), count: pendingCount, icon: "file-text", color: "#C2410C", bg: "#FFEDD5" },
     { filter: "in_progress", label: t("inProgress"), count: activeCount, icon: "tool", color: "#7C3AED", bg: "#EDE9FE" },
     { filter: "resolved", label: t("resolved"), count: resolvedCount, icon: "check-circle", color: "#059669", bg: "#D1FAE5" },
     { filter: "rejected", label: t("rejected"), count: rejectedCount, icon: "x-circle", color: "#DC2626", bg: "#FEE2E2" },

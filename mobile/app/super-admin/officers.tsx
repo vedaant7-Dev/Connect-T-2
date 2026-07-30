@@ -168,7 +168,7 @@ export default function NagarsevakManagementScreen() {
         <View style={styles.statsRow}>
           {[
             { label: "Records", value: assignments.length },
-            { label: "Active", value: assignments.filter((item) => item.status === "active").length },
+            { label: "In Progress", value: assignments.filter((item) => item.status === "active").length },
             { label: "Wards", value: uniqueWards },
             { label: "Signed in", value: signedInCount },
           ].map((item, index) => (
