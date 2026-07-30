@@ -1,4 +1,8 @@
-import { getSessionSecret, setSessionSecret } from "@/lib/secureSessionStorage";
+import {
+  getSessionSecret,
+  JOB_PORTAL_IDENTITY_KEY,
+  setSessionSecret,
+} from "@/lib/secureSessionStorage";
 
 const CIVIC_TOKEN_KEY = "connect_t_auth_token_v1";
 const JOB_TOKEN_KEY = "connect_t_job_auth_token_v1";
@@ -56,9 +60,15 @@ function bearerFromHeaders(headersInit?: HeadersInit): string | null {
   }
 }
 
-function withBearer(init: RequestInit | undefined, token: string): RequestInit {
+function withIdentity(
+  init: RequestInit | undefined,
+  token?: string | null,
+  verifiedIdentity?: string | null,
+): RequestInit {
   const headers = new Headers(init?.headers || {});
-  headers.set("Authorization", `Bearer ${token}`);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  else headers.delete("Authorization");
+  if (verifiedIdentity) headers.set("X-OTP-Verification", verifiedIdentity);
   return { ...(init || {}), headers };
 }
 
@@ -73,15 +83,16 @@ function sessionUrlFrom(url: string): string | null {
   return `${url.slice(0, index)}/api/job-portal/session`;
 }
 
-async function readStoredTokens() {
+async function readStoredIdentity() {
   try {
-    const [civicToken, jobsToken] = await Promise.all([
+    const [civicToken, jobsToken, verifiedIdentity] = await Promise.all([
       getSessionSecret(CIVIC_TOKEN_KEY),
       getSessionSecret(JOB_TOKEN_KEY),
+      getSessionSecret(JOB_PORTAL_IDENTITY_KEY),
     ]);
-    return { civicToken, jobsToken };
+    return { civicToken, jobsToken, verifiedIdentity };
   } catch {
-    return { civicToken: null, jobsToken: null };
+    return { civicToken: null, jobsToken: null, verifiedIdentity: null };
   }
 }
 
@@ -106,36 +117,50 @@ function installJobPortalSessionBridge() {
     const path = bridgePath(url);
     if (!path) return originalFetch(input, init);
 
-    const { civicToken, jobsToken } = await readStoredTokens();
+    const { civicToken, jobsToken, verifiedIdentity } = await readStoredIdentity();
     const currentToken = bearerFromHeaders(init?.headers);
     const candidates = uniqueTokens([currentToken, jobsToken, civicToken]);
     let lastResponse: Response | null = null;
 
-    if (!candidates.length) return originalFetch(input, init);
-
+    // Try every available bearer token, always carrying the already verified OTP
+    // identity as a fallback. This makes profile setup independent of Civic session
+    // refreshes while keeping the citizen mobile cryptographically verified.
     for (const token of candidates) {
-      const response = await originalFetch(input, withBearer(init, token));
+      const response = await originalFetch(input, withIdentity(init, token, verifiedIdentity));
       lastResponse = response;
       if (response.status !== 401) return response;
     }
 
-    if (path !== "/api/job-portal/session" && civicToken) {
+    // First-time Job Portal users may not have any bearer token accepted by the
+    // current backend deployment. The verified mobile identity is sufficient for
+    // these three bridge routes and does not require another login or approval.
+    if (verifiedIdentity) {
+      const response = await originalFetch(input, withIdentity(init, null, verifiedIdentity));
+      lastResponse = response;
+      if (response.status !== 401) return response;
+    }
+
+    if (path !== "/api/job-portal/session" && (civicToken || verifiedIdentity)) {
       const sessionUrl = sessionUrlFrom(url);
       if (sessionUrl) {
         try {
-          const sessionResponse = await originalFetch(sessionUrl, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${civicToken}`,
-              "Content-Type": "application/json",
-            },
-            body: "{}",
-          });
+          const sessionResponse = await originalFetch(
+            sessionUrl,
+            withIdentity(
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+              },
+              civicToken,
+              verifiedIdentity,
+            ),
+          );
           if (sessionResponse.ok) {
             const refreshedToken = await extractToken(sessionResponse);
             if (refreshedToken) {
               await setSessionSecret(JOB_TOKEN_KEY, refreshedToken);
-              return originalFetch(input, withBearer(init, refreshedToken));
+              return originalFetch(input, withIdentity(init, refreshedToken, verifiedIdentity));
             }
           }
         } catch {
@@ -144,7 +169,7 @@ function installJobPortalSessionBridge() {
       }
     }
 
-    return lastResponse || originalFetch(input, init);
+    return lastResponse || originalFetch(input, withIdentity(init, null, verifiedIdentity));
   };
 }
 
