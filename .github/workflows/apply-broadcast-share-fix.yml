@@ -1,21 +1,21 @@
 name: Apply Broadcast Share Fix
 
 on:
-  push:
+  pull_request:
     branches: [main]
-    paths:
-      - .github/workflows/apply-broadcast-share-fix.yml
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: ${{ github.head_ref == 'fix/broadcast-share-actions' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: fix/broadcast-share-actions
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
@@ -30,9 +30,11 @@ jobs:
                   raise RuntimeError(f"Missing source block: {label}")
               return text.replace(old, new, 1)
 
-          # Shared media viewer: callers can hide inline Save/Share and fullscreen Share.
           path = Path('mobile/components/ComplaintMediaViewer.tsx')
           text = path.read_text()
+          if 'showInlineSaveAction?: boolean;' in text:
+              print('Broadcast share fix already applied.')
+              raise SystemExit(0)
           text = replace_once(text,
               '  showInlineViewAction?: boolean;\n  rightActions?: React.ReactNode;',
               '  showInlineViewAction?: boolean;\n  showInlineSaveAction?: boolean;\n  showInlineShareAction?: boolean;\n  showFullScreenSaveAction?: boolean;\n  showFullScreenShareAction?: boolean;\n  rightActions?: React.ReactNode;',
@@ -83,7 +85,6 @@ jobs:
               'right actions only style')
           path.write_text(text)
 
-          # Broadcast Center: Share the complete post, remove inline Save, and keep fullscreen Save only.
           path = Path('mobile/screens/BroadcastCenterMediaScreen.tsx')
           text = path.read_text()
           text = replace_once(text,
@@ -99,15 +100,7 @@ jobs:
 async function shareBroadcast(item: AppBroadcast) {
   const category = CATEGORIES.find((entry) => entry.key === item.category)?.label || "Announcement";
   const mediaUrl = resolveComplaintMediaUri(item.mediaUri);
-  const message = [
-    item.title,
-    item.body,
-    `Category: ${category}`,
-    `Audience: ${item.ward || "All wards"}`,
-    `Posted by: ${item.createdByName || "Connect-T"}`,
-    mediaUrl ? `Media: ${mediaUrl}` : "",
-    "— Connect-T",
-  ].filter(Boolean).join("\\n\\n");
+  const message = [item.title, item.body, `Category: ${category}`, `Audience: ${item.ward || "All wards"}`, `Posted by: ${item.createdByName || "Connect-T"}`, mediaUrl ? `Media: ${mediaUrl}` : "", "— Connect-T"].filter(Boolean).join("\\n\\n");
   try {
     const navigatorObject = (globalThis as any).navigator;
     if (Platform.OS === "web" && navigatorObject?.share) await navigatorObject.share({ title: item.title, text: message, url: mediaUrl || undefined });
@@ -133,7 +126,6 @@ async function shareBroadcast(item: AppBroadcast) {
               'broadcast share styles')
           path.write_text(text)
 
-          # Citizen News feed: media cards have no Save button; Share sends title, description and media link.
           path = Path('mobile/app/(tabs)/feed.tsx')
           text = path.read_text()
           text = replace_once(text,
@@ -149,23 +141,25 @@ async function shareBroadcast(item: AppBroadcast) {
               '<ComplaintMediaViewer uri={item.media.uri} title={item.title} label={item.media.type === "video" ? "Official video" : "Official image"} autoPlay active={active} showInlineSaveAction={false} showInlineShareAction={false} showFullScreenShareAction={false} />',
               'alert media flags')
           text = text.replace('onPress={() => void shareText(item.title, item.body)}', 'onPress={() => void shareText(item.title, item.body, item.media?.uri)}', 1)
-          old_broadcast_media = '<ComplaintMediaViewer uri={item.mediaUri} title={item.title} label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"} autoPlay active={active} />'
-          new_broadcast_media = '<ComplaintMediaViewer uri={item.mediaUri} title={item.title} label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"} autoPlay active={active} showInlineSaveAction={false} showInlineShareAction={false} showFullScreenShareAction={false} />'
-          text = replace_once(text, old_broadcast_media, new_broadcast_media, 'broadcast feed media flags')
+          text = replace_once(text,
+              '<ComplaintMediaViewer uri={item.mediaUri} title={item.title} label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"} autoPlay active={active} />',
+              '<ComplaintMediaViewer uri={item.mediaUri} title={item.title} label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"} autoPlay active={active} showInlineSaveAction={false} showInlineShareAction={false} showFullScreenShareAction={false} />',
+              'broadcast feed media flags')
           target = ': null}<View style={styles.broadcastFooter}><View style={styles.newsInfoChip}'
           replacement = ': null}<TouchableOpacity style={styles.officialShare} onPress={() => void shareText(item.title, item.body, item.mediaUri)}><Feather name="share-2" size={14} color="#059669" /><Text style={styles.officialShareText}>Share official update</Text></TouchableOpacity><View style={styles.broadcastFooter}><View style={styles.newsInfoChip}'
-          if target not in text:
-              raise RuntimeError('Missing source block: broadcast feed share action')
-          text = text.replace(target, replacement, 1)
+          text = replace_once(text, target, replacement, 'broadcast feed share action')
           path.write_text(text)
           PY
 
-      - name: Commit fix and remove temporary workflow
+      - name: Commit focused fix
         shell: bash
         run: |
-          rm -f .github/workflows/apply-broadcast-share-fix.yml
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mobile/components/ComplaintMediaViewer.tsx mobile/screens/BroadcastCenterMediaScreen.tsx 'mobile/app/(tabs)/feed.tsx' .github/workflows/apply-broadcast-share-fix.yml
+          git add mobile/components/ComplaintMediaViewer.tsx mobile/screens/BroadcastCenterMediaScreen.tsx 'mobile/app/(tabs)/feed.tsx'
           git commit -m "Fix broadcast news share and media actions [skip ci]"
-          git push origin main
+          git push origin HEAD:${GITHUB_HEAD_REF}
