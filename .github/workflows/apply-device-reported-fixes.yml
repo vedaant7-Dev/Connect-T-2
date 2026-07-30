@@ -14,21 +14,25 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ github.head_ref == 'fix/schema-health-v111' }}
+    if: ${{ github.head_ref == 'fix/device-reported-flows-v105' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/schema-health-v111
+          ref: fix/device-reported-flows-v105
           fetch-depth: 0
-      - name: Correct schema health table list
+      - name: Apply focused device fixes
         shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/fix_schema_health_v111.py
+          if grep -q 'DEVICE_REPORTED_FIXES_V105' mobile/components/ComplaintMediaViewer.tsx 2>/dev/null; then
+            echo "Device fixes already applied."
+            exit 0
+          fi
+          python3 scripts/apply_device_reported_fixes.py
           git diff --check
           git config user.name "Connect-T Automation"
           git config user.email "actions@users.noreply.github.com"
-          git add backend
-          git commit -m "Correct Job Portal applications table in schema health"
-          git push origin HEAD:fix/schema-health-v111
+          git add backend mobile
+          git commit -m "Fix device media, profiles, sessions and civic news"
+          git push origin HEAD:fix/device-reported-flows-v105
