@@ -14,25 +14,25 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ github.head_ref == 'fix/device-reported-flows-v105' }}
+    if: ${{ github.head_ref == 'fix/jobs-single-overview-v110' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/device-reported-flows-v105
+          ref: fix/jobs-single-overview-v110
           fetch-depth: 0
-      - name: Apply focused device fixes
+      - name: Simplify Jobs dashboard
         shell: bash
         run: |
           set -euo pipefail
-          if grep -q 'DEVICE_REPORTED_FIXES_V105' mobile/components/ComplaintMediaViewer.tsx 2>/dev/null; then
-            echo "Device fixes already applied."
+          if grep -q 'JOBS_SINGLE_OVERVIEW_V110' mobile/app/super-admin/jobs.tsx 2>/dev/null; then
+            echo "Jobs screen already updated."
             exit 0
           fi
-          python3 scripts/apply_device_reported_fixes.py
+          python3 scripts/apply_jobs_single_overview_v110.py
           git diff --check
           git config user.name "Connect-T Automation"
           git config user.email "actions@users.noreply.github.com"
-          git add backend mobile
-          git commit -m "Fix device media, profiles, sessions and civic news"
-          git push origin HEAD:fix/device-reported-flows-v105
+          git add mobile
+          git commit -m "Simplify Jobs dashboard and show analytics inline"
+          git push origin HEAD:fix/jobs-single-overview-v110
