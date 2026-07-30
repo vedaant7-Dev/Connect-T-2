@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -89,9 +88,7 @@ export default function LocalizedJobProfileSetupScreen() {
   const c = (key: JobsCopyKey) => jobsCopy(language, key);
 
   const [role, setRole] = useState<JobsUserRole | null>(null);
-  const [pendingRole, setPendingRole] = useState<JobsUserRole | null>(null);
   const [roleConfirmed, setRoleConfirmed] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [name, setName] = useState(user?.name || "");
   const [location, setLocation] = useState(user?.address || "");
   const [qualification, setQualification] = useState("");
@@ -125,21 +122,13 @@ export default function LocalizedJobProfileSetupScreen() {
   const roleLabel = (value: JobsUserRole | null) => value === "employer" ? c("employer") : c("jobSeeker");
 
   const chooseRole = (nextRole: JobsUserRole) => {
-    setPendingRole(nextRole);
-    setShowConfirm(true);
-    setError("");
-  };
-
-  const confirmRole = () => {
-    if (!pendingRole) return;
-    setRole(pendingRole);
+    setRole(nextRole);
     setRoleConfirmed(true);
-    setShowConfirm(false);
+    setError("");
   };
 
   const resetRole = () => {
     setRole(null);
-    setPendingRole(null);
     setRoleConfirmed(false);
     setError("");
   };
@@ -243,13 +232,13 @@ export default function LocalizedJobProfileSetupScreen() {
                 <Text style={s.sectionTitle}>{c("usageQuestion")}</Text>
                 <Text style={s.sectionHelp}>{c("chooseCarefully")}</Text>
                 <View style={s.roleRow}>
-                  <RoleCard role="seeker" selected={pendingRole === "seeker"} title={c("jobSeeker")} subtitle={c("seekerSub")} onPress={() => chooseRole("seeker")} />
-                  <RoleCard role="employer" selected={pendingRole === "employer"} title={c("employer")} subtitle={c("employerSub")} onPress={() => chooseRole("employer")} />
+                  <RoleCard role="seeker" selected={role === "seeker"} title={c("jobSeeker")} subtitle={c("seekerSub")} onPress={() => chooseRole("seeker")} />
+                  <RoleCard role="employer" selected={role === "employer"} title={c("employer")} subtitle={c("employerSub")} onPress={() => chooseRole("employer")} />
                 </View>
               </>
             ) : (
               <View style={s.lockedRoleBox}>
-                <View style={s.lockedRoleIcon}><Feather name="lock" size={20} color={ORANGE} /></View>
+                <View style={s.lockedRoleIcon}><Feather name="repeat" size={20} color={ORANGE} /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.lockedRoleLabel}>{c("confirmedRole").toUpperCase()}</Text>
                   <Text style={s.lockedRoleTitle}>{roleLabel(role)}</Text>
@@ -306,19 +295,6 @@ export default function LocalizedJobProfileSetupScreen() {
         </AppScrollView>
       </KeyboardAvoidingView>
 
-      <Modal visible={showConfirm} transparent animationType="fade" onRequestClose={() => setShowConfirm(false)}>
-        <View style={s.modalOverlay} accessibilityViewIsModal>
-          <View style={s.modalCard}>
-            <View style={s.modalIcon}><Feather name="alert-triangle" size={26} color={ORANGE} /></View>
-            <Text style={s.modalTitle}>{c("confirmPrefix")} {roleLabel(pendingRole)}</Text>
-            <Text style={s.modalText}>{c("roleLockWarning")}</Text>
-            <View style={s.modalActions}>
-              <TouchableOpacity onPress={() => setShowConfirm(false)} style={s.cancelBtn}><Text style={s.cancelText}>{c("goBack")}</Text></TouchableOpacity>
-              <TouchableOpacity onPress={confirmRole} style={s.confirmBtn}><Text style={s.confirmText}>{c("confirmRole")}</Text></TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
