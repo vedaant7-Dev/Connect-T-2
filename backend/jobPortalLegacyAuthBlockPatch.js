@@ -1,18 +1,17 @@
 "use strict";
 
-// Connect-T uses one verified Civic account and creates/restores the Job Portal
-// session from that identity. The old standalone register/login endpoints could
-// create a second profile outside the governed role-lock workflow, so they are
-// intentionally retired while `/session` and `/onboarding` remain active.
+// Connect-T now uses one Civic login for Civic services and Job Portal. The old
+// standalone register, login and session endpoints are permanently retired.
 
 let installed = false;
 
 function retiredAuthRoute(_req, res) {
   return res.status(410).json({
     success: false,
-    code: "JOB_PORTAL_LEGACY_AUTH_DISABLED",
-    error: "Use your verified Connect-T Civic login, then open Job Portal from the portal switcher.",
-    message: "Use your verified Connect-T Civic login, then open Job Portal from the portal switcher.",
+    code: "JOB_PORTAL_STANDALONE_AUTH_REMOVED",
+    error: "Use the main Connect-T login and open Job Portal from the portal switcher.",
+    message: "Use the main Connect-T login and open Job Portal from the portal switcher.",
+    authMode: "unified_civic",
   });
 }
 
@@ -25,7 +24,8 @@ try {
     installed = true;
     originalPost.call(app, "/api/job-portal/register", retiredAuthRoute);
     originalPost.call(app, "/api/job-portal/login", retiredAuthRoute);
-    console.log("[JobPortalLegacyAuthBlockPatch] standalone Job Portal register/login disabled");
+    originalPost.call(app, "/api/job-portal/session", retiredAuthRoute);
+    console.log("[JobPortalLegacyAuthBlockPatch] standalone Job Portal auth removed");
   }
 
   express.application.post = function patchedPost(routePath, ...handlers) {
@@ -36,6 +36,4 @@ try {
   console.warn("[JobPortalLegacyAuthBlockPatch] route hook disabled", error?.message || "unknown_error");
 }
 
-module.exports = {
-  retiredAuthRoute,
-};
+module.exports = { retiredAuthRoute };
