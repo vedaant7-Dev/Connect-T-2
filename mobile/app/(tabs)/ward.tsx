@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth, User } from "@/context/AuthContext";
 import { useComplaints } from "@/context/ComplaintContext";
 import { wardMatchesNagarsevak } from "@/data/wards";
+import { apiGet, getUserErrorMessage } from "@/lib/api";
 
 const GREEN = "#16A34A";
 const BG = "#ebeffc";
@@ -31,20 +33,40 @@ export default function NagarsevakWardScreen() {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<CitizenSummary | null>(null);
+  const [loadError, setLoadError] = useState("");
 
-  const loadUsers = async () => {
-    try {
-      const raw = await AsyncStorage.getItem(USERS_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      setUsers(Array.isArray(parsed) ? parsed : []);
-    } catch {
-      setUsers([]);
-    }
-  };
-
-  useEffect(() => {
-    loadUsers();
+  const loadLocalFallback = useCallback(async () => {
+    const raw = await AsyncStorage.getItem(USERS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed as User[] : [];
   }, []);
+
+  const loadUsers = useCallback(async () => {
+    try {
+      const result = await apiGet<{ users?: User[] }>("/api/ward-members");
+      const backendUsers = Array.isArray(result.users) ? result.users : [];
+      setUsers(backendUsers);
+      setLoadError("");
+      await AsyncStorage.setItem(USERS_KEY, JSON.stringify(backendUsers));
+    } catch (error) {
+      try {
+        setUsers(await loadLocalFallback());
+      } catch {
+        setUsers([]);
+      }
+      setLoadError(getUserErrorMessage(error, "Ward members could not be loaded. Tap Retry after the backend is updated."));
+    }
+  }, [loadLocalFallback]);
+
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.allSettled([loadUsers(), refreshComplaints()]);
+    setRefreshing(false);
+  }, [loadUsers, refreshComplaints]);
+
+  useFocusEffect(useCallback(() => {
+    void refreshAll();
+  }, [refreshAll]));
 
   const wardMembers = useMemo<CitizenSummary[]>(() => {
     const nagarsevakWard = user?.ward || "";
@@ -78,7 +100,7 @@ export default function NagarsevakWardScreen() {
             <Text style={styles.title}>{user?.ward || "My Ward"}</Text>
             <Text style={styles.sub}>Registered citizens and complaint activity</Text>
           </View>
-          <TouchableOpacity style={styles.refreshBtn} onPress={loadUsers} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.refreshBtn} onPress={() => void refreshAll()} activeOpacity={0.85}>
             <Feather name="refresh-cw" size={18} color="white" />
           </TouchableOpacity>
         </View>
@@ -95,9 +117,17 @@ export default function NagarsevakWardScreen() {
         {search.length > 0 && <TouchableOpacity onPress={() => setSearch("")}><Feather name="x" size={16} color="#94A3B8" /></TouchableOpacity>}
       </View>
 
+      {loadError ? (
+        <TouchableOpacity style={styles.errorBanner} onPress={() => void refreshAll()} activeOpacity={0.84}>
+          <Feather name="alert-circle" size={15} color="#B45309" />
+          <Text style={styles.errorText}>{loadError}</Text>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      ) : null}
+
       <FlatList
         refreshing={refreshing}
-        onRefresh={async () => { setRefreshing(true); await Promise.all([loadUsers(), refreshComplaints()]); setRefreshing(false); }}
+        onRefresh={refreshAll}
         data={wardMembers}
         keyExtractor={(item) => item.id || item.mobile}
         contentContainerStyle={{ padding: 14, paddingBottom: Math.max(insets.bottom, 8) + 92 }}
@@ -116,7 +146,7 @@ export default function NagarsevakWardScreen() {
             <Feather name="chevron-right" size={18} color="#CBD5E1" />
           </TouchableOpacity>
         )}
-        ListEmptyComponent={<View style={styles.empty}><Feather name="users" size={38} color="#CBD5E1" /><Text style={styles.emptyTitle}>No ward members found</Text><Text style={styles.emptySub}>Citizens registered in your ward will appear here.</Text></View>}
+        ListEmptyComponent={<View style={styles.empty}><Feather name="users" size={38} color="#CBD5E1" /><Text style={styles.emptyTitle}>No ward members found</Text><Text style={styles.emptySub}>{loadError ? "Tap Retry after deploying the latest backend." : "Citizens registered in your ward will appear here."}</Text></View>}
       />
 
       <Modal visible={!!selected} transparent animationType="slide" onRequestClose={() => setSelected(null)}>
@@ -165,6 +195,9 @@ const styles = StyleSheet.create({
   statLabel: { color: "rgba(255,255,255,0.72)", fontSize: 10, fontFamily: "Inter_600SemiBold" },
   searchBox: { margin: 14, marginBottom: 0, backgroundColor: "white", borderRadius: 15, paddingHorizontal: 13, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 8, elevation: 2, shadowColor: "#166534", shadowOpacity: 0.06, shadowRadius: 8 },
   searchInput: { flex: 1, color: "#0F172A", fontSize: 13, fontFamily: "Inter_400Regular" },
+  errorBanner: { marginHorizontal: 14, marginTop: 10, minHeight: 46, borderRadius: 14, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFFBEB", borderWidth: 1, borderColor: "#FDE68A" },
+  errorText: { flex: 1, color: "#92400E", fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_500Medium" },
+  retryText: { color: "#B45309", fontSize: 10.5, fontFamily: "Inter_700Bold" },
   card: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "white", borderRadius: 18, padding: 14, marginBottom: 10, elevation: 2, shadowColor: "#166534", shadowOpacity: 0.05, shadowRadius: 8 },
   avatar: { width: 46, height: 46, borderRadius: 16, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#166534", fontSize: 15, fontFamily: "Inter_700Bold" },
