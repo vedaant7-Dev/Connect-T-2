@@ -1,7 +1,7 @@
 import { apiUrl } from "@/constants/api";
 import { safeUserMessage } from "@/lib/errorSafety";
 import { connectivityErrorMessage } from "@/lib/networkStatus";
-import { deleteSessionSecret, getSessionSecret, setSessionSecret } from "@/lib/secureSessionStorage";
+import { deleteSessionSecret, getSessionSecret, setSessionSecret, JOB_PORTAL_IDENTITY_KEY } from "@/lib/secureSessionStorage";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 180_000;
@@ -269,9 +269,26 @@ async function request<T = any>(
       throw new ApiError(message, { code: "NETWORK_UNAVAILABLE", internalMessage });
     }
 
+    // If we got a 401 on a recoverable jobs path, attempt automatic session recovery
     if (res.status === 401 && isRecoverableJobsPath(path) && await recoverJobsSession()) {
       res = await fetchWithTimeout(url, { method, headers: await getAuthHeaders(path, body), body: body === undefined ? undefined : JSON.stringify(body) });
     }
+
+    // If switch-role still returned 401 and we have a stored OTP-verified identity, retry with explicit X-OTP-Verification header.
+    // This helps when there is no backend token (you mentioned you don't have backend) but the client has the signed OTP identity.
+    if (res.status === 401 && path === "/api/job-portal/switch-role") {
+      try {
+        const verified = await getSessionSecret(JOB_PORTAL_IDENTITY_KEY);
+        if (verified) {
+          const baseHeaders = (await getAuthHeaders(path, body)) || {};
+          const headers = { ...baseHeaders, "X-OTP-Verification": verified } as Record<string, string>;
+          res = await fetchWithTimeout(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+        }
+      } catch {
+        // ignore and fall through to standard error handling
+      }
+    }
+
     await assertResponse(res, method, path);
     return parseSuccess<T>(res, method, path);
   })();
