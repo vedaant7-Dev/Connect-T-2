@@ -30,6 +30,7 @@ jobs:
             exit 0
           fi
           python3 scripts/apply_admin_users_community_v112.py
+          sed -i 's/[[:space:]]\+$//' mobile/app/super-admin/jobs.tsx mobile/app/super-admin/index.tsx mobile/app/'(tabs)'/admin.tsx backend/server.js
           git diff --check
           git config user.name "Connect-T Automation"
           git config user.email "actions@users.noreply.github.com"
