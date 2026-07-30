@@ -11,6 +11,7 @@ const PRODUCTION_PATCHES = [
   "./utilityStatusActionsPatch.js",
   "./utilityStatusPatch.js",
   "./nagarsevakWardAssignmentPatch.js",
+  "./wardMembersPatch.js",
   "./alertPartialUpdatePatch.js",
   "./alertGovernancePatch.js",
   "./alertMutationPatch.js",
