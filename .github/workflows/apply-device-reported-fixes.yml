@@ -25,11 +25,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -q 'JOBS_DASHBOARD_POLISH_V111' mobile/app/super-admin/jobs.tsx 2>/dev/null; then
+          if grep -q 'JOBS_DASHBOARD_POLISH_V112' mobile/app/super-admin/jobs.tsx 2>/dev/null; then
             echo "Jobs dashboard polish already applied."
             exit 0
           fi
-          python3 scripts/apply_jobs_dashboard_polish_v111.py
+          python3 scripts/apply_jobs_dashboard_polish_v112.py
           git diff --check
           git config user.name "Connect-T Automation"
           git config user.email "actions@users.noreply.github.com"
