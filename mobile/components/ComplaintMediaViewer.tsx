@@ -27,6 +27,10 @@ type Props = {
   label?: string;
   accentColor?: string;
   showInlineViewAction?: boolean;
+  showInlineSaveAction?: boolean;
+  showInlineShareAction?: boolean;
+  showFullScreenSaveAction?: boolean;
+  showFullScreenShareAction?: boolean;
   rightActions?: React.ReactNode;
   autoPlay?: boolean;
   active?: boolean;
@@ -204,6 +208,10 @@ export default function ComplaintMediaViewer({
   label = "Complaint evidence",
   accentColor = "#EA580C",
   showInlineViewAction = true,
+  showInlineSaveAction = true,
+  showInlineShareAction = true,
+  showFullScreenSaveAction = true,
+  showFullScreenShareAction = true,
   rightActions,
   autoPlay = false,
   active = false,
@@ -213,6 +221,7 @@ export default function ComplaintMediaViewer({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [busyAction, setBusyAction] = useState<"save" | "share" | null>(null);
   const compactActionRow = !!rightActions;
+  const hasInlineActions = showInlineViewAction || showInlineSaveAction || showInlineShareAction;
 
   if (!safeUri) return null;
 
@@ -293,16 +302,18 @@ export default function ComplaintMediaViewer({
           <Feather name={kind === "video" ? "video" : "image"} size={15} color="#64748B" />
           <Text style={styles.captionText} numberOfLines={1}>{label}</Text>
         </View>
-        <View style={[styles.actionBar, compactActionRow && styles.actionBarCompact]}>
-          <View style={[styles.inlineActions, compactActionRow && styles.actionGroupCompact]}>
-            {showInlineViewAction ? (
-              <ActionButton icon="eye" label="View" onPress={() => setViewerOpen(true)} accentColor={accentColor} compact={compactActionRow} />
-            ) : null}
-            <ActionButton icon="download" label="Save" onPress={saveMedia} busy={busyAction === "save"} accentColor={accentColor} compact={compactActionRow} />
-            <ActionButton icon="share-2" label="Share" onPress={shareMedia} busy={busyAction === "share"} accentColor={accentColor} compact={compactActionRow} />
+        {hasInlineActions || rightActions ? (
+          <View style={[styles.actionBar, compactActionRow && styles.actionBarCompact]}>
+            {hasInlineActions ? <View style={[styles.inlineActions, compactActionRow && styles.actionGroupCompact]}>
+              {showInlineViewAction ? (
+                <ActionButton icon="eye" label="View" onPress={() => setViewerOpen(true)} accentColor={accentColor} compact={compactActionRow} />
+              ) : null}
+              {showInlineSaveAction ? <ActionButton icon="download" label="Save" onPress={saveMedia} busy={busyAction === "save"} accentColor={accentColor} compact={compactActionRow} /> : null}
+              {showInlineShareAction ? <ActionButton icon="share-2" label="Share" onPress={shareMedia} busy={busyAction === "share"} accentColor={accentColor} compact={compactActionRow} /> : null}
+            </View> : null}
+            {rightActions ? <View style={[styles.rightActions, compactActionRow && styles.rightActionsCompact, !hasInlineActions && styles.rightActionsOnly]}>{rightActions}</View> : null}
           </View>
-          {rightActions ? <View style={[styles.rightActions, compactActionRow && styles.rightActionsCompact]}>{rightActions}</View> : null}
-        </View>
+        ) : null}
       </View>
 
       <Modal visible={viewerOpen} animationType="fade" presentationStyle="fullScreen" statusBarTranslucent onRequestClose={() => setViewerOpen(false)}>
@@ -319,10 +330,10 @@ export default function ComplaintMediaViewer({
           <View style={styles.mediaStage}>
             {kind === "video" ? <FullScreenVideo uri={safeUri} /> : <Image source={{ uri: safeUri }} style={styles.fullMedia} resizeMode="contain" />}
           </View>
-          <View style={styles.modalActions}>
-            <ActionButton icon="download" label="Save" onPress={saveMedia} busy={busyAction === "save"} accentColor="white" />
-            <ActionButton icon="share-2" label="Share" onPress={shareMedia} busy={busyAction === "share"} accentColor="white" />
-          </View>
+          {showFullScreenSaveAction || showFullScreenShareAction ? <View style={styles.modalActions}>
+            {showFullScreenSaveAction ? <ActionButton icon="download" label="Save" onPress={saveMedia} busy={busyAction === "save"} accentColor="white" /> : null}
+            {showFullScreenShareAction ? <ActionButton icon="share-2" label="Share" onPress={shareMedia} busy={busyAction === "share"} accentColor="white" /> : null}
+          </View> : null}
         </View>
       </Modal>
     </View>
@@ -354,6 +365,7 @@ const styles = StyleSheet.create({
   actionGroupCompact: { flex: 1, minWidth: 0, gap: 5 },
   rightActions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 6 },
   rightActionsCompact: { flexShrink: 1, minWidth: 0, gap: 5 },
+  rightActionsOnly: { flex: 1, width: "100%", justifyContent: "flex-end" },
   actionButton: { minHeight: 42, minWidth: 70, paddingHorizontal: 10, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "rgba(148,163,184,0.1)" },
   actionButtonCompact: { flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 7, borderRadius: 10, gap: 4 },
   actionText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
