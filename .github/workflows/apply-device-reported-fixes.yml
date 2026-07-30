@@ -14,25 +14,21 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ github.head_ref == 'fix/jobs-dashboard-v111' }}
+    if: ${{ github.head_ref == 'fix/schema-health-v111' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/jobs-dashboard-v111
+          ref: fix/schema-health-v111
           fetch-depth: 0
-      - name: Apply Jobs dashboard and citizen directory fixes
+      - name: Correct schema health table list
         shell: bash
         run: |
           set -euo pipefail
-          if grep -q 'JOBS_DASHBOARD_V111' mobile/app/super-admin/jobs.tsx 2>/dev/null; then
-            echo "Jobs dashboard fixes already applied."
-            exit 0
-          fi
-          python3 scripts/apply_jobs_dashboard_v111.py
+          python3 scripts/fix_schema_health_v111.py
           git diff --check
           git config user.name "Connect-T Automation"
           git config user.email "actions@users.noreply.github.com"
-          git add backend mobile
-          git commit -m "Fix Jobs dashboard metrics and add paginated citizen directory"
-          git push origin HEAD:fix/jobs-dashboard-v111
+          git add backend
+          git commit -m "Correct Job Portal applications table in schema health"
+          git push origin HEAD:fix/schema-health-v111
