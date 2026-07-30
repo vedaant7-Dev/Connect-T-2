@@ -14,25 +14,28 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ github.head_ref == 'fix/device-reported-flows-v105' }}
+    if: ${{ github.head_ref == 'feature/production-notifications-v108' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/device-reported-flows-v105
+          ref: feature/production-notifications-v108
           fetch-depth: 0
-      - name: Apply focused device fixes
+      - name: Apply production notifications
         shell: bash
         run: |
           set -euo pipefail
-          if grep -q 'DEVICE_REPORTED_FIXES_V105' mobile/components/ComplaintMediaViewer.tsx 2>/dev/null; then
-            echo "Device fixes already applied."
+          if grep -q 'production notification routes active' backend/notificationSystemPatch.js 2>/dev/null; then
+            echo "Production notifications already applied."
             exit 0
           fi
-          python3 scripts/apply_device_reported_fixes.py
+          python3 scripts/apply_production_notifications.py
+          cd mobile
+          npm install --package-lock-only --ignore-scripts
+          cd ..
           git diff --check
           git config user.name "Connect-T Automation"
           git config user.email "actions@users.noreply.github.com"
           git add backend mobile
-          git commit -m "Fix device media, profiles, sessions and civic news"
-          git push origin HEAD:fix/device-reported-flows-v105
+          git commit -m "Enable production complaint and civic notifications"
+          git push origin HEAD:feature/production-notifications-v108
