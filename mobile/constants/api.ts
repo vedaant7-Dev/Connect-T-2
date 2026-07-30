@@ -1,5 +1,3 @@
-import "@/lib/jobPortalSessionBridge";
-
 const DEFAULT_API_BASE_URL = "https://newapp.e-bjp.in";
 
 export function normalizeApiBaseUrl(value?: string | null) {
