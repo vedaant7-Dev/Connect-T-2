@@ -1,7 +1,7 @@
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
@@ -55,27 +55,42 @@ export default function NotificationManager() {
   const { user } = useAuth();
   const router = useRouter();
   const registeredFor = useRef("");
+  const registering = useRef(false);
+
+  const registerCurrentUser = useCallback(async () => {
+    if (!user?.id || Platform.OS === "web" || registering.current) return;
+    const registrationKey = `${user.id}:${Constants.expoConfig?.version || ""}`;
+    if (registeredFor.current === registrationKey) return;
+    registering.current = true;
+    try {
+      const expoPushToken = await enablePushNotifications();
+      if (!expoPushToken) return;
+      await apiPost("/api/notifications/register", {
+        expoPushToken,
+        platform: Platform.OS,
+        appVersion: Constants.expoConfig?.version || "unknown",
+      });
+      registeredFor.current = registrationKey;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error || "notification_registration_failed");
+      console.warn("Notification registration failed", detail);
+    } finally {
+      registering.current = false;
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id || Platform.OS === "web") return;
-    const registrationKey = `${user.id}:${Constants.expoConfig?.version || ""}`;
-    if (registeredFor.current === registrationKey) return;
-    let cancelled = false;
-
-    enablePushNotifications()
-      .then(async (expoPushToken) => {
-        if (!expoPushToken || cancelled) return;
-        await apiPost("/api/notifications/register", {
-          expoPushToken,
-          platform: Platform.OS,
-          appVersion: Constants.expoConfig?.version || "unknown",
-        });
-        registeredFor.current = registrationKey;
-      })
-      .catch((error) => console.warn("Notification registration failed", error?.message || error));
-
-    return () => { cancelled = true; };
-  }, [user?.id]);
+    void registerCurrentUser();
+    const retryTimer = setTimeout(() => void registerCurrentUser(), 15_000);
+    const appSubscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") void registerCurrentUser();
+    });
+    return () => {
+      clearTimeout(retryTimer);
+      appSubscription.remove();
+    };
+  }, [registerCurrentUser, user?.id]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
