@@ -38,11 +38,11 @@ export default function AppUsersScreen() {
     setLoading(true);
     setError("");
     try {
-      const result = await apiGet<any>(`/api/admin/citizens?page=${nextPage}&limit=10`);
-      setUsers(result.citizens || result.users || []);
+      const result = await apiGet<any>(`/api/admin/app-users?page=${nextPage}&limit=10`);
+      setUsers(result.users || []);
       setPage(result.pagination?.page || nextPage);
       setTotalPages(Math.max(1, result.pagination?.totalPages || 1));
-      setTotal(Number(result.pagination?.total || (result.citizens || result.users || []).length));
+      setTotal(Number(result.pagination?.total || (result.users || []).length));
     } catch (requestError) {
       setError(getUserErrorMessage(requestError, "App users could not be loaded."));
     } finally {
@@ -61,7 +61,7 @@ export default function AppUsersScreen() {
         </TouchableOpacity>
         <Text style={{ color: "white", fontFamily: "Inter_700Bold", fontSize: 22 }}>App Users</Text>
         <Text style={{ marginTop: 4, color: "rgba(255,255,255,0.72)", fontFamily: "Inter_400Regular", fontSize: 12 }}>
-          {total} registered citizens from the production database
+          {total} registered app users from the production database
         </Text>
       </LinearGradient>
 
@@ -100,7 +100,7 @@ export default function AppUsersScreen() {
                   {item.address ? <Text numberOfLines={1} style={{ marginTop: 2, color: "#94A3B8", fontFamily: "Inter_400Regular", fontSize: 10 }}>{item.address}</Text> : null}
                 </View>
                 <View style={{ backgroundColor: "#F0FDF4", borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5 }}>
-                  <Text style={{ color: GREEN, fontFamily: "Inter_600SemiBold", fontSize: 9 }}>Citizen</Text>
+                  <Text style={{ color: GREEN, fontFamily: "Inter_600SemiBold", fontSize: 9 }}>{String(item.role || "user").replace("_", " ")}</Text>
                 </View>
               </View>
               <Text style={{ marginTop: 10, color: "#94A3B8", fontFamily: "Inter_400Regular", fontSize: 9 }}>User {(page - 1) * 10 + index + 1} · ID {item.id}</Text>

@@ -82,6 +82,44 @@ module.exports = function installNagarsevakCommunity({ app, db, verifyToken, cur
     };
   }
 
+  // APP_USERS_ALL_ROLES_V112
+  app.get("/api/admin/app-users", async (req, res) => {
+    try {
+      const user = await requireMember(req, res);
+      if (!user) return;
+      const isAdmin = user.role === "super_admin" || !!user.is_super_admin;
+      if (!isAdmin) return res.status(403).json({ success: false, error: "Super Admin required" });
+      const page = Math.max(1, Number(req.query.page || 1));
+      const limit = Math.min(50, Math.max(10, Number(req.query.limit || 10)));
+      const offset = (page - 1) * limit;
+      const [[countRow]] = await db.query("SELECT COUNT(*) AS total FROM users");
+      const [rows] = await db.query(
+        `SELECT id, name, mobile, role, ward, ward_code, address, email, profile_photo, approval_status, created_at
+         FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        [limit, offset],
+      );
+      const total = Number(countRow?.total || 0);
+      res.json({
+        success: true,
+        users: rows.map((row) => ({
+          id: row.id,
+          name: row.name,
+          mobile: row.mobile,
+          role: row.role,
+          ward: row.ward || row.ward_code || "",
+          address: row.address || "",
+          email: row.email || "",
+          profilePhoto: row.profile_photo || undefined,
+          approvalStatus: row.approval_status || undefined,
+          createdAt: row.created_at,
+        })),
+        pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message || "App users could not be loaded" });
+    }
+  });
+
   app.get("/api/nagarsevak-community", async (req, res) => {
     try {
       const user = await requireMember(req, res);
