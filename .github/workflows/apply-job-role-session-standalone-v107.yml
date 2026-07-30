@@ -134,16 +134,10 @@ jobs:
           from pathlib import Path
           path = Path('app/build.gradle')
           text = path.read_text(encoding='utf-8')
-          old = '''    def releaseRequested = graph.allTasks.any { task ->
-              def name = task.name.toLowerCase()
-              return name.contains("release") && (name.startsWith("assemble") || name.startsWith("bundle") || name.startsWith("package"))
-          }'''
-          new = '''    def releaseRequested = graph.allTasks.any { task ->
-              def name = task.name.toLowerCase()
-              return name == "assemblerelease" || name == "bundlerelease" || name == "packagerelease"
-          }'''
+          old = 'if (releaseRequested && !hasReleaseSigning) {'
+          new = 'if (releaseRequested && !hasReleaseSigning && !gradle.startParameter.taskNames.any { it.toLowerCase().contains("standalone") }) {'
           if old not in text:
-              raise SystemExit('Release signing guard source was not found')
+              raise SystemExit('Release signing guard condition was not found')
           path.write_text(text.replace(old, new, 1), encoding='utf-8')
           PY
           chmod +x gradlew
