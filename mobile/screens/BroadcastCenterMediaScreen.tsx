@@ -2,14 +2,14 @@ import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppScrollView } from "@/components/AppScrollView";
 import AppDateTimePicker from "@/components/AppDateTimePicker";
 import BroadcastMediaPicker from "@/components/BroadcastMediaPicker";
 import ConfirmActionModal from "@/components/ConfirmActionModal";
-import ComplaintMediaViewer from "@/components/ComplaintMediaViewer";
+import ComplaintMediaViewer, { resolveComplaintMediaUri } from "@/components/ComplaintMediaViewer";
 import { AppBroadcast, BroadcastAudience, BroadcastLanguage, BroadcastMediaUpload, useBroadcasts } from "@/context/BroadcastContext";
 import { useAuth } from "@/context/AuthContext";
 import { NAGARSEVAK_WARDS } from "@/data/wards";
@@ -40,6 +40,27 @@ function formatDate(value?: string) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 }
 function makeIdempotencyKey() { return `broadcast_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`; }
+async function shareBroadcast(item: AppBroadcast) {
+  const category = CATEGORIES.find((entry) => entry.key === item.category)?.label || "Announcement";
+  const mediaUrl = resolveComplaintMediaUri(item.mediaUri);
+  const message = [
+    item.title,
+    item.body,
+    `Category: ${category}`,
+    `Audience: ${item.ward || "All wards"}`,
+    `Posted by: ${item.createdByName || "Connect-T"}`,
+    mediaUrl ? `Media: ${mediaUrl}` : "",
+    "— Connect-T",
+  ].filter(Boolean).join("\n\n");
+  try {
+    const navigatorObject = (globalThis as any).navigator;
+    if (Platform.OS === "web" && navigatorObject?.share) await navigatorObject.share({ title: item.title, text: message, url: mediaUrl || undefined });
+    else await Share.share({ title: item.title, message });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || "");
+    if (!/cancel/i.test(detail)) console.warn("Broadcast share failed", detail);
+  }
+}
 function statusMeta(status: AppBroadcast["status"]) {
   if (status === "scheduled") return { label: "Scheduled", color: "#B45309", bg: "#FEF3C7" };
   if (status === "paused") return { label: "Paused", color: "#7C3AED", bg: "#EDE9FE" };
@@ -58,6 +79,7 @@ function BroadcastCard({ item, onPause, onResume, onDelete }: CardProps) {
   const status = statusMeta(item.status);
   const adminActions = (
     <>
+      <TouchableOpacity style={[styles.actionButton, styles.shareButton]} onPress={() => void shareBroadcast(item)}><Feather name="share-2" size={14} color="#C2410C" /><Text style={styles.shareText}>Share</Text></TouchableOpacity>
       {item.status === "paused" ? (
         <TouchableOpacity style={[styles.actionButton, styles.resumeButton]} onPress={onResume}><Feather name="play" size={14} color="#166534" /><Text style={styles.resumeText}>Resume</Text></TouchableOpacity>
       ) : (
@@ -81,6 +103,9 @@ function BroadcastCard({ item, onPause, onResume, onDelete }: CardProps) {
           label={item.mediaType === "video" ? "Broadcast video" : "Broadcast image"}
           accentColor={ORANGE}
           showInlineViewAction={false}
+          showInlineSaveAction={false}
+          showInlineShareAction={false}
+          showFullScreenShareAction={false}
           rightActions={adminActions}
         />
       ) : null}
@@ -201,7 +226,7 @@ const styles = StyleSheet.create({
   empty: { padding: 30, alignItems: "center", borderRadius: 20, backgroundColor: "white", borderWidth: 1, borderColor: "#E2E8F0" }, emptyTitle: { marginTop: 10, color: "#0F172A", fontSize: 16, fontFamily: "Inter_700Bold" }, emptyText: { marginTop: 5, color: "#64748B", fontSize: 11.5, textAlign: "center", fontFamily: "Inter_400Regular" },
   card: { padding: 14, borderRadius: 18, backgroundColor: "white", borderWidth: 1, borderColor: "#E2E8F0" }, cardTop: { flexDirection: "row", alignItems: "center", gap: 10 }, categoryIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, cardCopy: { flex: 1, minWidth: 0 }, cardTitle: { color: "#0F172A", fontSize: 14, fontFamily: "Inter_700Bold" }, cardMeta: { marginTop: 2, color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" }, statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 }, statusText: { fontSize: 8.8, fontFamily: "Inter_700Bold" }, cardBody: { marginTop: 10, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" }, cardImage: { marginTop: 10, width: "100%", height: 180, borderRadius: 14, backgroundColor: "#F1F5F9" },
   videoRow: { marginTop: 10, minHeight: 64, borderRadius: 14, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA", flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 10 }, videoCopy: { flex: 1 }, videoTitle: { color: "#9A3412", fontSize: 11.5, fontFamily: "Inter_700Bold" }, videoMeta: { marginTop: 2, color: "#C2410C", fontSize: 9.5, fontFamily: "Inter_400Regular" }, metrics: { marginTop: 12, flexDirection: "row", gap: 6 }, metric: { flex: 1, minHeight: 52, borderRadius: 12, backgroundColor: "#F8FAFC", alignItems: "center", justifyContent: "center" }, metricValue: { color: "#0F172A", fontSize: 15, fontFamily: "Inter_700Bold" }, providerValue: { color: "#B45309", fontSize: 10.5 }, metricLabel: { marginTop: 2, color: "#94A3B8", fontSize: 8.2, fontFamily: "Inter_500Medium" },
-  cardFooter: { marginTop: 10, gap: 8 }, cardDate: { color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" }, actionRow: { flexDirection: "row", gap: 8, justifyContent: "flex-end" }, actionButton: { minHeight: 40, borderRadius: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1 }, pauseButton: { backgroundColor: "#F5F3FF", borderColor: "#DDD6FE" }, resumeButton: { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }, deleteButton: { backgroundColor: "#FEF2F2", borderColor: "#FECACA" }, pauseText: { color: "#7C3AED", fontSize: 10.5, fontFamily: "Inter_700Bold" }, resumeText: { color: "#166534", fontSize: 10.5, fontFamily: "Inter_700Bold" }, deleteText: { color: "#DC2626", fontSize: 10.5, fontFamily: "Inter_700Bold" },
+  cardFooter: { marginTop: 10, gap: 8 }, cardDate: { color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" }, actionRow: { flexDirection: "row", gap: 8, justifyContent: "flex-end" }, actionButton: { minHeight: 40, borderRadius: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1 }, shareButton: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }, shareText: { color: "#C2410C", fontSize: 10.5, fontFamily: "Inter_700Bold" }, pauseButton: { backgroundColor: "#F5F3FF", borderColor: "#DDD6FE" }, resumeButton: { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }, deleteButton: { backgroundColor: "#FEF2F2", borderColor: "#FECACA" }, pauseText: { color: "#7C3AED", fontSize: 10.5, fontFamily: "Inter_700Bold" }, resumeText: { color: "#166534", fontSize: 10.5, fontFamily: "Inter_700Bold" }, deleteText: { color: "#DC2626", fontSize: 10.5, fontFamily: "Inter_700Bold" },
   modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,23,42,0.58)" }, sheet: { height: "94%", maxHeight: "94%", borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: "white", overflow: "hidden" }, handle: { alignSelf: "center", width: 42, height: 5, borderRadius: 999, backgroundColor: "#CBD5E1", marginTop: 10 }, sheetHeader: { minHeight: 64, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: "#E2E8F0" }, sheetHeaderCopy: { flex: 1, minWidth: 0 }, sheetTitle: { color: "#0F172A", fontSize: 18, fontFamily: "Inter_700Bold" }, sheetSub: { marginTop: 2, color: "#64748B", fontSize: 10.5, fontFamily: "Inter_400Regular" }, closeButton: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#F1F5F9" }, formScroll: { flex: 1 }, formContent: { padding: 18, paddingBottom: 38 }, label: { marginTop: 12, marginBottom: 6, color: "#64748B", fontSize: 9.8, letterSpacing: 1, fontFamily: "Inter_700Bold" },
   input: { minHeight: 50, borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", paddingHorizontal: 14, color: "#0F172A", fontSize: 13.5, fontFamily: "Inter_400Regular" }, textArea: { minHeight: 110, paddingTop: 13, paddingBottom: 13 }, choiceWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, choice: { minHeight: 40, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 11, borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC" }, choiceActive: { borderColor: "#FED7AA", backgroundColor: "#FFF7ED" }, choiceText: { color: "#64748B", fontSize: 10.5, fontFamily: "Inter_600SemiBold" }, choiceTextActive: { color: ORANGE }, picker: { flexDirection: "row", alignItems: "center" }, pickerText: { flex: 1, color: "#0F172A", fontSize: 13.5, fontFamily: "Inter_500Medium" }, scopeBanner: { marginTop: 12, flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, backgroundColor: "#DCFCE7" }, scopeText: { flex: 1, color: "#166534", fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_500Medium" }, help: { marginTop: 5, color: "#94A3B8", fontSize: 9.8, lineHeight: 14, fontFamily: "Inter_400Regular" }, preview: { marginTop: 16, borderRadius: 16, padding: 13, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" }, previewLabel: { color: "#C2410C", fontSize: 9, letterSpacing: 1, fontFamily: "Inter_700Bold" }, previewTitle: { marginTop: 8, color: "#0F172A", fontSize: 14, fontFamily: "Inter_700Bold" }, previewBody: { marginTop: 7, color: "#475569", fontSize: 11.5, lineHeight: 17, fontFamily: "Inter_400Regular" }, previewMeta: { marginTop: 8, color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_500Medium" }, formError: { marginTop: 12, color: "#DC2626", fontSize: 11.5, lineHeight: 17, textAlign: "center", fontFamily: "Inter_600SemiBold" }, sendButton: { marginTop: 16, minHeight: 50, borderRadius: 14, backgroundColor: GREEN, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, sendText: { color: "white", fontSize: 13, fontFamily: "Inter_700Bold" }, disabled: { opacity: 0.65 }, wardSheet: { maxHeight: "72%" }, wardList: { padding: 16 }, wardRow: { minHeight: 52, flexDirection: "row", alignItems: "center", borderRadius: 13, paddingHorizontal: 13, marginBottom: 6, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" }, wardActive: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }, wardText: { flex: 1, color: "#334155", fontSize: 13, fontFamily: "Inter_600SemiBold" },
 });
