@@ -1,0 +1,110 @@
+name: Apply Job Role Session Standalone V107
+
+on:
+  push:
+    branches:
+      - fix/job-role-session-standalone-v107
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/job-role-session-standalone-v107
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            mobile/package-lock.json
+
+      - name: Apply device-reported fixes
+        run: |
+          python3 scripts/apply_job_role_session_standalone_v107.py
+          git diff --check
+
+      - name: Install and test backend
+        working-directory: backend
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run check
+          npm test
+
+      - name: Install and validate mobile app
+        working-directory: mobile
+        run: |
+          npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+          node --test test/job-role-session-standalone-v107.test.mjs
+          npm test
+          npx tsc --noEmit
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build bundled standalone Android APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew clean assembleStandalone --no-daemon --stacktrace
+          APK_PATH="$(find app/build/outputs/apk -type f -name '*.apk' | head -n 1)"
+          test -n "$APK_PATH"
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/Connect-T-v1.0.4-Standalone.apk"
+          ls -lh "$GITHUB_WORKSPACE/Connect-T-v1.0.4-Standalone.apk"
+
+      - name: Package latest production backend
+        run: |
+          rm -rf backend-release
+          mkdir backend-release
+          rsync -a backend/ backend-release/ \
+            --exclude node_modules \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude uploads \
+            --exclude '*.log'
+          printf '%s\n' \
+            'Connect-T backend v1.0.4' \
+            'Preserve the live .env file and uploads directory during deployment.' \
+            'Run npm ci --omit=dev, then restart the Node service.' \
+            > backend-release/DEPLOY-LATEST.txt
+          cd backend-release
+          zip -qr "$GITHUB_WORKSPACE/Connect-T-Backend-v1.0.4.zip" .
+
+      - name: Commit corrected source
+        run: |
+          if git diff --quiet; then
+            echo "Source already updated."
+          else
+            git config user.name "Connect-T Automation"
+            git config user.email "actions@users.noreply.github.com"
+            git add backend mobile
+            git commit -m "Fix Job Portal sessions and remove complaints from Nagarsevak home"
+            git push origin HEAD:fix/job-role-session-standalone-v107
+          fi
+
+      - name: Upload standalone APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-v1.0.4-standalone-apk
+          path: Connect-T-v1.0.4-Standalone.apk
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload latest backend
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-backend-v1.0.4
+          path: Connect-T-Backend-v1.0.4.zip
+          retention-days: 14
+          if-no-files-found: error
