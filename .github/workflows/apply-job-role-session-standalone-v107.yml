@@ -37,6 +37,8 @@ jobs:
 
       - name: Apply device-reported fixes
         run: |
+          sed -i 's/थेट बदल बंद आहे/थेट भूमिका बदल बंद आहे/g' scripts/apply_job_role_session_standalone_v107.py
+          sed -i 's/सीधा बदलाव बंद है/सीधा भूमिका बदलाव बंद है/g' scripts/apply_job_role_session_standalone_v107.py
           python3 scripts/apply_job_role_session_standalone_v107.py
           git diff --check
 
