@@ -4283,6 +4283,70 @@ app.post("/api/job-portal/jobs/:id/apply", async (req, res) => {
   }
 });
 
+// Super Admin citizen directory: database-backed, ward filter, 10-per-page pagination.
+app.get("/api/admin/citizens", requireSuperAdmin, async (req, res) => {
+  try {
+    await ensureUserProfileSchema();
+    const page = Math.max(1, Number.parseInt(String(req.query.page || "1"), 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(String(req.query.limit || "10"), 10) || 10));
+    const offset = (page - 1) * limit;
+    const ward = String(req.query.ward || "").trim();
+    const where = ["role = 'citizen'"];
+    const params = [];
+    if (ward && ward.toLowerCase() !== "all") {
+      where.push("(LOWER(TRIM(COALESCE(ward, ''))) = LOWER(?) OR LOWER(TRIM(COALESCE(ward_code, ''))) = LOWER(?) OR CAST(COALESCE(ward_number, 0) AS CHAR) = ?)");
+      params.push(ward, ward, ward.replace(/\D/g, ""));
+    }
+    const whereSql = `WHERE ${where.join(" AND ")}`;
+    const [[countRow]] = await db.query(`SELECT COUNT(*) AS total FROM users ${whereSql}`, params);
+    const [citizens] = await db.query(
+      `SELECT id, name, mobile, email, ward, ward_code, ward_number, address, dob, age, profile_photo, created_at, last_login_at
+       FROM users ${whereSql}
+       ORDER BY COALESCE(ward_number, 9999), ward, created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
+    );
+    const [wardRows] = await db.query(
+      `SELECT ward, ward_code, ward_number, COUNT(*) AS citizen_count
+       FROM users WHERE role = 'citizen'
+       GROUP BY ward, ward_code, ward_number
+       ORDER BY COALESCE(ward_number, 9999), ward`,
+    );
+    const total = Number(countRow?.total || 0);
+    res.json({
+      success: true,
+      citizens,
+      wards: wardRows.map((row) => ({
+        ward: row.ward || row.ward_code || (row.ward_number ? `Ward ${row.ward_number}` : "Unassigned"),
+        wardCode: row.ward_code || null,
+        wardNumber: row.ward_number || null,
+        count: Number(row.citizen_count || 0),
+      })),
+      pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+    });
+  } catch (error) {
+    console.error("[Connect-T] Citizen directory failed:", error);
+    res.status(500).json({ success: false, error: "Citizen directory could not be loaded." });
+  }
+});
+
+app.get("/api/admin/schema-health", requireSuperAdmin, async (_req, res) => {
+  try {
+    const requiredTables = [
+      "users", "complaints", "job_portal_users", "job_portal_jobs", "job_applications",
+      "broadcasts", "notifications", "notification_devices", "role_assignments", "role_audit_logs"
+    ];
+    const [rows] = await db.query(
+      "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()",
+    );
+    const existing = new Set(rows.map((row) => String(row.TABLE_NAME)));
+    const missing = requiredTables.filter((table) => !existing.has(table));
+    res.json({ success: true, requiredTables, missingTables: missing, healthy: missing.length === 0 });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Database schema could not be checked." });
+  }
+});
+
 app.get("/api/job-portal/applications", async (req, res) => {
   try {
     await ensureJobPortalSchema();

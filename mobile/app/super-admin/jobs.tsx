@@ -1,11 +1,12 @@
 import { AppScrollView } from "@/components/AppScrollView";
-import React, { useState, useMemo, useCallback, memo } from "react";
+import React, { useState, useMemo, useCallback, useEffect, memo } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Platform, Modal, FlatList, Dimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobs, Job } from "@/context/JobsContext";
 import { useRouter } from "expo-router";
+import { apiGet } from "@/lib/api";
 
 const { width } = Dimensions.get("window");
 
@@ -167,7 +168,7 @@ function JobDetail({ job, onBack }: { job: Job; onBack: () => void }) {
 
 type CardType = "totalJobs" | "activeJobs" | "expiredJobs" | "employers" | "seekers" | "applications" | "hired" | "placement";
 
-// JOBS_SINGLE_OVERVIEW_V110
+// JOBS_DASHBOARD_V111
 export default function JobsAdminScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -175,6 +176,13 @@ export default function JobsAdminScreen() {
   const router = useRouter();
   const [modal, setModal] = useState<{ type: CardType; title: string; sub: string } | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [citizens, setCitizens] = useState<any[]>([]);
+  const [citizenWards, setCitizenWards] = useState<any[]>([]);
+  const [citizenPage, setCitizenPage] = useState(1);
+  const [citizenPages, setCitizenPages] = useState(1);
+  const [citizenTotal, setCitizenTotal] = useState(0);
+  const [selectedCitizenWard, setSelectedCitizenWard] = useState("all");
+  const [citizensLoading, setCitizensLoading] = useState(false);
 
   const stats = useMemo(() => {
     const activeJobs = jobs.filter((j) => j.active);
@@ -226,6 +234,26 @@ export default function JobsAdminScreen() {
 
   const closeModal = useCallback(() => { setModal(null); setSelectedJob(null); }, []);
 
+  const loadCitizens = useCallback(async (page = 1, ward = selectedCitizenWard) => {
+    setCitizensLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: "10" });
+      if (ward && ward !== "all") params.set("ward", ward);
+      const result = await apiGet<any>(`/api/admin/citizens?${params.toString()}`);
+      setCitizens(result.citizens || []);
+      setCitizenWards(result.wards || []);
+      setCitizenPage(result.pagination?.page || page);
+      setCitizenPages(result.pagination?.totalPages || 1);
+      setCitizenTotal(result.pagination?.total || 0);
+    } finally {
+      setCitizensLoading(false);
+    }
+  }, [selectedCitizenWard]);
+
+  useEffect(() => {
+    void loadCitizens(1, selectedCitizenWard).catch(() => undefined);
+  }, [loadCitizens, selectedCitizenWard]);
+
   return (
     <View style={{ flex: 1, backgroundColor: "#F0F4F8" }}>
       <LinearGradient
@@ -261,24 +289,28 @@ export default function JobsAdminScreen() {
       </LinearGradient>
 
 
-      <AppScrollView onAppRefresh={refreshJobs} style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <AppScrollView onAppRefresh={refreshJobs} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
         <>
             <SectionHeader title="Job Portal Overview" sub="Tap any card to view full data" />
-            <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ gap: 10, marginBottom: 18 }}>
+              <View style={{ flexDirection: "row", gap: 8, alignItems: "stretch" }}>
                 <StatCard icon="briefcase" label="Total Job Posts" value={jobs.length} color="#3B82F6" bg="#DBEAFE" onPress={() => openModal("totalJobs", "All Job Posts", `${jobs.length} total`)} />
                 <StatCard icon="check-circle" label="Active Jobs" value={stats.activeJobs.length} color="#059669" bg="#D1FAE5" onPress={() => openModal("activeJobs", "Active Jobs", `${stats.activeJobs.length} currently active`)} />
                 <StatCard icon="x-circle" label="Expired/Paused" value={stats.expiredJobs.length} color="#DC2626" bg="#FEE2E2" onPress={() => openModal("expiredJobs", "Expired / Paused", `${stats.expiredJobs.length} inactive`)} />
                 <StatCard icon="users" label="Total Employers" value={stats.totalEmployers} color="#D97706" bg="#FEF3C7" onPress={() => openModal("employers", "Employers", `${stats.totalEmployers} employers`)} />
               </View>
-              <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8, alignItems: "stretch" }}>
                 <StatCard icon="user" label="Job Seekers" value={stats.totalSeekers} color="#7C3AED" bg="#EDE9FE" onPress={() => openModal("seekers", "Job Seekers", `${stats.totalSeekers} unique applicants`)} />
                 <StatCard icon="send" label="Applications" value={stats.totalApplications} color="#0EA5E9" bg="#E0F2FE" onPress={() => openModal("applications", "Applications", `${stats.totalApplications} total applications`)} />
                 <StatCard icon="award" label="People Hired" value={stats.totalHired} color="#059669" bg="#D1FAE5" onPress={() => openModal("hired", "People Hired", `${stats.totalHired} successfully hired`)} />
                 <StatCard icon="percent" label="Placement Rate" value={`${stats.placementRate}%`} color="#D97706" bg="#FEF3C7" onPress={() => openModal("placement", "Placement Rate", "Job placement analytics")} />
               </View>
             </View>
-
+            <TouchableOpacity onPress={() => void refreshJobs()} activeOpacity={0.8}
+              style={{ height: 44, borderRadius: 12, backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#BBF7D0", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 18 }}>
+              <Feather name="refresh-cw" size={15} color="#16A34A" />
+              <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: "#15803D" }}>Refresh Job Portal Data</Text>
+            </TouchableOpacity>
 
             <SectionHeader title="Job Success Analytics" sub="Hiring outcomes and placement data" />
             <View style={{ backgroundColor: "white", borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
@@ -303,25 +335,71 @@ export default function JobsAdminScreen() {
             </View>
 
             <SectionHeader title="Category Breakdown" sub="Job posts by category" />
-            <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+            <View style={{ backgroundColor: "white", borderRadius: 16, padding: 12, marginBottom: 18, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
               {categoryBreakdown.length === 0 ? (
-                <Text style={{ color: "#94A3B8", textAlign: "center", paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 13 }}>No jobs posted yet</Text>
+                <Text style={{ color: "#94A3B8", textAlign: "center", paddingVertical: 16, fontFamily: "Inter_400Regular", fontSize: 13 }}>No jobs posted yet</Text>
               ) : (
-                categoryBreakdown.map(([cat, count]) => {
-                  const pct = jobs.length > 0 ? (count / jobs.length) * 100 : 0;
-                  return (
-                    <View key={cat} style={{ marginBottom: 12 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                        <Text style={{ flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", color: "#334155" }}>{JOB_CATEGORIES[cat] || cat}</Text>
-                        <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: "#16A34A" }}>{count}</Text>
-                      </View>
-                      <View style={{ height: 6, backgroundColor: "#F1F5F9", borderRadius: 3 }}>
-                        <View style={{ height: 6, width: `${pct}%`, backgroundColor: "#16A34A", borderRadius: 3 }} />
-                      </View>
-                    </View>
-                  );
-                })
+                <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 }}>
+                  {categoryBreakdown.map(([cat, count]) => {
+                    const cfg = CAT_COLORS[cat] || CAT_COLORS.other;
+                    return (
+                      <TouchableOpacity key={cat} onPress={() => openModal("totalJobs", JOB_CATEGORIES[cat] || cat, `${count} job posts`)} activeOpacity={0.8}
+                        style={{ width: "25%", padding: 4 }}>
+                        <View style={{ minHeight: 92, borderRadius: 12, backgroundColor: cfg.bg, padding: 9, alignItems: "center", justifyContent: "center" }}>
+                          <Feather name={cfg.icon as any} size={17} color={cfg.color} />
+                          <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: cfg.color, marginTop: 5 }}>{count}</Text>
+                          <Text numberOfLines={2} style={{ fontSize: 9, lineHeight: 12, fontFamily: "Inter_500Medium", color: cfg.color, textAlign: "center", marginTop: 2 }}>{JOB_CATEGORIES[cat] || cat}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               )}
+            </View>
+
+            <SectionHeader title="All Citizens" sub={`${citizenTotal} registered citizens · Ward-wise database directory`} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 10 }}>
+              {[{ ward: "all", count: citizenWards.reduce((sum, item) => sum + Number(item.count || 0), 0) }, ...citizenWards].map((item: any) => {
+                const value = item.ward || "Unassigned";
+                const active = selectedCitizenWard === value;
+                return (
+                  <TouchableOpacity key={`${value}-${item.wardCode || ""}`} onPress={() => { setSelectedCitizenWard(value); setCitizenPage(1); }}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: active ? "#16A34A" : "white", borderWidth: 1, borderColor: active ? "#16A34A" : "#E2E8F0" }}>
+                    <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: active ? "white" : "#475569" }}>{value === "all" ? "All Wards" : value} ({item.count || 0})</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <View style={{ backgroundColor: "white", borderRadius: 16, padding: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+              {citizensLoading ? (
+                <Text style={{ paddingVertical: 24, textAlign: "center", color: "#64748B", fontFamily: "Inter_500Medium" }}>Loading citizens...</Text>
+              ) : citizens.length === 0 ? (
+                <Text style={{ paddingVertical: 24, textAlign: "center", color: "#94A3B8", fontFamily: "Inter_500Medium" }}>No citizens found for this ward.</Text>
+              ) : citizens.map((citizen, index) => (
+                <View key={citizen.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: index < citizens.length - 1 ? 1 : 0, borderBottomColor: "#F1F5F9" }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginRight: 10 }}>
+                    <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: "#15803D" }}>{String(citizen.name || "C").charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" }}>{citizen.name || "Citizen"}</Text>
+                    <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: "#64748B" }}>{citizen.mobile || "No mobile"} · {citizen.ward || citizen.ward_code || (citizen.ward_number ? `Ward ${citizen.ward_number}` : "Unassigned")}</Text>
+                    {citizen.address ? <Text numberOfLines={1} style={{ fontSize: 10, color: "#94A3B8", marginTop: 1 }}>{citizen.address}</Text> : null}
+                  </View>
+                  <Text style={{ fontSize: 10, fontFamily: "Inter_500Medium", color: "#94A3B8" }}>#{(citizenPage - 1) * 10 + index + 1}</Text>
+                </View>
+              ))}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#F1F5F9" }}>
+                <TouchableOpacity disabled={citizenPage <= 1 || citizensLoading} onPress={() => void loadCitizens(citizenPage - 1)}
+                  style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: citizenPage <= 1 ? "#F1F5F9" : "#DCFCE7" }}>
+                  <Text style={{ color: citizenPage <= 1 ? "#94A3B8" : "#15803D", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>Previous</Text>
+                </TouchableOpacity>
+                <Text style={{ fontSize: 11, color: "#64748B", fontFamily: "Inter_500Medium" }}>Page {citizenPage} of {citizenPages}</Text>
+                <TouchableOpacity disabled={citizenPage >= citizenPages || citizensLoading} onPress={() => void loadCitizens(citizenPage + 1)}
+                  style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: citizenPage >= citizenPages ? "#F1F5F9" : "#DCFCE7" }}>
+                  <Text style={{ color: citizenPage >= citizenPages ? "#94A3B8" : "#15803D", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>Next</Text>
+                </TouchableOpacity>
+              </View>
             </View>
         </>
       </AppScrollView>
