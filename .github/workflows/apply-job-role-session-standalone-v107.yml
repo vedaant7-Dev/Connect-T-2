@@ -66,6 +66,44 @@ jobs:
           for old, new in replacements.items():
               text = text.replace(old, new)
           path.write_text(text, encoding='utf-8')
+
+          governance = Path('mobile/test/job-role-governance.test.mjs')
+          text = governance.read_text(encoding='utf-8')
+          text = text.replace(
+          '''test("first-time Job Portal users confirm a role before profile creation", () => {
+            assert.match(setupRoute, /LocalizedJobProfileSetupScreen/);
+            assert.match(setup, /c\("confirmRole"\)/);
+            assert.match(setup, /roleConfirmed/);
+            assert.match(setup, /\/api\/job-portal\/onboarding/);
+          });''',
+          '''test("first-time Job Portal users select a role directly before profile creation", () => {
+            assert.match(setupRoute, /LocalizedJobProfileSetupScreen/);
+            assert.match(setup, /setRole\(nextRole\)/);
+            assert.match(setup, /roleConfirmed/);
+            assert.doesNotMatch(setup, /showConfirm|pendingRole|c\("confirmRole"\)/);
+            assert.match(setup, /\/api\/job-portal\/onboarding/);
+          });''')
+          governance.write_text(text, encoding='utf-8')
+
+          reliability = Path('mobile/test/session-profile-reliability.test.mjs')
+          text = reliability.read_text(encoding='utf-8')
+          text = text.replace(
+          '''test("job onboarding always uses the civic session and keeps it intact", () => {
+            const api = read("lib/api.ts");
+            const setup = read("screens/LocalizedJobProfileSetupScreen.tsx");
+            assert.match(api, /usesCivicJobSession[\s\S]*job-portal\/onboarding/);
+            assert.doesNotMatch(setup, /clearJobsAuthToken/);
+            assert.doesNotMatch(setup, /setupSubtitle/);
+          });''',
+          '''test("job onboarding prefers civic auth and recovers from a valid Job Portal session", () => {
+            const api = read("lib/api.ts");
+            const setup = read("screens/LocalizedJobProfileSetupScreen.tsx");
+            assert.match(api, /usesCivicOrJobsSession[\s\S]*job-portal\/onboarding/);
+            assert.match(api, /civicToken \|\| jobsToken/);
+            assert.doesNotMatch(setup, /clearJobsAuthToken/);
+            assert.doesNotMatch(setup, /setupSubtitle/);
+          });''')
+          reliability.write_text(text, encoding='utf-8')
           PY
           git diff --check
 
