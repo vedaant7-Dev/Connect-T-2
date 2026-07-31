@@ -34,7 +34,7 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
-      - run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+      - run: npm ci --include=dev --ignore-scripts --legacy-peer-deps --no-audit --no-fund
       - name: Prepare Hermes compiler
         shell: bash
         run: |
