@@ -101,6 +101,7 @@ export default function SuperAdminLayout() {
             <Tabs.Screen name="broadcast" />
             <Tabs.Screen name="profile" />
             <Tabs.Screen name="users" options={{ href: null }} />
+            <Tabs.Screen name="user-details" options={{ href: null }} />
             <Tabs.Screen name="reports" options={{ href: null }} />
             <Tabs.Screen name="role-requests" options={{ href: null }} />
             <Tabs.Screen name="settings" options={{ href: null }} />

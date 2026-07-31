@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { apiGet, getUserErrorMessage } from "@/lib/api";
+import { resolveProfilePhotoUri } from "@/lib/profilePhoto";
 
 const GREEN = "#16A34A";
 const ROLE_FILTERS = [
@@ -28,6 +29,7 @@ type AppUser = {
   approval_status?: string;
   avatar_color?: string;
   profile_photo?: string;
+  profile_photo_url?: string;
   created_at?: string;
   last_login_at?: string;
 };
@@ -42,6 +44,15 @@ function roleStyle(role?: string) {
   if (role === "super_admin") return { color: "#7C3AED", bg: "#EDE9FE", icon: "shield" };
   if (role === "nagarsevak") return { color: "#059669", bg: "#D1FAE5", icon: "user-check" };
   return { color: "#2563EB", bg: "#DBEAFE", icon: "user" };
+}
+
+function UserAvatar({ user, style }: { user: AppUser; style: { color: string; bg: string; icon: string } }) {
+  const [failed, setFailed] = useState(false);
+  const uri = resolveProfilePhotoUri(user.profile_photo_url || user.profile_photo);
+  if (uri && !failed) {
+    return <Image source={{ uri }} onError={() => setFailed(true)} style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: style.bg, marginRight: 11 }} resizeMode="cover" />;
+  }
+  return <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: user.avatar_color || style.bg, alignItems: "center", justifyContent: "center", marginRight: 11 }}><Text style={{ color: style.color, fontSize: 17, fontFamily: "Inter_700Bold" }}>{String(user.name || "U").charAt(0).toUpperCase()}</Text></View>;
 }
 
 export default function AppUsersScreen() {
@@ -112,18 +123,18 @@ export default function AppUsersScreen() {
           const style = roleStyle(item.role);
           const ward = item.ward || item.ward_code || (item.ward_number ? `Ward ${item.ward_number}` : "No ward assigned");
           return (
-            <View style={{ backgroundColor: "white", borderRadius: 17, padding: 14, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
+            <TouchableOpacity onPress={() => router.push({ pathname: "/super-admin/user-details", params: { id: item.id } } as any)} activeOpacity={0.86} accessibilityRole="button" accessibilityLabel={`Open ${item.name || "user"} profile`} style={{ backgroundColor: "white", borderRadius: 17, padding: 14, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                {item.profile_photo ? <Image source={{ uri: item.profile_photo }} style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: style.bg, marginRight: 11 }} /> : <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: item.avatar_color || style.bg, alignItems: "center", justifyContent: "center", marginRight: 11 }}><Text style={{ color: style.color, fontSize: 17, fontFamily: "Inter_700Bold" }}>{String(item.name || "U").charAt(0).toUpperCase()}</Text></View>}
+                <UserAvatar user={item} style={style} />
                 <View style={{ flex: 1 }}><Text style={{ color: "#0F172A", fontSize: 14, fontFamily: "Inter_700Bold" }}>{item.name || "Unnamed user"}</Text><Text style={{ color: "#64748B", fontSize: 11, marginTop: 2, fontFamily: "Inter_400Regular" }}>+91 {item.mobile || "Not available"} · {ward}</Text></View>
-                <View style={{ backgroundColor: style.bg, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 9, flexDirection: "row", alignItems: "center" }}><Feather name={style.icon as any} size={11} color={style.color} /><Text style={{ color: style.color, fontSize: 8.5, marginLeft: 4, fontFamily: "Inter_700Bold" }}>{roleLabel(item.role)}</Text></View>
+                <View style={{ alignItems: "flex-end", gap: 7 }}><View style={{ backgroundColor: style.bg, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 9, flexDirection: "row", alignItems: "center" }}><Feather name={style.icon as any} size={11} color={style.color} /><Text style={{ color: style.color, fontSize: 8.5, marginLeft: 4, fontFamily: "Inter_700Bold" }}>{roleLabel(item.role)}</Text></View><Feather name="chevron-right" size={16} color="#94A3B8" /></View>
               </View>
               <View style={{ marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: "#F1F5F9", gap: 6 }}>
                 {item.email ? <View style={{ flexDirection: "row", alignItems: "center" }}><Feather name="mail" size={13} color="#94A3B8" /><Text numberOfLines={1} style={{ flex: 1, marginLeft: 7, color: "#475569", fontSize: 10.5, fontFamily: "Inter_400Regular" }}>{item.email}</Text></View> : null}
                 {item.address ? <View style={{ flexDirection: "row", alignItems: "center" }}><Feather name="map-pin" size={13} color="#94A3B8" /><Text numberOfLines={2} style={{ flex: 1, marginLeft: 7, color: "#475569", fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_400Regular" }}>{item.address}</Text></View> : null}
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}><Text style={{ color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_400Regular" }}>Registered {item.created_at ? new Date(item.created_at).toLocaleDateString() : "—"}</Text><Text style={{ color: "#94A3B8", fontSize: 9.5, fontFamily: "Inter_500Medium" }}>#{(page - 1) * 10 + index + 1}</Text></View>
               </View>
-            </View>
+            </TouchableOpacity>
           );
         }}
         ListEmptyComponent={!loading ? <View style={{ alignItems: "center", paddingVertical: 70 }}><Feather name="users" size={42} color="#CBD5E1" /><Text style={{ color: "#64748B", fontSize: 15, fontFamily: "Inter_700Bold", marginTop: 12 }}>No users found</Text><Text style={{ color: "#94A3B8", fontSize: 11.5, fontFamily: "Inter_400Regular", marginTop: 4 }}>Try another role or search term.</Text></View> : null}

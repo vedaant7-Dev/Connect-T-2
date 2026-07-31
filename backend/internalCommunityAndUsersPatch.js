@@ -136,6 +136,14 @@ function validateMedia(file) {
 
 const baseUrl = (req) => String(process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
 
+function profilePhotoUrl(req, value) {
+  const photo = clean(value, 10_000_000);
+  if (!photo) return null;
+  if (/^(https?:|data:|file:|content:|blob:)/i.test(photo)) return photo;
+  const suffix = photo.startsWith("/") ? photo : `/${photo}`;
+  return `${baseUrl(req)}${suffix}`;
+}
+
 async function saveMedia(file, meta, req) {
   if (!file || !meta) return null;
   const fileName = `nagarsevak_community_${Date.now()}_${crypto.randomBytes(8).toString("hex")}.${meta.extension}`;
@@ -179,10 +187,37 @@ async function listUsers(req, res) {
       [...values, limit, offset],
     );
     const [roleCounts] = await pool.query("SELECT role, COUNT(*) AS count FROM users GROUP BY role ORDER BY role");
-    return res.json({ success: true, users, roleCounts, pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) } });
+    const publicUsers = users.map((user) => ({ ...user, profile_photo_url: profilePhotoUrl(req, user.profile_photo) }));
+    return res.json({ success: true, users: publicUsers, roleCounts, pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) } });
   } catch (error) {
     console.warn("[InternalCommunityUsers] users failed", error?.code || error?.name || "users_error");
     return res.status(500).json({ success: false, error: "App users could not be loaded right now." });
+  }
+}
+
+async function getUserDetails(req, res) {
+  try {
+    if (!(await requireAdmin(req, res))) return;
+    const userId = clean(req.params?.id, 100);
+    if (!userId) return res.status(400).json({ success: false, error: "User id is required." });
+    const [rows] = await pool.query("SELECT * FROM users WHERE id = ? LIMIT 1", [userId]);
+    const row = rows[0] || null;
+    if (!row) return res.status(404).json({ success: false, error: "User profile not found." });
+    const user = {
+      id: row.id, name: row.name, mobile: row.mobile, role: row.role, ward: row.ward,
+      ward_code: row.ward_code, ward_number: row.ward_number, email: row.email, address: row.address,
+      age: row.age, dob: row.dob, approval_status: row.approval_status, avatar_color: row.avatar_color,
+      profile_photo: row.profile_photo, profile_photo_url: profilePhotoUrl(req, row.profile_photo),
+      official_designation: row.official_designation, is_super_admin: !!row.is_super_admin,
+      office_address: row.office_address, residence_address: row.residence_address,
+      office_timings: row.office_timings, contact_name: row.contact_name, contact_number: row.contact_number,
+      nagarsevak_id: row.nagarsevak_id, ward_changed: row.ward_changed,
+      created_at: row.created_at, last_login_at: row.last_login_at,
+    };
+    return res.json({ success: true, user });
+  } catch (error) {
+    console.warn("[InternalCommunityUsers] user details failed", error?.code || error?.name || "user_details_error");
+    return res.status(500).json({ success: false, error: "User details could not be loaded right now." });
   }
 }
 
@@ -306,6 +341,7 @@ try {
     if (installed) return;
     installed = true;
     originalGet.call(app, "/api/admin/users", listUsers);
+    originalGet.call(app, "/api/admin/users/:id", getUserDetails);
     originalGet.call(app, "/api/nagarsevak-community/posts", listPosts);
     originalPost.call(app, "/api/nagarsevak-community/posts", upload.single("media"), createPost);
     originalPatch.call(app, "/api/nagarsevak-community/posts/:id", editPost);
@@ -320,4 +356,4 @@ try {
   console.warn("[InternalCommunityUsers] route hook disabled", error?.message || "unknown_error");
 }
 
-module.exports = { ensureSchema, listUsers, listPosts, createPost, editPost, deletePost };
+module.exports = { ensureSchema, listUsers, getUserDetails, listPosts, createPost, editPost, deletePost };
