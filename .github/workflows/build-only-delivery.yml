@@ -62,9 +62,9 @@ jobs:
           echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           echo "Building Connect-T v$APP_VERSION (versionCode $VERSION_CODE)"
 
-      - name: Install mobile dependencies
+      - name: Install mobile build dependencies
         working-directory: mobile
-        run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+        run: npm ci --include=dev --ignore-scripts --legacy-peer-deps --no-audit --no-fund
 
       - name: Prepare Hermes compiler
         working-directory: mobile
