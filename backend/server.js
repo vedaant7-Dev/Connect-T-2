@@ -254,27 +254,40 @@ async function authorizeComplaints(req, res, next) {
 
     if (!complaintId) return res.status(400).json({ success: false, error: "Complaint id is required" });
     const [rows] = await db.query(
-      "SELECT user_id, user_mobile, ward, ward_code FROM complaints WHERE id = ? LIMIT 1",
+      "SELECT user_id, user_mobile, ward, ward_code, status FROM complaints WHERE id = ? LIMIT 1",
       [complaintId],
     );
     if (!rows.length) return res.status(404).json({ success: false, error: "Complaint not found" });
     const complaint = rows[0];
 
-    if (isSuperAdmin) return next();
     if (isOfficer) {
       const sameWard = user.ward_code
         ? String(complaint.ward_code || "").toLowerCase() === String(user.ward_code).toLowerCase()
         : String(complaint.ward || "").toLowerCase() === String(user.ward || "").toLowerCase();
       if (!sameWard) return res.status(403).json({ success: false, error: "Complaint belongs to another ward" });
-      if (method === "PATCH") {
-        const validStatuses = ["assigned", "in_progress", "resolved", "rejected"];
-        if (!validStatuses.includes(String(req.body?.status || ""))) {
-          return res.status(400).json({ success: false, error: "Invalid complaint status" });
-        }
-        req.body.updated_by = user.name;
-      }
-      return next();
     }
+
+    if ((isSuperAdmin || isOfficer) && method === "PATCH") {
+      const currentStatus = String(complaint.status || "submitted");
+      const nextStatus = String(req.body?.status || "");
+      const allowedTransitions = {
+        submitted: ["assigned", "rejected"],
+        assigned: ["in_progress", "resolved"],
+        in_progress: ["resolved"],
+        resolved: [],
+        rejected: [],
+      };
+      if (!(allowedTransitions[currentStatus] || []).includes(nextStatus)) {
+        return res.status(409).json({
+          success: false,
+          error: "This complaint action is not available for its current status",
+        });
+      }
+      req.body.updated_by = user.name;
+      if (nextStatus === "assigned" && !req.body.assigned_to) req.body.assigned_to = user.name;
+    }
+
+    if (isSuperAdmin || isOfficer) return next();
 
     const ownComplaint =
       String(complaint.user_id || "") === String(user.id) ||

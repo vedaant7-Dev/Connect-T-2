@@ -258,10 +258,10 @@ export default function ComplaintDetailScreen() {
   const cat = categoryConfig[complaint.category] || categoryConfig.other;
   const currentStepIdx = complaint.status === "rejected" ? -1 : timelineSteps.indexOf(complaint.status);
   const officerActions = [
-    { status: "assigned" as ComplaintStatus, label: "Assign", note: "Complaint assigned to ward officer", icon: "user-check", color: ORANGE, bg: "#FFEDD5", show: complaint.status === "submitted" },
-    { status: "in_progress" as ComplaintStatus, label: "In Progress", note: "Work started on this complaint", icon: "tool", color: "#7C3AED", bg: "#EDE9FE", show: complaint.status === "submitted" || complaint.status === "assigned" },
-    { status: "resolved" as ComplaintStatus, label: "Resolve", note: "Complaint resolved by ward officer", icon: "check-circle", color: "#059669", bg: "#D1FAE5", show: complaint.status === "submitted" || complaint.status === "assigned" || complaint.status === "in_progress" },
-    { status: "rejected" as ComplaintStatus, label: "Reject", note: "Complaint rejected by ward officer", icon: "x-circle", color: "#DC2626", bg: "#FEE2E2", show: complaint.status === "submitted" || complaint.status === "assigned" || complaint.status === "in_progress" },
+    { status: "assigned" as ComplaintStatus, label: "Approve", note: "Complaint approved by ward officer", icon: "check", color: "#059669", bg: "#D1FAE5", show: complaint.status === "submitted" },
+    { status: "rejected" as ComplaintStatus, label: "Reject", note: "Complaint rejected by ward officer", icon: "x-circle", color: "#DC2626", bg: "#FEE2E2", show: complaint.status === "submitted" },
+    { status: "in_progress" as ComplaintStatus, label: "In Progress", note: "Work started on this complaint", icon: "tool", color: "#7C3AED", bg: "#EDE9FE", show: complaint.status === "assigned" },
+    { status: "resolved" as ComplaintStatus, label: "Resolved", note: "Complaint resolved by ward officer", icon: "check-circle", color: "#059669", bg: "#D1FAE5", show: complaint.status === "assigned" || complaint.status === "in_progress" },
   ];
 
   const confirmStatusUpdate = (action: typeof officerActions[number]) => {
