@@ -4,11 +4,15 @@ import test from "node:test";
 
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
-test("job onboarding prefers civic auth and recovers from a valid Job Portal session", () => {
+test("job onboarding uses civic authentication and clears retired Job Portal tokens", () => {
   const api = read("lib/api.ts");
+  const unifiedAuth = read("lib/jobPortalUnifiedCivicAuth.ts");
   const setup = read("screens/LocalizedJobProfileSetupScreen.tsx");
-  assert.match(api, /usesCivicOrJobsSession[\s\S]*job-portal\/onboarding/);
-  assert.match(api, /civicToken \|\| jobsToken/);
+  assert.match(api, /getSessionSecret\(AUTH_TOKEN_KEY\)/);
+  assert.match(api, /deleteSessionSecret\(LEGACY_JOB_AUTH_TOKEN_KEY\)/);
+  assert.match(unifiedAuth, /url\.includes\("\/api\/job-portal\/"\)/);
+  assert.match(unifiedAuth, /getSessionSecret\(CIVIC_TOKEN_KEY\)/);
+  assert.match(unifiedAuth, /withCivicToken\(init, civicToken\)/);
   assert.doesNotMatch(setup, /clearJobsAuthToken/);
   assert.doesNotMatch(setup, /setupSubtitle/);
 });
