@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildApiUrl, normalizeApiBaseUrl } from "../constants/api.ts";
+import { buildApiUrl, normalizeApiBaseUrl } from "../lib/apiUrl.ts";
 import { safeUserMessage } from "../lib/errorSafety.ts";
 
 test("API URL construction never duplicates the /api prefix", () => {
