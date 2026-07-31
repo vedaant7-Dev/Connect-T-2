@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View, Text, useColorScheme, TouchableOpacity } from "react-native";
@@ -49,12 +49,20 @@ function AnimatedTabBar(props: any) {
 
 function NagarsevakTabBar({ state, descriptors, navigation, labels }: any) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const bottomInset = Platform.OS === "web" ? 14 : Math.max(insets.bottom, 8);
   const orderedNames = ["admin", "ward", "news", "community", "profile"];
   const routeByName = Object.fromEntries(state.routes.map((route: any) => [route.name, route]));
   const activeRouteName = state.routes[state.index]?.name;
   const labelMap: Record<string, string> = { admin: labels.home, ward: labels.ward, news: labels.news, community: labels.community, profile: labels.profile };
   const iconMap: Record<string, string> = { admin: "home", ward: "users", news: "radio", community: "message-circle", profile: "user" };
+  const pathMap: Record<string, string> = {
+    admin: "/(tabs)/admin",
+    ward: "/(tabs)/ward",
+    news: "/(tabs)/news",
+    community: "/(tabs)/community",
+    profile: "/(tabs)/profile",
+  };
 
   return (
     <View style={{ flexDirection: "row", backgroundColor: "white", paddingBottom: bottomInset, paddingTop: 7, borderTopWidth: 1, borderTopColor: "#E2E8F0", shadowColor: "#166534", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 10 }}>
@@ -66,8 +74,7 @@ function NagarsevakTabBar({ state, descriptors, navigation, labels }: any) {
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
           if (isFocused || event.defaultPrevented) return;
-          if (typeof navigation.jumpTo === "function") navigation.jumpTo(route.name, route.params);
-          else navigation.navigate(route.name, route.params);
+          router.replace(pathMap[name] as any);
         };
         return <TouchableOpacity key={route.key} onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 3, paddingHorizontal: 2 }} activeOpacity={0.72} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: isFocused }}><View style={{ width: 39, height: 31, alignItems: "center", justifyContent: "center", backgroundColor: isFocused ? "rgba(22,163,74,0.12)" : "transparent", borderRadius: 16, borderWidth: isFocused ? 1 : 0, borderColor: "rgba(22,163,74,0.18)" }}><Feather name={(iconMap[name] || "circle") as any} size={19} color={isFocused ? GREEN : MUTED} /></View><Text numberOfLines={1} style={{ fontSize: 8.8, lineHeight: 12, fontFamily: isFocused ? "Inter_700Bold" : "Inter_600SemiBold", color: isFocused ? GREEN : MUTED, marginTop: 2, textAlign: "center" }}>{label}</Text></TouchableOpacity>;
       })}
