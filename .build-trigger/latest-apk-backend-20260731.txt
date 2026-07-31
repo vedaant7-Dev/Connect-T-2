@@ -1,0 +1,1 @@
+Build the latest Connect-T APK and backend package from main commit 9790169b26d4eb8248e17bb8e531aab1177b8bbf.
