@@ -31,7 +31,7 @@ import { TabBarVisibilityProvider } from "@/context/TabBarVisibilityContext";
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
-const NAGARSEVAK_ALLOWED_TABS = new Set(["admin", "ward", "news", "profile"]);
+const NAGARSEVAK_ALLOWED_TABS = new Set(["admin", "ward", "news", "community", "profile"]);
 
 function isSuperAdminUser(user: any) {
   return user?.role === "super_admin" || user?.isSuperAdmin === true;
