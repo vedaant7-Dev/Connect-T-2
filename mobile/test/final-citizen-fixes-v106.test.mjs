@@ -4,13 +4,15 @@ import test from "node:test";
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
-test("Job Portal role switching uses the dedicated civic-auth route and persists the returned role", () => {
+test("Job Portal role switching uses the unified civic session and persists the returned role", () => {
   const auth = read("context/JobsAuthContext.tsx");
-  const api = read("lib/api.ts");
+  const unifiedAuth = read("lib/jobPortalUnifiedCivicAuth.ts");
   assert.match(auth, /apiPost<any>\("\/api\/job-portal\/switch-role"/);
   assert.match(auth, /response\.user\.role !== role/);
   assert.match(auth, /persist\(normalizeUser\(response\.user\)\)/);
-  assert.match(api, /path === "\/api\/job-portal\/switch-role"/);
+  assert.match(unifiedAuth, /url\.includes\("\/api\/job-portal\/"\)/);
+  assert.match(unifiedAuth, /getSessionSecret\(CIVIC_TOKEN_KEY\)/);
+  assert.match(unifiedAuth, /withCivicToken\(init, civicToken\)/);
 });
 
 test("Home notifications do not include complaints", () => {
