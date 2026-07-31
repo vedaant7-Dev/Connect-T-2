@@ -66,6 +66,14 @@ jobs:
         working-directory: mobile
         run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
 
+      - name: Prepare Hermes compiler
+        working-directory: mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ensure-hermesc.js
+          test -x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+
       - name: Build standalone release-mode APK
         working-directory: mobile/android
         run: |
