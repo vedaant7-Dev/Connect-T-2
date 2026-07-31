@@ -57,11 +57,11 @@ function NagarsevakTabBar({ state, descriptors, navigation, labels }: any) {
   const labelMap: Record<string, string> = { admin: labels.home, ward: labels.ward, news: labels.news, community: labels.community, profile: labels.profile };
   const iconMap: Record<string, string> = { admin: "home", ward: "users", news: "radio", community: "message-circle", profile: "user" };
   const pathMap: Record<string, string> = {
-    admin: "/(tabs)/admin",
-    ward: "/(tabs)/ward",
-    news: "/(tabs)/news",
-    community: "/(tabs)/community",
-    profile: "/(tabs)/profile",
+    admin: "/admin",
+    ward: "/ward",
+    news: "/news",
+    community: "/community",
+    profile: "/profile",
   };
 
   return (
