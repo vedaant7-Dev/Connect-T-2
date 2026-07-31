@@ -1,0 +1,33 @@
+name: Backend Only Delivery
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".backend-build-trigger/**"
+      - ".github/workflows/backend-only-delivery.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-backend:
+    name: Package backend ZIP
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package backend
+        run: |
+          mkdir -p delivery
+          zip -r delivery/Connect-T-Backend-Latest.zip backend \
+            -x 'backend/.env' 'backend/uploads/*' 'backend/node_modules/*' '*.DS_Store'
+      - name: Upload backend
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-latest-backend
+          path: delivery/Connect-T-Backend-Latest.zip
+          if-no-files-found: error
+          retention-days: 14
