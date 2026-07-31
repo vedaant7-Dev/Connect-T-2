@@ -6,7 +6,7 @@ const ABI_SPLITS_BLOCK = `
             enable true
             reset()
             include "arm64-v8a", "armeabi-v7a"
-            universalApk false
+            universalApk true
         }
     }
 `;
@@ -15,7 +15,7 @@ module.exports = function withAndroidAbiSplits(config) {
   return withAppBuildGradle(config, (config) => {
     let contents = config.modResults.contents;
 
-    if (contents.includes("universalApk false")) {
+    if (contents.includes("universalApk true")) {
       return config;
     }
 
