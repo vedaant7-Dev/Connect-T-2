@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppScrollView } from "@/components/AppScrollView";
@@ -14,6 +14,7 @@ import { AppBroadcast, BroadcastAudience, BroadcastLanguage, BroadcastMediaUploa
 import { useAuth } from "@/context/AuthContext";
 import { NAGARSEVAK_WARDS } from "@/data/wards";
 import { getUserErrorMessage } from "@/lib/api";
+import { shareOfficialBroadcast } from "@/lib/publicBroadcastShare";
 
 const GREEN = "#16A34A";
 const ORANGE = "#EA580C";
@@ -42,21 +43,8 @@ function formatDate(value?: string) {
 }
 function makeIdempotencyKey() { return `broadcast_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`; }
 async function shareBroadcast(item: AppBroadcast) {
-  const category = CATEGORIES.find((entry) => entry.key === item.category)?.label || "Announcement";
-  const mediaUrl = resolveComplaintMediaUri(item.mediaUri);
-  const message = [
-    item.title,
-    item.body,
-    `Category: ${category}`,
-    `Audience: ${item.ward || "All wards"}`,
-    `Posted by: ${item.createdByName || "Connect-T"}`,
-    mediaUrl ? `Media: ${mediaUrl}` : "",
-    "— Connect-T",
-  ].filter(Boolean).join("\n\n");
   try {
-    const navigatorObject = (globalThis as any).navigator;
-    if (Platform.OS === "web" && navigatorObject?.share) await navigatorObject.share({ title: item.title, text: message, url: mediaUrl || undefined });
-    else await Share.share({ title: item.title, message });
+    await shareOfficialBroadcast(item);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error || "");
     if (!/cancel/i.test(detail)) console.warn("Broadcast share failed", detail);
