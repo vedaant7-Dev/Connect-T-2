@@ -1,6 +1,13 @@
 name: Build Only Delivery
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - "backend/**"
+      - ".build-trigger/**"
+      - ".github/workflows/build-only-delivery.yml"
   pull_request:
     branches: [main]
     paths:
@@ -36,6 +43,25 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      - name: Verify and export app version
+        working-directory: mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_VERSION="$(node -p "require('./app.json').expo.version")"
+          VERSION_CODE="$(node -p "require('./app.json').expo.android.versionCode")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          GRADLE_VERSION="$(sed -n 's/^[[:space:]]*versionName[[:space:]]*"\([^"]*\)".*/\1/p' android/app/build.gradle | head -n 1)"
+          GRADLE_CODE="$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*\([0-9][0-9]*\).*/\1/p' android/app/build.gradle | head -n 1)"
+
+          test "$APP_VERSION" = "$PACKAGE_VERSION" || { echo "package.json version $PACKAGE_VERSION does not match app.json $APP_VERSION"; exit 1; }
+          test "$APP_VERSION" = "$GRADLE_VERSION" || { echo "Gradle versionName $GRADLE_VERSION does not match app.json $APP_VERSION"; exit 1; }
+          test "$VERSION_CODE" = "$GRADLE_CODE" || { echo "Gradle versionCode $GRADLE_CODE does not match app.json $VERSION_CODE"; exit 1; }
+
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          echo "Building Connect-T v$APP_VERSION (versionCode $VERSION_CODE)"
+
       - name: Install mobile dependencies
         working-directory: mobile
         run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
@@ -47,27 +73,34 @@ jobs:
           ./gradlew clean assembleStandalone --no-daemon --stacktrace
 
       - name: Prepare APK artifact
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p delivery/apk
-          apk=$(find mobile/android/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
-          cp "$apk" delivery/apk/Connect-T-v1.0.4-Latest.apk
+          apk="$(find mobile/android/app/build/outputs/apk -type f -name '*.apk' | sort | head -n 1)"
+          test -n "$apk"
+          cp "$apk" "delivery/apk/Connect-T-v${APP_VERSION}-Latest.apk"
 
       - name: Package backend
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p delivery/backend
-          zip -r delivery/backend/Connect-T-Backend-v1.0.4-Latest.zip backend \
+          zip -r "delivery/backend/Connect-T-Backend-v${APP_VERSION}-Latest.zip" backend \
             -x 'backend/.env' 'backend/uploads/*' 'backend/node_modules/*' '*.DS_Store'
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: connect-t-latest-apk
-          path: delivery/apk/Connect-T-v1.0.4-Latest.apk
+          path: delivery/apk/*.apk
           retention-days: 14
+          if-no-files-found: error
 
       - name: Upload backend
         uses: actions/upload-artifact@v4
         with:
           name: connect-t-latest-backend
-          path: delivery/backend/Connect-T-Backend-v1.0.4-Latest.zip
+          path: delivery/backend/*.zip
           retention-days: 14
+          if-no-files-found: error
