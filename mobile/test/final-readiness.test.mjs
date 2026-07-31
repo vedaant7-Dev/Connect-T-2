@@ -32,7 +32,8 @@ test("native bearer and OTP secrets use encrypted storage with legacy cleanup", 
   assert.match(storage, /SecureStore\.deleteItemAsync/);
   assert.match(api, /isUsableToken/);
   assert.match(api, /deleteSessionSecret\(AUTH_TOKEN_KEY\)/);
-  assert.match(api, /deleteSessionSecret\(JOB_AUTH_TOKEN_KEY\)/);
+  assert.match(api, /deleteSessionSecret\(OTP_VERIFICATION_KEY\)/);
+  assert.match(api, /deleteSessionSecret\(LEGACY_JOB_AUTH_TOKEN_KEY\)/);
 });
 
 test("shared modal and localized role navigation meet minimum interaction contracts", () => {
