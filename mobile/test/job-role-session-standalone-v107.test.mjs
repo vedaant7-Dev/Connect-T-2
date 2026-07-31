@@ -16,9 +16,14 @@ test("Job Portal onboarding has no role lock or Super Admin approval gate", () =
   assert.doesNotMatch(copy, /selected role is locked|requires Super Admin approval|भूमिका लॉक होईल|सुपर ॲडमिनची मंजुरी आवश्यक|भूमिका लॉक हो जाएगी|सुपर एडमिन की मंजूरी जरूरी/);
 });
 
-test("Job setup and switching accept a valid civic or Job Portal session", () => {
+test("Job setup and switching use the valid civic session and remove legacy Job Portal tokens", () => {
   const api = read("lib/api.ts");
-  assert.match(api, /civicToken \|\| jobsToken/);
+  const unifiedAuth = read("lib/jobPortalUnifiedCivicAuth.ts");
+  assert.match(api, /getSessionSecret\(AUTH_TOKEN_KEY\)/);
+  assert.match(api, /headers\.Authorization = `Bearer \$\{civicToken\}`/);
+  assert.match(api, /getStoredJobsAuthToken[\s\S]*deleteSessionSecret\(LEGACY_JOB_AUTH_TOKEN_KEY\)[\s\S]*return null/);
+  assert.match(unifiedAuth, /getSessionSecret\(CIVIC_TOKEN_KEY\)/);
+  assert.match(unifiedAuth, /headers\.set\("Authorization", `Bearer \$\{token\}`\)/);
 });
 
 test("Nagarsevak Dashboard does not render complaint cards", () => {
