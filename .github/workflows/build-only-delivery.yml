@@ -1,0 +1,73 @@
+name: Build Only Delivery
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - "backend/**"
+      - ".build-trigger/**"
+      - ".github/workflows/build-only-delivery.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build APK and package backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EXPO_PUBLIC_API_URL: https://newapp.e-bjp.in
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+
+      - name: Build standalone release-mode APK
+        working-directory: mobile/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean assembleStandalone --no-daemon --stacktrace
+
+      - name: Prepare APK artifact
+        run: |
+          mkdir -p delivery/apk
+          apk=$(find mobile/android/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
+          cp "$apk" delivery/apk/Connect-T-v1.0.4-Latest.apk
+
+      - name: Package backend
+        run: |
+          mkdir -p delivery/backend
+          zip -r delivery/backend/Connect-T-Backend-v1.0.4-Latest.zip backend \
+            -x 'backend/.env' 'backend/uploads/*' 'backend/node_modules/*' '*.DS_Store'
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-latest-apk
+          path: delivery/apk/Connect-T-v1.0.4-Latest.apk
+          retention-days: 14
+
+      - name: Upload backend
+        uses: actions/upload-artifact@v4
+        with:
+          name: connect-t-latest-backend
+          path: delivery/backend/Connect-T-Backend-v1.0.4-Latest.zip
+          retention-days: 14
