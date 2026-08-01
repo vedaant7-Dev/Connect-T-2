@@ -291,9 +291,9 @@ export default function CivicProfileScreen() {
           <TouchableOpacity style={styles.actionRow} onPress={() => router.push("/complaint/list" as any)}>
             <View style={styles.actionIcon}><Feather name="file-text" size={18} color={ORANGE} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{c("complaints")}</Text><Text style={styles.actionSub}>{c("complaintsSub")}</Text></View><Feather name="chevron-right" size={18} color="#94A3B8" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionRow} onPress={() => router.push("/alert/list" as any)}>
+          {user.role !== "nagarsevak" ? <TouchableOpacity style={styles.actionRow} onPress={() => router.push("/alert/list" as any)}>
             <View style={styles.actionIcon}><Feather name="bell" size={18} color={ORANGE} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{c("alerts")}</Text><Text style={styles.actionSub}>{c("alertsSub")}</Text></View><Feather name="chevron-right" size={18} color="#94A3B8" />
-          </TouchableOpacity>
+          </TouchableOpacity> : null}
           {user.role === "citizen" ? <TouchableOpacity style={styles.actionRow} onPress={accountActions.requestJobsPortal}>
             <View style={styles.actionIcon}><Feather name="briefcase" size={18} color={ORANGE} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{c("switchJobs")}</Text><Text style={styles.actionSub}>{c("switchJobsMessage")}</Text></View><Feather name="chevron-right" size={18} color="#94A3B8" />
           </TouchableOpacity> : null}

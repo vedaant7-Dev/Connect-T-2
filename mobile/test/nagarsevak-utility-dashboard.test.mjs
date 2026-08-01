@@ -7,13 +7,14 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 
-test("Nagarsevak home keeps news in the dedicated News tab", () => {
+test("Nagarsevak home keeps news and community in their dedicated tabs", () => {
   const screen = read("app/(tabs)/admin.tsx");
   const layout = read("app/(tabs)/_layout.tsx");
   assert.doesNotMatch(screen, /Alerts & News/);
   assert.doesNotMatch(screen, /Post Alert/);
   assert.doesNotMatch(screen, /useAlerts/);
-  assert.match(layout, /orderedNames = \["admin", "ward", "news", "profile"\]/);
+  assert.match(layout, /orderedNames = \["admin", "ward", "news", "community", "profile"\]/);
+  assert.match(layout, /community: "message-circle"/);
 });
 
 test("Complaint status cards stay above Ward Utility Status", () => {

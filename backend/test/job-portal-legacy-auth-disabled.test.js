@@ -16,22 +16,26 @@ function responseRecorder() {
   };
 }
 
-test("legacy standalone Job Portal register and login return a clear retired-route response", () => {
+test("legacy standalone Job Portal register login and session routes are retired", () => {
   const res = responseRecorder();
   retiredAuthRoute({}, res);
 
   assert.equal(res.statusCode, 410);
-  assert.equal(res.body.code, "JOB_PORTAL_LEGACY_AUTH_DISABLED");
-  assert.match(res.body.message, /verified Connect-T Civic login/i);
+  assert.equal(res.body.code, "JOB_PORTAL_STANDALONE_AUTH_REMOVED");
+  assert.equal(res.body.authMode, "unified_civic");
+  assert.match(res.body.message, /main Connect-T login/i);
 });
 
-test("the legacy auth block is loaded before the old compatibility auth routes", () => {
+test("unified civic authentication and role selection load before the legacy auth block", () => {
   const bootstrap = fs.readFileSync(path.resolve(__dirname, "..", "productionBootstrap.js"), "utf8");
+  const civicAuthIndex = bootstrap.indexOf("jobPortalUnifiedCivicAuthPatch.js");
+  const roleIndex = bootstrap.indexOf("jobPortalUnifiedRolePatch.js");
   const blockIndex = bootstrap.indexOf("jobPortalLegacyAuthBlockPatch.js");
-  const legacyIndex = bootstrap.indexOf("jobPortalAuthPatch.js");
 
-  assert.ok(blockIndex >= 0);
-  assert.ok(legacyIndex > blockIndex);
+  assert.ok(civicAuthIndex >= 0);
+  assert.ok(roleIndex > civicAuthIndex);
+  assert.ok(blockIndex > roleIndex);
+  assert.equal(bootstrap.includes("jobPortalAuthPatch.js"), false);
 });
 
 test("current mobile source does not call retired Job Portal register or login APIs", () => {

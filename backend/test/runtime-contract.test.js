@@ -17,12 +17,16 @@ test("server.js loads the complete production bootstrap before Express", () => {
   assert.ok(expressIndex > bootstrapIndex, "production bootstrap must load before Express");
 });
 
-test("production bootstrap includes every route and workflow patch", () => {
+test("production bootstrap includes current civic and Job Portal route protections", () => {
   const bootstrap = read("productionBootstrap.js");
   for (const patch of [
     "otpProductionPatch.js",
+    "profileSessionHydrationPatch.js",
+    "internalCommunityAndUsersPatch.js",
     "utilityStatusPatch.js",
-    "jobPortalAuthPatch.js",
+    "jobPortalUnifiedCivicAuthPatch.js",
+    "jobPortalUnifiedRolePatch.js",
+    "jobPortalLegacyAuthBlockPatch.js",
     "jobPortalOnboardingPatch.js",
     "jobPortalMessagePatch.js",
     "jobPortalProfilePatch.js",
@@ -30,7 +34,10 @@ test("production bootstrap includes every route and workflow patch", () => {
     assert.match(bootstrap, new RegExp(patch.replace(".", "\\.")));
   }
 
-  assert.match(read("jobPortalAuthPatch.js"), /\/api\/job-portal\/session/);
+  assert.match(read("jobPortalUnifiedCivicAuthPatch.js"), /DIRECT_CIVIC_PATHS/);
+  assert.match(read("jobPortalUnifiedRolePatch.js"), /\/api\/job-portal\/active-profile/);
+  assert.match(read("jobPortalUnifiedRolePatch.js"), /\/api\/job-portal\/switch-role/);
+  assert.match(read("jobPortalLegacyAuthBlockPatch.js"), /JOB_PORTAL_STANDALONE_AUTH_REMOVED/);
   assert.match(read("jobPortalOnboardingPatch.js"), /\/api\/job-portal\/onboarding/);
   assert.match(read("utilityStatusPatch.js"), /\/api\/utility-status/);
   assert.match(read("jobPortalMessagePatch.js"), /sent_count[^]*>=\s*2/);

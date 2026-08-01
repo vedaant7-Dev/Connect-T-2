@@ -20,6 +20,6 @@ test("Broadcast posts hide delivery metrics and use one combined action row", ()
   assert.doesNotMatch(screen, />Delivery<\/Text>/);
   assert.match(screen, /showInlineViewAction=\{false\}/);
   assert.match(screen, /rightActions=\{adminActions\}/);
-  assert.match(viewer, /showInlineViewAction \? <ActionButton icon=\"eye\"/);
-  assert.match(viewer, /rightActions \? <View style=\{styles\.rightActions\}>/);
+  assert.match(viewer, /showInlineViewAction\s*\?\s*\(\s*<ActionButton icon="eye"/);
+  assert.match(viewer, /rightActions\s*\?\s*<View style=\{\[styles\.rightActions/);
 });

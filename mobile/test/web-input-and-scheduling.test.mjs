@@ -11,7 +11,7 @@ test("web inputs do not use the browser black focus outline", () => {
   assert.match(css, /box-shadow:\s*none\s*!important/);
 });
 
-test("official update and broadcast schedules use the shared date time picker", () => {
+test("official update and broadcast schedules use the shared in-app date time picker", () => {
   const alertComposer = read("screens/AlertComposerScreen.tsx");
   const broadcasts = read("screens/BroadcastCenterScreen.tsx");
   const picker = read("components/AppDateTimePicker.tsx");
@@ -19,9 +19,11 @@ test("official update and broadcast schedules use the shared date time picker", 
   assert.doesNotMatch(alertComposer, /placeholder="2026-08-15 10:30"/);
   assert.match(broadcasts, /AppDateTimePicker/);
   assert.doesNotMatch(broadcasts, /placeholder="YYYY-MM-DD HH:mm"/);
-  assert.match(picker, /type:\s*"datetime-local"/);
-  assert.match(picker, /Array\.from\(\{ length: 366 \}/);
-  assert.match(picker, /webWrap:\s*\{[^}]*flexDirection:\s*"row"/);
+  assert.doesNotMatch(picker, /type:\s*"datetime-local"/);
+  assert.match(picker, /<Modal visible=\{visible\}/);
+  assert.match(picker, /Array\.from\(\{ length: 42 \}/);
+  assert.match(picker, /Array\.from\(\{ length: 48 \}/);
+  assert.match(picker, /activePanel/);
   assert.match(picker, /Select date and time/);
 });
 
