@@ -25,3 +25,12 @@ test("citizen, officer and super admin complaint views use the shared media view
   assert.match(detail, /ComplaintMediaViewer/);
   assert.match(admin, /ComplaintMediaViewer/);
 });
+
+
+test("media actions use share inline and save in the full-screen viewer", () => {
+  const viewer = read("components/ComplaintMediaViewer.tsx");
+  assert.match(viewer, /showInlineSaveAction = false/);
+  assert.match(viewer, /showInlineShareAction = true/);
+  assert.match(viewer, /showFullScreenSaveAction = true/);
+  assert.match(viewer, /showFullScreenShareAction = false/);
+});
