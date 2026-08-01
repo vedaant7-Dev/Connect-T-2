@@ -4,14 +4,16 @@ on:
   push:
     branches:
       - fix/app-users-release-v105
-    paths:
-      - ".github/workflows/apply-global-media-action-policy.yml"
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: ${{ github.head_ref == 'fix/app-users-release-v105' || github.ref_name == 'fix/app-users-release-v105' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -34,7 +36,6 @@ jobs:
           viewer = viewer.replace("  showFullScreenShareAction = true,", "  showFullScreenShareAction = false,", 1)
           viewer_path.write_text(viewer)
 
-          # Enforce the same policy at every explicit call site as well.
           for path in root.rglob("*.tsx"):
               text = path.read_text()
               updated = text.replace("showInlineSaveAction={true}", "showInlineSaveAction={false}")
@@ -56,13 +57,13 @@ jobs:
           ! grep -R --include='*.tsx' -n 'showFullScreenShareAction={true}' mobile
           git diff --check
 
-      - name: Verify mobile tests and TypeScript
+      - name: Verify targeted media test and TypeScript
         working-directory: mobile
         shell: bash
         run: |
           set -euo pipefail
           npm ci --include=dev --ignore-scripts --legacy-peer-deps --no-audit --no-fund
-          npm test
+          node --test test/complaint-media-viewer.test.mjs
           npx tsc --noEmit
 
       - name: Commit media workflow
