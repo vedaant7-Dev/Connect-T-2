@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "777172886078",
+    "project_id": "connect-t-4e5a3",
+    "storage_bucket": "connect-t-4e5a3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:777172886078:android:3e09cb980c26285a54676f",
+        "android_client_info": {
+          "package_name": "com.connectt.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYQeTIiQHxX8XfWgjsbpAv_HLwiR6ikgc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
