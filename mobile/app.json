@@ -2,7 +2,7 @@
   "expo": {
     "name": "Connect T",
     "slug": "connect-t-final-2",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "connectt",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.connectt.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
