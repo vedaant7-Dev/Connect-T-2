@@ -10,6 +10,10 @@ const excludedDirectories = new Set([".git", "node_modules", "dist", "build", ".
 const excludedFiles = new Set([
   "scripts/audit-secrets.mjs",
   "mobile/android/app/debug.keystore",
+  // Firebase Android client configuration contains public project/app identifiers,
+  // not an FCM server key or service-account private key. Keep the allowlist exact.
+  "mobile/google-services.json",
+  "mobile/android/app/google-services.json",
 ]);
 
 const patterns = [
@@ -106,7 +110,13 @@ try {
     try {
       output = execFileSync(
         "git",
-        ["grep", "-I", "-n", "-E", grepExpression, commit, "--", ".", ":(exclude)scripts/audit-secrets.mjs", ":(exclude)mobile/android/app/debug.keystore"],
+        [
+          "grep", "-I", "-n", "-E", grepExpression, commit, "--", ".",
+          ":(exclude)scripts/audit-secrets.mjs",
+          ":(exclude)mobile/android/app/debug.keystore",
+          ":(exclude)mobile/google-services.json",
+          ":(exclude)mobile/android/app/google-services.json",
+        ],
         { cwd: root, encoding: "utf8", maxBuffer: 10 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] },
       );
     } catch (error) {
@@ -133,7 +143,11 @@ const report = {
   currentTreeFindings: findings,
   historyFindings,
   excludedKnownDevelopmentFiles: [...excludedFiles],
-  ignoredIntentionalFixtures: ["*.env.example/sample/template JWT placeholders", "backend test JWT fixtures"],
+  ignoredIntentionalFixtures: [
+    "*.env.example/sample/template JWT placeholders",
+    "backend test JWT fixtures",
+    "exact Firebase Android client-config paths (non-secret identifiers only)",
+  ],
   note: "No secret values are written to this report. Matches require manual validation and rotation when genuine.",
 };
 
