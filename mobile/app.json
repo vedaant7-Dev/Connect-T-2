@@ -20,6 +20,7 @@
     "android": {
       "package": "com.connectt.app",
       "versionCode": 6,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#047857"
