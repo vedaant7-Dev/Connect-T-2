@@ -14,6 +14,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  InteractionManager,
+  Keyboard,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -222,12 +224,19 @@ export default function CivicProfileScreen() {
         contactNumber: officialAccount ? cleanMobile(form.contactNumber) || undefined : user.contactNumber,
         profilePhoto: form.profilePhoto,
       });
-      setEditVisible(false);
-      setSuccessMessage(c("profileSaved"));
+
+      // Dismiss keyboard and wait for native interactions to finish before changing layout state
+      Keyboard.dismiss();
+      InteractionManager.runAfterInteractions(() => {
+        setEditVisible(false);
+        setSuccessMessage(c("profileSaved"));
+        setSaving(false);
+      });
     } catch (error) {
-      setFormError(getUserErrorMessage(error, c("profileSaveFailed")));
-    } finally {
-      setSaving(false);
+      InteractionManager.runAfterInteractions(() => {
+        setFormError(getUserErrorMessage(error, c("profileSaveFailed")));
+        setSaving(false);
+      });
     }
   };
 
@@ -289,165 +298,4 @@ export default function CivicProfileScreen() {
 
         <Section title={c("quickActions")}>
           <TouchableOpacity style={styles.actionRow} onPress={() => router.push("/complaint/list" as any)}>
-            <View style={styles.actionIcon}><Feather name="file-text" size={18} color={ORANGE} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{c("complaints")}</Text><Text style={styles.actionSub}>{c("complaintsSub")}</Text></View><Feather name="chevron-right" size={18} color="#94A3B8" />
-          </TouchableOpacity>
-          {user.role !== "nagarsevak" ? <TouchableOpacity style={styles.actionRow} onPress={() => router.push("/alert/list" as any)}>
-            <View style={styles.actionIcon}><Feather name="bell" size={18} color={ORANGE} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{c("alerts")}</Text><Text style={styles.actionSub}>{c("alertsSub")}</Text></View><Feather name="chevron-right" size={18} color="#94A3B8" />
-          </TouchableOpacity> : null}
-          {user.role === "citizen" ? <TouchableOpacity style={styles.actionRow} onPress={accountActions.requestJobsPortal}>
-            <View style={styles.actionIcon}><Feather name="briefcase" size={18} color={ORANGE} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{c("switchJobs")}</Text><Text style={styles.actionSub}>{c("switchJobsMessage")}</Text></View><Feather name="chevron-right" size={18} color="#94A3B8" />
-          </TouchableOpacity> : null}
-          <TouchableOpacity style={styles.actionRow} onPress={() => setLanguageVisible(true)}>
-            <View style={styles.actionIcon}><Feather name="globe" size={18} color={ORANGE} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{c("language")}</Text><Text style={styles.actionSub}>{languageOptions.find((option) => option.code === language)?.nativeLabel}</Text></View><Feather name="chevron-right" size={18} color="#94A3B8" />
-          </TouchableOpacity>
-        </Section>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={accountActions.requestLogout} accessibilityRole="button">
-          <Feather name="log-out" size={18} color="#DC2626" /><Text style={styles.logoutText}>{c("logout")}</Text>
-        </TouchableOpacity>
-      </AppScrollView>
-
-      <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => !saving && setEditVisible(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <View style={styles.editorSheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.editorHeader}><Text style={styles.editorTitle}>{c("editProfile")}</Text><TouchableOpacity style={styles.closeButton} onPress={() => setEditVisible(false)} disabled={saving} accessibilityLabel="Close"><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View>
-            <AppScrollView contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets>
-              <View style={styles.photoEditRow}>
-                <TouchableOpacity style={[styles.photoEdit, { backgroundColor: roleColor }]} onPress={pickPhotoFromGallery} accessibilityLabel={c("editPhoto")}>
-                  {form.profilePhoto ? <Image source={{ uri: form.profilePhoto }} style={styles.photoEditImage} /> : <Text style={styles.photoEditText}>{initials(form.name)}</Text>}
-                  <View style={styles.photoCamera}><Feather name="camera" size={13} color="white" /></View>
-                </TouchableOpacity>
-                <View style={{ flex: 1 }}><Text style={styles.actionTitle}>{c("editPhoto")}</Text><View style={styles.photoSourceRow}><TouchableOpacity style={styles.photoSourceButton} onPress={pickPhotoFromCamera}><Feather name="camera" size={14} color={ORANGE} /><Text style={styles.photoSourceText}>Camera</Text></TouchableOpacity><TouchableOpacity style={styles.photoSourceButton} onPress={pickPhotoFromGallery}><Feather name="image" size={14} color={ORANGE} /><Text style={styles.photoSourceText}>Gallery</Text></TouchableOpacity></View><TouchableOpacity onPress={() => setForm((current) => current ? { ...current, profilePhoto: null } : current)}><Text style={styles.removePhotoText}>{c("removePhoto")}</Text></TouchableOpacity></View>
-              </View>
-
-              <InputField label={c("fullName")} value={form.name} onChangeText={(name) => setForm({ ...form, name })} placeholder={c("fullName")} autoCapitalize="words" maxLength={160} />
-              <View style={styles.formGroup}><Text style={styles.formLabel}>{c("mobile")}</Text><View style={styles.readOnlyInput}><Feather name="lock" size={15} color="#64748B" /><Text style={styles.readOnlyText}>+91 {cleanMobile(user.mobile)}</Text><View style={styles.verifiedPill}><Feather name="check-circle" size={10} color={GREEN} /><Text style={styles.verifiedText}>{c("verified")}</Text></View></View><Text style={styles.helpText}>{c("readOnlyMobile")}</Text></View>
-              <InputField label={c("email")} value={form.email} onChangeText={(email) => setForm({ ...form, email })} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" maxLength={190} />
-              <View style={styles.formGroup}><DobDatePicker label={c("dob")} value={form.dob} onChange={(dob) => setForm({ ...form, dob })} placeholder={c("dob")} /></View>
-              <InputField label={c("address")} value={form.address} onChangeText={(address) => setForm({ ...form, address })} placeholder={c("address")} multiline maxLength={1000} />
-
-              {user.role !== "super_admin" ? <View style={styles.formGroup}><Text style={styles.formLabel}>{c("ward")}</Text><TouchableOpacity style={[styles.input, styles.pickerInput, user.wardChanged && styles.readOnlyDisabled]} onPress={() => !user.wardChanged && setWardVisible(true)} disabled={!!user.wardChanged}><Text style={styles.pickerValue}>{form.ward || c("selectWard")}</Text><Feather name={user.wardChanged ? "lock" : "chevron-down"} size={16} color="#64748B" /></TouchableOpacity><Text style={styles.helpText}>{user.wardChanged ? "Ward change has already been used for this account." : "Ward can be changed once after registration."}</Text></View> : null}
-
-              {officialAccount ? <>
-                <InputField label={c("officeAddress")} value={form.officeAddress} onChangeText={(officeAddress) => setForm({ ...form, officeAddress })} placeholder={c("officeAddress")} multiline maxLength={1000} />
-                <InputField label={c("residenceAddress")} value={form.residenceAddress} onChangeText={(residenceAddress) => setForm({ ...form, residenceAddress })} placeholder={c("residenceAddress")} multiline maxLength={1000} />
-                <InputField label={c("officeTimings")} value={form.officeTimings} onChangeText={(officeTimings) => setForm({ ...form, officeTimings })} placeholder="10:00 AM – 5:00 PM" maxLength={190} />
-                <InputField label={c("contactPerson")} value={form.contactName} onChangeText={(contactName) => setForm({ ...form, contactName })} placeholder={c("contactPerson")} autoCapitalize="words" maxLength={150} />
-                <InputField label={c("officeContact")} value={form.contactNumber} onChangeText={(contactNumber) => setForm({ ...form, contactNumber: contactNumber.replace(/\D/g, "").slice(0, 10) })} placeholder="10-digit mobile number" keyboardType="phone-pad" maxLength={10} />
-              </> : null}
-
-
-              {formError ? <Text style={styles.errorText} accessibilityLiveRegion="assertive">{formError}</Text> : null}
-              <View style={styles.editorActions}>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => setEditVisible(false)} disabled={saving}><Text style={styles.cancelText}>{c("cancel")}</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.saveButton, saving && styles.disabled]} onPress={saveProfile} disabled={saving}>{saving ? <ActivityIndicator color="white" /> : <Feather name="check" size={16} color="white" />}<Text style={styles.saveText}>{saving ? c("saving") : c("save")}</Text></TouchableOpacity>
-              </View>
-            </AppScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal visible={wardVisible} transparent animationType="slide" onRequestClose={() => setWardVisible(false)}>
-        <View style={styles.modalOverlay}><View style={[styles.editorSheet, { maxHeight: "72%" }]}><View style={styles.sheetHandle} /><View style={styles.editorHeader}><Text style={styles.editorTitle}>{c("selectWard")}</Text><TouchableOpacity style={styles.closeButton} onPress={() => setWardVisible(false)}><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View><AppScrollView contentContainerStyle={{ padding: 16 }}>{ambernathWards.map((ward) => <TouchableOpacity key={ward} style={[styles.optionRow, form.ward === ward && styles.optionActive]} onPress={() => { setForm({ ...form, ward }); setWardVisible(false); }}><Text style={[styles.optionText, form.ward === ward && styles.optionTextActive]}>{ward}</Text>{form.ward === ward ? <Feather name="check" size={16} color={ORANGE} /> : null}</TouchableOpacity>)}</AppScrollView></View></View>
-      </Modal>
-
-      <Modal visible={languageVisible} transparent animationType="slide" onRequestClose={() => setLanguageVisible(false)}>
-        <View style={styles.modalOverlay}><View style={styles.editorSheet}><View style={styles.sheetHandle} /><View style={styles.editorHeader}><Text style={styles.editorTitle}>{c("language")}</Text><TouchableOpacity style={styles.closeButton} onPress={() => setLanguageVisible(false)}><Feather name="x" size={20} color="#64748B" /></TouchableOpacity></View><View style={{ padding: 16 }}>{languageOptions.map((option) => <TouchableOpacity key={option.code} style={[styles.optionRow, language === option.code && styles.optionActive]} onPress={() => { setLanguage(option.code); setLanguageVisible(false); }}><View style={{ flex: 1 }}><Text style={styles.optionText}>{option.nativeLabel}</Text><Text style={styles.optionSub}>{option.label}</Text></View>{language === option.code ? <Feather name="check-circle" size={18} color={ORANGE} /> : null}</TouchableOpacity>)}</View></View></View>
-      </Modal>
-
-      <ConfirmActionModal
-        visible={!!accountActions.pendingAction}
-        title={actionTitle}
-        message={actionMessage}
-        confirmLabel={accountActions.pendingAction === "logout" ? c("logout") : c("switchNow")}
-        cancelLabel={c("cancel")}
-        icon={accountActions.pendingAction === "logout" ? "log-out" : "shuffle"}
-        tone={accountActions.pendingAction === "logout" ? "danger" : "primary"}
-        busy={accountActions.busy}
-        onCancel={accountActions.cancelAction}
-        onConfirm={accountActions.runPendingAction}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
-  emptyRoot: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: BG, padding: 24 },
-  emptyTitle: { marginTop: 12, fontSize: 18, color: "#334155", fontFamily: "Inter_700Bold" },
-  primaryCompact: { marginTop: 18, minHeight: 46, backgroundColor: ORANGE, paddingHorizontal: 26, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  primaryCompactText: { color: "white", fontFamily: "Inter_700Bold" },
-  header: { paddingHorizontal: 20, paddingBottom: 24, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-  profileTop: { flexDirection: "row", alignItems: "center", gap: 14 },
-  avatar: { width: 70, height: 70, borderRadius: 24, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 2, borderColor: "rgba(255,255,255,0.45)" },
-  avatarImage: { width: "100%", height: "100%" },
-  avatarText: { color: "white", fontSize: 23, fontFamily: "Inter_700Bold" },
-  headerText: { flex: 1, minWidth: 0 },
-  userName: { color: "white", fontSize: 21, lineHeight: 26, fontFamily: "Inter_700Bold" },
-  rolePill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.17)" },
-  roleText: { color: "white", fontSize: 11, fontFamily: "Inter_700Bold" },
-  headerSub: { marginTop: 5, color: "rgba(255,255,255,0.72)", fontSize: 11.5, fontFamily: "Inter_400Regular" },
-  editHeaderButton: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)" },
-  scroll: { flex: 1 },
-  successBanner: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 14, backgroundColor: "#DCFCE7", borderWidth: 1, borderColor: "#BBF7D0", padding: 12, marginBottom: 14 },
-  successText: { flex: 1, color: "#166534", fontSize: 12.5, fontFamily: "Inter_600SemiBold" },
-  section: { marginBottom: 16 },
-  sectionTitle: { marginLeft: 4, marginBottom: 8, color: "#64748B", fontSize: 11, letterSpacing: 1.1, textTransform: "uppercase", fontFamily: "Inter_700Bold" },
-  card: { backgroundColor: "white", borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#E2E8F0" },
-  detailRow: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 15, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E2E8F0" },
-  detailIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7ED" },
-  detailText: { flex: 1, minWidth: 0 },
-  detailLabelRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  detailLabel: { color: "#94A3B8", fontSize: 11, fontFamily: "Inter_500Medium" },
-  detailValue: { marginTop: 3, color: "#0F172A", fontSize: 14, lineHeight: 20, fontFamily: "Inter_600SemiBold" },
-  verifiedPill: { flexDirection: "row", gap: 3, alignItems: "center", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: "#DCFCE7" },
-  verifiedText: { color: GREEN, fontSize: 9, fontFamily: "Inter_700Bold" },
-  actionRow: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 15, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E2E8F0" },
-  actionIcon: { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7ED" },
-  actionText: { flex: 1, minWidth: 0 },
-  actionTitle: { color: "#0F172A", fontSize: 14, fontFamily: "Inter_700Bold" },
-  actionSub: { marginTop: 2, color: "#64748B", fontSize: 11.5, lineHeight: 16, fontFamily: "Inter_400Regular" },
-  logoutButton: { minHeight: 52, borderRadius: 16, backgroundColor: "#FEE2E2", borderWidth: 1, borderColor: "#FECACA", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 },
-  logoutText: { color: "#DC2626", fontSize: 14.5, fontFamily: "Inter_700Bold" },
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,23,42,0.55)" },
-  editorSheet: { maxHeight: "92%", backgroundColor: "white", borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: "hidden" },
-  sheetHandle: { alignSelf: "center", width: 42, height: 5, borderRadius: 999, backgroundColor: "#CBD5E1", marginTop: 10 },
-  editorHeader: { minHeight: 58, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
-  editorTitle: { flex: 1, color: "#0F172A", fontSize: 18, fontFamily: "Inter_700Bold" },
-  closeButton: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#F1F5F9" },
-  editorContent: { padding: 18, paddingBottom: 40 },
-  photoEditRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 18 },
-  photoEdit: { width: 72, height: 72, borderRadius: 24, alignItems: "center", justifyContent: "center" },
-  photoEditImage: { width: "100%", height: "100%", borderRadius: 24 },
-  photoEditText: { color: "white", fontSize: 22, fontFamily: "Inter_700Bold" },
-  photoCamera: { position: "absolute", right: -3, bottom: -3, width: 28, height: 28, borderRadius: 14, backgroundColor: ORANGE, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "white" },
-  photoSourceRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 7 },
-  photoSourceButton: { minHeight: 36, paddingHorizontal: 10, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" },
-  photoSourceText: { color: ORANGE, fontSize: 11, fontFamily: "Inter_600SemiBold" },
-  removePhotoText: { marginTop: 5, color: "#DC2626", fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  formGroup: { marginBottom: 14 },
-  formLabel: { marginBottom: 6, color: "#475569", fontSize: 11.5, fontFamily: "Inter_700Bold" },
-  input: { minHeight: 50, borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0", backgroundColor: "#F8FAFC", paddingHorizontal: 14, color: "#0F172A", fontSize: 14, fontFamily: "Inter_400Regular" },
-  multilineInput: { minHeight: 88, paddingTop: 13, paddingBottom: 13 },
-  readOnlyInput: { minHeight: 50, borderRadius: 14, backgroundColor: "#F1F5F9", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 9 },
-  readOnlyText: { flex: 1, color: "#475569", fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  helpText: { marginTop: 5, color: "#94A3B8", fontSize: 10.5, lineHeight: 15, fontFamily: "Inter_400Regular" },
-  pickerInput: { flexDirection: "row", alignItems: "center" },
-  pickerValue: { flex: 1, color: "#0F172A", fontSize: 14, fontFamily: "Inter_400Regular" },
-  readOnlyDisabled: { opacity: 0.68 },
-  preferenceRow: { minHeight: 56, flexDirection: "row", alignItems: "center", borderRadius: 14, backgroundColor: "#F8FAFC", paddingHorizontal: 14, marginBottom: 10 },
-  preferenceText: { flex: 1 },
-  errorText: { marginTop: 4, color: "#DC2626", fontSize: 12.5, lineHeight: 18, textAlign: "center", fontFamily: "Inter_600SemiBold" },
-  editorActions: { flexDirection: "row", gap: 10, marginTop: 18 },
-  cancelButton: { flex: 1, minHeight: 50, borderRadius: 14, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
-  cancelText: { color: "#475569", fontSize: 14, fontFamily: "Inter_700Bold" },
-  saveButton: { flex: 1.4, minHeight: 50, borderRadius: 14, backgroundColor: ORANGE, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  saveText: { color: "white", fontSize: 14, fontFamily: "Inter_700Bold" },
-  disabled: { opacity: 0.65 },
-  optionRow: { minHeight: 54, borderRadius: 14, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", marginBottom: 7, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },
-  optionActive: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" },
-  optionText: { flex: 1, color: "#334155", fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  optionTextActive: { color: ORANGE },
-  optionSub: { marginTop: 2, color: "#94A3B8", fontSize: 11, fontFamily: "Inter_400Regular" },
-});
+            <View style={styles.actionIcon}><Feather name="file-text" size={18} color={ORANGE} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{c("complaints")}</Text><T
